@@ -36,7 +36,12 @@ export default function RegisterScreen({ navigation }) {
             toast.show('Account created! 🎉 Welcome aboard!', 'success');
             login(res.data.token, res.data.user);
         } catch (e) {
-            toast.show(e.response?.data?.error || 'Registration failed', 'error');
+            console.error('Registration Error:', e);
+            let msg = e.response?.data?.error || 'Registration failed';
+            if (e.message === 'Network Error') {
+                msg = '🔌 Connection Error: Cannot reach server. Please ensure your EXPO_PUBLIC_API_URL is correct in Netlify.';
+            }
+            toast.show(msg, 'error');
         } finally { setLoading(false); }
     };
 
@@ -69,7 +74,7 @@ export default function RegisterScreen({ navigation }) {
                     <TextInput style={[s.input, { borderColor: errors.password ? colors.danger : colors.glassBorder, color: colors.white }]}
                         placeholder="Min 4 characters" placeholderTextColor={colors.muted}
                         value={password} onChangeText={t => { setPassword(t); clearError('password'); }}
-                        secureTextEntry />
+                        secureTextEntry autoComplete="password" textContentType="password" />
                     {errors.password && <Text style={[s.error, { color: colors.danger }]}>⚠ {errors.password}</Text>}
 
                     <TouchableOpacity onPress={handleRegister} disabled={loading} activeOpacity={0.85}>

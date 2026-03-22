@@ -33,7 +33,12 @@ export default function LoginScreen({ navigation }) {
             toast.show('Welcome back! 👋', 'success');
             login(res.data.token, res.data.user);
         } catch (e) {
-            toast.show(e.response?.data?.error || 'Login failed', 'error');
+            console.error('Login Error:', e);
+            let msg = e.response?.data?.error || 'Login failed';
+            if (e.message === 'Network Error') {
+                msg = '🔌 Connection Error: Cannot reach server. Please check your internet or API settings.';
+            }
+            toast.show(msg, 'error');
         } finally { setLoading(false); }
     };
 
@@ -58,7 +63,7 @@ export default function LoginScreen({ navigation }) {
                     <TextInput style={[s.input, { borderColor: errors.password ? colors.danger : colors.glassBorder, color: colors.white }]}
                         placeholder="••••••••" placeholderTextColor={colors.muted}
                         value={password} onChangeText={t => { setPassword(t); if (errors.password) setErrors(e => ({ ...e, password: null })); }}
-                        secureTextEntry />
+                        secureTextEntry autoComplete="password" textContentType="password" />
                     {errors.password && <Text style={[s.error, { color: colors.danger }]}>⚠ {errors.password}</Text>}
 
                     <TouchableOpacity onPress={handleLogin} disabled={loading} activeOpacity={0.85}>
