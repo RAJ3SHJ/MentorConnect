@@ -121,6 +121,27 @@ async function initDb() {
     db.run("ALTER TABLE notifications ADD COLUMN mentor_id INTEGER");
   } catch (e) { /* column already exists */ }
 
+  // Migration: Phase 6 - Mentor Notification & Connect System
+  try {
+    db.run(`CREATE TABLE IF NOT EXISTS mentor_notifications (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      student_id INTEGER REFERENCES users(id),
+      trigger_type TEXT NOT NULL,
+      reference_id INTEGER,
+      is_claimed INTEGER DEFAULT 0,
+      claimed_by_mentor_id INTEGER,
+      created_at DATETIME DEFAULT (datetime('now'))
+    )`);
+  } catch (e) { /* already exists */ }
+
+  // Migration: Phase 6 - Feedback columns on exam_submissions
+  try { db.run('ALTER TABLE exam_submissions ADD COLUMN rating INTEGER'); } catch(e) {}
+  try { db.run('ALTER TABLE exam_submissions ADD COLUMN verdict TEXT'); } catch(e) {}
+  
+  // Migration: Phase 6 - Ensure UNIQUE constraint on mentor_assignments.student_id (already there from schema)
+  // Migration: Phase 6 - Add mentor_user_id to mentor_assignments for auth-based lookups
+  try { db.run('ALTER TABLE mentor_assignments ADD COLUMN mentor_user_id INTEGER REFERENCES users(id)'); } catch(e) {}
+
   // Migration: Phase 3 Quantum Update - Add mentor_id to users
   try {
     db.run("ALTER TABLE users ADD COLUMN mentor_id INTEGER REFERENCES users(id)");

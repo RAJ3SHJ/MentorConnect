@@ -35,6 +35,13 @@ router.post('/:id/submit', auth, (req, res) => {
         [req.user.id, exam.id, answersJson]
     );
 
+    // Phase 6: broadcast a single mentor_notification for all mentors to see
+    runGetId(
+        'INSERT INTO mentor_notifications (student_id, trigger_type, reference_id) VALUES (?, ?, ?)',
+        [req.user.id, 'exam', submissionId]
+    );
+
+    // Legacy notification record
     runGetId(
         'INSERT INTO notifications (type, student_id, reference_id) VALUES (?, ?, ?)',
         ['exam_submitted', req.user.id, submissionId]

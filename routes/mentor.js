@@ -159,4 +159,89 @@ router.post('/courses', auth, (req, res) => {
     }
 });
 
+// ─── PHASE 6: NOTIFICATION & CONNECT SYSTEM ───
+
+// GET /api/mentor/notifications — get all unclaimed notifications for this mentor
+router.get('/notifications', auth, (req, res) => {
+    const notifications = all(`
+        SELECT mn.id, mn.student_id, mn.trigger_type, mn.reference_id, mn.created_at,
+               u.name AS student_name, u.email AS student_email,
+               CASE WHEN mn.trigger_type = 'exam'
+                    THEN e.title
+                    ELSE c.title
+               END AS reference_title,
+               es.status AS submission_status
+        FROM mentor_notifications mn
+        JOIN users u ON u.id = mn.student_id
+        LEFT JOIN exam_submissions es ON es.id = mn.reference_id AND mn.trigger_type = 'exam'
+        LEFT JOIN exams e ON e.id = es.exam_id
+        LEFT JOIN courses c ON c.id = mn.reference_id AND mn.trigger_type = 'course'
+        WHERE mn.is_claimed = 0
+        ORDER BY mn.created_at DESC
+    `);
+    res.json(notifications);
+});
+
+// GET /api/mentor/notification-count — badge count of unclaimed notifications
+router.get('/notification-count', auth, (req, res) => {
+    const row = get('SELECT COUNT(*) as count FROM mentor_notifications WHERE is_claimed = 0');
+    res.json({ count: row ? row.count : 0 });
+});
+
+// POST /api/mentor/connect/:studentId — ATOMIC student claim (race-condition-proof)
+router.post('/connect/:studentId', auth, (req, res) => {
+    const mentorUserId = req.user.id;
+    const studentId = parseInt(req.params.studentId);
+
+    try {
+        // Check if student is already claimed
+        const existing = get('SELECT id, mentor_user_id FROM mentor_assignments WHERE student_id = ?', [studentId]);
+        if (existing) {
+            return res.status(409).json({ error: 'Student already connected to another mentor' });
+        }
+
+        // Atomic insert — UNIQUE(student_id) constraint means only first insert wins
+        runGetId(
+            'INSERT INTO mentor_assignments (mentor_id, student_id, mentor_user_id) VALUES (?, ?, ?)',
+            [mentorUserId, studentId, mentorUserId]
+        );
+
+        // Update users.mentor_id for quick lookups
+        run('UPDATE users SET mentor_id = ? WHERE id = ?', [mentorUserId, studentId]);
+
+        // Mark ALL mentor_notifications for this student as claimed
+        run(
+            'UPDATE mentor_notifications SET is_claimed = 1, claimed_by_mentor_id = ? WHERE student_id = ?',
+            [mentorUserId, studentId]
+        );
+
+        res.json({ message: 'Successfully connected to student', studentId });
+    } catch (e) {
+        // UNIQUE constraint violation = another mentor just claimed them
+        if (e.message && e.message.includes('UNIQUE')) {
+            return res.status(409).json({ error: 'Student was just claimed by another mentor' });
+        }
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// POST /api/mentor/feedback/:submissionId — give structured feedback on an exam
+router.post('/feedback/:submissionId', auth, (req, res) => {
+    const { rating, verdict, comment } = req.body;
+    if (!verdict || !['Approved', 'Needs Improvement'].includes(verdict)) {
+        return res.status(400).json({ error: 'verdict must be "Approved" or "Needs Improvement"' });
+    }
+    if (rating && (rating < 1 || rating > 5)) {
+        return res.status(400).json({ error: 'rating must be between 1 and 5' });
+    }
+
+    run(`
+        UPDATE exam_submissions
+        SET status = ?, mentor_remarks = ?, rating = ?, verdict = ?, reviewed_at = datetime('now')
+        WHERE id = ?
+    `, [verdict, comment || null, rating || null, verdict, req.params.submissionId]);
+
+    res.json({ message: 'Feedback submitted successfully' });
+});
+
 module.exports = router;

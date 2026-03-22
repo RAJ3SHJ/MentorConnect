@@ -25,6 +25,16 @@ router.patch('/:id', auth, (req, res) => {
     if (!row) return res.status(404).json({ error: 'Roadmap entry not found' });
 
     run('UPDATE roadmap SET status = ? WHERE id = ?', [status, req.params.id]);
+
+    // Phase 6: Notify mentors when course is completed
+    if (status === 'Complete') {
+        const { runGetId: rgi } = require('../db');
+        rgi(
+            'INSERT INTO mentor_notifications (student_id, trigger_type, reference_id) VALUES (?, ?, ?)',
+            [req.user.id, 'course', row.course_id]
+        );
+    }
+
     res.json({ message: 'Status updated' });
 });
 
