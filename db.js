@@ -1,27 +1,22 @@
-const initSqlJs = require('sql.js');
+const Database = require('better-sqlite3');
 const fs = require('fs');
 const path = require('path');
 
 const DB_PATH = path.join(__dirname, 'mentor_app.db');
 
-let db;
+// Initialize database with better-sqlite3
+const db = new Database(DB_PATH);
+
+// Enable WAL mode for better concurrency (crucial for 150+ users)
+db.pragma('journal_mode = WAL');
 
 function getDb() {
   return db;
 }
 
 async function initDb() {
-  const SQL = await initSqlJs();
-
-  if (fs.existsSync(DB_PATH)) {
-    const fileBuffer = fs.readFileSync(DB_PATH);
-    db = new SQL.Database(fileBuffer);
-  } else {
-    db = new SQL.Database();
-  }
-
   // Run schema
-  db.run(`
+  db.exec(`
     CREATE TABLE IF NOT EXISTS users (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT NOT NULL,
@@ -44,6 +39,7 @@ async function initDb() {
       mentor_id INTEGER REFERENCES users(id),
       student_id INTEGER REFERENCES users(id),
       assigned_at DATETIME DEFAULT (datetime('now')),
+      mentor_user_id INTEGER REFERENCES users(id),
       UNIQUE(student_id)
     );
 
@@ -53,6 +49,8 @@ async function initDb() {
       description TEXT,
       link TEXT,
       category TEXT,
+      created_by_role TEXT,
+      created_by_id INTEGER,
       created_at DATETIME DEFAULT (datetime('now'))
     );
 
@@ -96,6 +94,8 @@ async function initDb() {
       answers TEXT,
       status TEXT DEFAULT 'Pending Review',
       mentor_remarks TEXT,
+      rating INTEGER,
+      verdict TEXT,
       submitted_at DATETIME DEFAULT (datetime('now')),
       reviewed_at DATETIME
     );
@@ -109,21 +109,8 @@ async function initDb() {
       is_read INTEGER DEFAULT 0,
       created_at DATETIME DEFAULT (datetime('now'))
     );
-  `);
 
-  // Migration: add role column if missing
-  try {
-    db.run("ALTER TABLE users ADD COLUMN role TEXT DEFAULT 'learner'");
-  } catch (e) { /* column already exists */ }
-
-  // Migration: add mentor_id to notifications if missing
-  try {
-    db.run("ALTER TABLE notifications ADD COLUMN mentor_id INTEGER");
-  } catch (e) { /* column already exists */ }
-
-  // Migration: Phase 6 - Mentor Notification & Connect System
-  try {
-    db.run(`CREATE TABLE IF NOT EXISTS mentor_notifications (
+    CREATE TABLE IF NOT EXISTS mentor_notifications (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       student_id INTEGER REFERENCES users(id),
       trigger_type TEXT NOT NULL,
@@ -131,76 +118,47 @@ async function initDb() {
       is_claimed INTEGER DEFAULT 0,
       claimed_by_mentor_id INTEGER,
       created_at DATETIME DEFAULT (datetime('now'))
-    )`);
-  } catch (e) { /* already exists */ }
+    );
 
-  // Migration: Phase 6 - Feedback columns on exam_submissions
-  try { db.run('ALTER TABLE exam_submissions ADD COLUMN rating INTEGER'); } catch(e) {}
-  try { db.run('ALTER TABLE exam_submissions ADD COLUMN verdict TEXT'); } catch(e) {}
+    -- SCALING INDEXES
+    CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+    CREATE INDEX IF NOT EXISTS idx_assignments_student ON mentor_assignments(student_id);
+    CREATE INDEX IF NOT EXISTS idx_assignments_mentor_user ON mentor_assignments(mentor_user_id);
+    CREATE INDEX IF NOT EXISTS idx_roadmap_student ON roadmap(student_id);
+    CREATE INDEX IF NOT EXISTS idx_submissions_student ON exam_submissions(student_id);
+    CREATE INDEX IF NOT EXISTS idx_mentor_notif_claimed ON mentor_notifications(is_claimed);
+  `);
+
+  // Migrations (for backwards compatibility if file exists)
+  try { db.prepare("ALTER TABLE users ADD COLUMN mentor_id INTEGER REFERENCES users(id)").run(); } catch (e) {}
   
-  // Migration: Phase 6 - Ensure UNIQUE constraint on mentor_assignments.student_id (already there from schema)
-  // Migration: Phase 6 - Add mentor_user_id to mentor_assignments for auth-based lookups
-  try { db.run('ALTER TABLE mentor_assignments ADD COLUMN mentor_user_id INTEGER REFERENCES users(id)'); } catch(e) {}
-
-  // Migration: Phase 3 Quantum Update - Add mentor_id to users
-  try {
-    db.run("ALTER TABLE users ADD COLUMN mentor_id INTEGER REFERENCES users(id)");
-  } catch (e) { /* column already exists */ }
-
-  // Migration: Phase 3 Quantum Update - Add created_by fields to courses
-  try {
-    db.run("ALTER TABLE courses ADD COLUMN created_by_role TEXT");
-    db.run("ALTER TABLE courses ADD COLUMN created_by_id INTEGER");
-  } catch (e) { /* columns already exist */ }
-
-  saveToDisk();
-  console.log('✅ Database initialized at', DB_PATH);
+  console.log('✅ Database initialized and optimized at', DB_PATH);
 }
 
-function saveToDisk() {
-  if (!db) return;
-  const data = db.export();
-  fs.writeFileSync(DB_PATH, Buffer.from(data));
-}
-
-// Helper: run a write query and save to disk
+// Helper: run a write query
 function run(sql, params = []) {
-  db.run(sql, params);
-  saveToDisk();
-  return db;
+  return db.prepare(sql).run(...params);
 }
 
 // Helper: get a single row
 function get(sql, params = []) {
-  const stmt = db.prepare(sql);
-  stmt.bind(params);
-  if (stmt.step()) {
-    const row = stmt.getAsObject();
-    stmt.free();
-    return row;
-  }
-  stmt.free();
-  return null;
+  return db.prepare(sql).get(...params);
 }
 
 // Helper: get all rows
 function all(sql, params = []) {
-  const stmt = db.prepare(sql);
-  stmt.bind(params);
-  const rows = [];
-  while (stmt.step()) {
-    rows.push(stmt.getAsObject());
-  }
-  stmt.free();
-  return rows;
+  return db.prepare(sql).all(...params);
 }
 
 // Helper: get lastInsertRowid
 function runGetId(sql, params = []) {
-  db.run(sql, params);
-  const idRow = get('SELECT last_insert_rowid() as id');
-  saveToDisk();
-  return idRow ? idRow.id : null;
+  const result = db.prepare(sql).run(...params);
+  return result.lastInsertRowid;
+}
+
+// saveToDisk is no longer needed as better-sqlite3 writes directly to the file
+function saveToDisk() {
+  // Placeholder for compatibility
 }
 
 module.exports = { initDb, getDb, run, get, all, runGetId, saveToDisk };
