@@ -80,6 +80,24 @@ export default function AssessmentScreen({ navigation }) {
             <Text style={[st.submittedMsg, { color: colors.muted }]}>
                 Your skill assessment has been submitted and is under review. Your mentor will be notified.
             </Text>
+
+            {/* Assessment Summary Section */}
+            <View style={[st.summaryCard, { backgroundColor: 'rgba(255,255,255,0.03)', borderColor: colors.glassBorder }]}>
+                <Text style={[st.summaryLabel, { color: colors.blue }]}>🎯 Primary Goal</Text>
+                <Text style={[st.summaryText, { color: colors.white }]}>{goal || savedSkills?.goal}</Text>
+                
+                <View style={{ height: 1, backgroundColor: colors.glassBorder, marginVertical: 12 }} />
+                
+                <Text style={[st.summaryLabel, { color: colors.blue }]}>🛠️ Core Skills</Text>
+                <View style={st.tagsWrap}>
+                    {(skills.length > 0 ? skills : (savedSkills?.skills || [])).map(sk => (
+                        <View key={sk} style={[st.tag, { borderColor: colors.blue + '22', opacity: 0.8 }]}>
+                            <Text style={[st.tagText, { color: colors.blue }]}>{sk}</Text>
+                        </View>
+                    ))}
+                </View>
+            </View>
+
             {savedSkills?.submitted_at && (
                 <Text style={[st.submittedDate, { color: colors.muted }]}>
                     Submitted: {new Date(savedSkills.submitted_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
@@ -219,6 +237,9 @@ const st = StyleSheet.create({
     submittedDate: { fontSize: 12, fontStyle: 'italic', marginBottom: 16 },
     editAgainBtn: { backgroundColor: 'rgba(66,133,244,0.1)', borderRadius: 12, borderWidth: 1, paddingVertical: 10, paddingHorizontal: 20 },
     editAgainText: { fontWeight: '700', fontSize: 14 },
+    summaryCard: { width: '100%', borderRadius: 16, borderWidth: 1, padding: 16, marginTop: 8, marginBottom: 20, alignItems: 'flex-start' },
+    summaryLabel: { fontSize: 12, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6 },
+    summaryText: { fontSize: 15, fontWeight: '600', lineHeight: 22 },
     emptyCard: { borderRadius: RADIUS, borderWidth: 1, padding: 24, alignItems: 'center' },
     emptyText: { textAlign: 'center', lineHeight: 22 },
     examCard: { borderRadius: RADIUS, borderWidth: 1, padding: 16, marginBottom: 12, flexDirection: 'row', alignItems: 'center' },

@@ -38,16 +38,14 @@ export default function TakeExamScreen({ route, navigation }) {
                 await api.post(`/api/exams/${examId}/submit`, { answers: ansArray });
                 setSubmitted(true);
                 toast.show('Exam submitted successfully! 🎉', 'success');
-            } catch (e) { toast.show(e.response?.data?.error || 'Submission failed', 'error'); }
+            } catch (e) { 
+                console.error('Submission error:', e);
+                toast.show(e.response?.data?.error || 'Submission failed. Please check your connection.', 'error'); 
+            }
             finally { setSubmitting(false); }
         };
 
-        if (Platform.OS === 'web') {
-            if (window.confirm('Submit this exam? You cannot change answers after.')) doSubmit();
-        } else {
-            const { Alert } = require('react-native');
-            Alert.alert('Submit', 'Are you sure?', [{ text: 'Cancel' }, { text: 'Submit', onPress: doSubmit }]);
-        }
+        doSubmit();
     };
 
     if (loading) return (
