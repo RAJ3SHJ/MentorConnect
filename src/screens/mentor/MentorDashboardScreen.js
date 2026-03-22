@@ -12,7 +12,7 @@ const { width } = Dimensions.get('window');
 const isMobile = width < 768;
 
 export default function MentorDashboardScreen({ navigation }) {
-    const { user } = useAuth();
+    const { user, logout } = useAuth();
     const [roster, setRoster] = useState([]);
     const [assessments, setAssessments] = useState([]);
     const [refreshing, setRefreshing] = useState(false);
@@ -83,8 +83,25 @@ export default function MentorDashboardScreen({ navigation }) {
             <ScrollView contentContainerStyle={s.scroll} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#00d2ff" />}>
                 
                 <View style={s.header}>
-                    <Text style={s.title}>Command Center</Text>
-                    <Text style={s.subtitle}>Welcome back, {user?.name}. You have {assessments.length} pending reviews.</Text>
+                    <View>
+                        <Text style={s.title}>Mentor Dashboard</Text>
+                        <Text style={s.subtitle}>Welcome back, {user?.name}. You have {assessments.length} pending reviews.</Text>
+                    </View>
+                    <TouchableOpacity
+                        onPress={() => {
+                            if (Platform.OS === 'web') {
+                                logout();
+                            } else {
+                                Alert.alert('Sign Out', 'Are you sure?', [
+                                    { text: 'Cancel', style: 'cancel' },
+                                    { text: 'Sign Out', style: 'destructive', onPress: logout }
+                                ]);
+                            }
+                        }}
+                        style={{ backgroundColor: 'rgba(255,71,87,0.12)', borderWidth: 1, borderColor: 'rgba(255,71,87,0.3)', borderRadius: 12, paddingHorizontal: 16, paddingVertical: 10 }}
+                    >
+                        <Text style={{ color: '#ff4757', fontWeight: '700', fontSize: 13 }}>⬡ Sign Out</Text>
+                    </TouchableOpacity>
                 </View>
 
                 {/* MODULE 1: Student-Mentor Connect Hub (Horizontal Roster) */}
@@ -223,7 +240,7 @@ const s = StyleSheet.create({
     glowOrb: { position: 'absolute', width: 400, height: 400, borderRadius: 200, filter: 'blur(120px)', opacity: 0.15 },
     scroll: { padding: isMobile ? 20 : 40, paddingBottom: 120 },
     
-    header: { marginBottom: 40, zIndex: 10 },
+    header: { marginBottom: 40, zIndex: 10, flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' },
     title: { fontSize: 36, fontWeight: '800', color: '#fff', letterSpacing: -1, marginBottom: 8 },
     subtitle: { fontSize: 16, color: 'rgba(0, 210, 255, 0.8)' },
 
