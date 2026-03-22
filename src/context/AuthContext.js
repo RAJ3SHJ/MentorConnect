@@ -14,9 +14,21 @@ export function AuthProvider({ children }) {
             const storedToken = await AsyncStorage.getItem('token');
             const storedUser = await AsyncStorage.getItem('user');
             if (storedToken && storedUser) {
-                setToken(storedToken);
-                setUser(JSON.parse(storedUser));
-                api.defaults.headers.common['Authorization'] = `Bearer ${storedToken}`;
+                try {
+                    const parsedUser = JSON.parse(storedUser);
+                    // Automatically clear cache if the user object is a corrupted string from the old bug
+                    if (typeof parsedUser === 'string' || !parsedUser.role) {
+                        await AsyncStorage.clear();
+                        setToken(null);
+                        setUser(null);
+                    } else {
+                        setToken(storedToken);
+                        setUser(parsedUser);
+                        api.defaults.headers.common['Authorization'] = `Bearer ${storedToken}`;
+                    }
+                } catch (e) {
+                    await AsyncStorage.clear();
+                }
             }
             setLoading(false);
         })();

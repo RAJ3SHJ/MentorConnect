@@ -50,7 +50,7 @@ export default function AdminDashboardScreen({ navigation }) {
                 fetchAll();
             } catch (e) { toast.show('Delete failed', 'error'); }
         };
-        if (Platform.OS === 'web') { if (window.confirm(msg)) doDelete(); }
+        if (Platform.OS === 'web') { doDelete(); }
         else { Alert.alert('Delete', msg, [{ text: 'Cancel' }, { text: 'Delete', style: 'destructive', onPress: doDelete }]); }
     };
 
@@ -75,7 +75,7 @@ export default function AdminDashboardScreen({ navigation }) {
                 </View>
                 <TouchableOpacity style={s.logoutBtn} onPress={() => {
                     if (Platform.OS === 'web') {
-                        if (window.confirm('Are you sure you want to log out?')) logout();
+                        logout();
                     } else {
                         Alert.alert('Log Out', 'Are you sure you want to log out?', [
                             { text: 'Cancel', style: 'cancel' }, { text: 'Log Out', style: 'destructive', onPress: logout }

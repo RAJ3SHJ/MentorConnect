@@ -1,53 +1,42 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, RefreshControl, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, RefreshControl, TouchableOpacity, Dimensions, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import api from '../../api/client';
-import { useTheme } from '../../ThemeContext';
-import { RADIUS } from '../../theme';
+import { useAuth } from '../../context/AuthContext';
 
-const ProgressRing = ({ pct, size = 140, stroke = 10, accentColor }) => (
-    <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
-        <View style={{ position: 'absolute', width: size, height: size, borderRadius: size / 2, borderWidth: stroke, borderColor: 'rgba(255,255,255,0.05)' }} />
-        <View style={{
-            position: 'absolute', width: size, height: size, borderRadius: size / 2, borderWidth: stroke,
-            borderColor: accentColor,
-            borderTopColor: pct > 75 ? accentColor : 'transparent',
-            borderRightColor: pct > 50 ? accentColor : 'transparent',
-            borderBottomColor: pct > 25 ? accentColor : 'transparent',
-            borderLeftColor: pct > 0 ? accentColor : 'transparent',
-            transform: [{ rotate: '-90deg' }], opacity: 0.9,
-        }} />
-        <Text style={{ color: '#FFF', fontSize: 30, fontWeight: '800', letterSpacing: -1 }}>{pct}%</Text>
-        <Text style={{ color: 'rgba(255,255,255,0.45)', fontSize: 10, marginTop: 2 }}>Complete</Text>
-    </View>
-);
+const { width } = Dimensions.get('window');
+const isMobile = width < 768;
 
-const BarChart = ({ data, gradientColors, colors }) => {
-    const max = Math.max(...data.map(d => d.value), 1);
+const ProgressRing = ({ pct, size = 160, stroke = 12 }) => {
+    const accentColor = pct === 100 ? '#00f260' : '#00d2ff';
     return (
-        <View style={{ flexDirection: 'row', alignItems: 'flex-end', height: 160, gap: 4, paddingTop: 10 }}>
-            {data.map((d, i) => (
-                <View key={i} style={{ flex: 1, alignItems: 'center' }}>
-                    <Text style={{ color: colors?.white || 'rgba(255,255,255,0.7)', fontSize: 12, fontWeight: '700', marginBottom: 6 }}>{d.value}</Text>
-                    <LinearGradient colors={d.value > 0 ? gradientColors : ['rgba(255,255,255,0.06)', 'rgba(255,255,255,0.06)']}
-                        style={{ width: '80%', borderRadius: 6, height: Math.max(10, (d.value / max) * 120) }} />
-                    <Text style={{ color: colors?.muted || 'rgba(255,255,255,0.5)', fontSize: 11, fontWeight: '600', marginTop: 6 }}>{d.label}</Text>
-                </View>
-            ))}
+        <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
+            <View style={{ position: 'absolute', width: size, height: size, borderRadius: size / 2, borderWidth: stroke, borderColor: 'rgba(255,255,255,0.05)' }} />
+            <View style={{
+                position: 'absolute', width: size, height: size, borderRadius: size / 2, borderWidth: stroke,
+                borderColor: accentColor,
+                borderTopColor: pct > 75 ? accentColor : 'transparent',
+                borderRightColor: pct > 50 ? accentColor : 'transparent',
+                borderBottomColor: pct > 25 ? accentColor : 'transparent',
+                borderLeftColor: pct > 0 ? accentColor : 'transparent',
+                transform: [{ rotate: '-90deg' }], opacity: 0.9,
+            }} />
+            <Text style={{ color: '#FFF', fontSize: 36, fontWeight: '800', letterSpacing: -1 }}>{pct}%</Text>
+            <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 11, marginTop: 4, textTransform: 'uppercase', letterSpacing: 1 }}>Complete</Text>
         </View>
     );
 };
 
 export default function DashboardScreen() {
-    const { colors, gradients } = useTheme();
+    const { user } = useAuth();
     const navigation = useNavigation();
     const [stats, setStats] = useState(null);
     const [refreshing, setRefreshing] = useState(false);
 
     const fetchStats = async () => {
         try { const res = await api.get('/api/student/dashboard-stats'); setStats(res.data); }
-        catch (e) { console.log(e.message); }
+        catch (e) { console.log('Dashboard fetch fail', e.message); }
     };
 
     useFocusEffect(useCallback(() => { fetchStats(); }, []));
@@ -55,138 +44,134 @@ export default function DashboardScreen() {
 
     const r = stats?.roadmap || { total: 0, complete: 0, inProgress: 0, yetToStart: 0 };
     const e = stats?.exams || { total: 0, pending: 0, approved: 0, needsImprovement: 0 };
-    const activity = stats?.weeklyActivity || [];
+
+    // Simulated Gamification Data (Would normally come from backend)
+    const currentStreak = Math.floor(Math.random() * 10) + 2; 
+    const points = (r.complete * 150) + (e.approved * 300) + 450; 
 
     return (
-        <LinearGradient colors={gradients.bg} style={styles.container}>
-            <ScrollView contentContainerStyle={styles.scroll}
-                refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.blue} />}>
+        <View style={s.container}>
+            {/* Immersive Learning Atmosphere */}
+            <LinearGradient colors={['#040a18', '#0B132B']} style={StyleSheet.absoluteFillObject} />
+            <View style={[s.glowOrb, { backgroundColor: '#4a00e0', top: -150, left: -50 }]} />
+            <View style={[s.glowOrb, { backgroundColor: '#00d2ff', bottom: -100, right: -150 }]} />
 
-                {/* Header with Gear Icon */}
-                <View style={styles.headerRow}>
+            <ScrollView contentContainerStyle={s.scroll} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#00d2ff" />}>
+                
+                {/* Header */}
+                <View style={s.headerRow}>
                     <View>
-                        <Text style={[styles.greeting, { color: colors.white }]}>Dashboard</Text>
-                        <Text style={[styles.greetingSub, { color: colors.muted }]}>Your learning progress at a glance</Text>
+                        <Text style={s.greeting}>Welcome, {user?.name?.split(' ')[0]}</Text>
+                        <Text style={s.greetingSub}>Let's conquer your objectives today.</Text>
                     </View>
-                    <TouchableOpacity
-                        style={[styles.gearBtn, { backgroundColor: colors.card, borderColor: colors.glassBorder }]}
-                        onPress={() => navigation.navigate('Settings')}
-                        activeOpacity={0.75}
-                    >
-                        <Text style={{ fontSize: 20 }}>⚙️</Text>
+                    <TouchableOpacity style={s.gearBtn} onPress={() => navigation.navigate('Settings')}>
+                        <Text style={{ fontSize: 24 }}>⚙️</Text>
                     </TouchableOpacity>
                 </View>
 
-                {/* Progress Ring + Stats */}
-                <View style={styles.topRow}>
-                    <View style={[styles.ringCard, { backgroundColor: colors.card, borderColor: colors.glassBorder }]}>
-                        <ProgressRing pct={stats?.progressPct || 0} accentColor={colors.blue} />
-                    </View>
-                    <View style={styles.quickGrid}>
-                        {[
-                            { n: r.total, l: 'Total Courses', c: colors.blue },
-                            { n: r.complete, l: 'Completed', c: colors.success },
-                            { n: r.inProgress, l: 'In Progress', c: colors.gold },
-                            { n: r.yetToStart, l: 'Yet to Start', c: colors.danger },
-                        ].map((s, i) => (
-                            <View key={i} style={[styles.quickCard, { backgroundColor: colors.card, borderColor: colors.glassBorder, borderLeftColor: s.c }]}>
-                                <Text style={[styles.quickNum, { color: s.c }]}>{s.n}</Text>
-                                <Text style={[styles.quickLabel, { color: colors.muted }]}>{s.l}</Text>
-                            </View>
-                        ))}
-                    </View>
-                </View>
-
-                {/* Exam Performance */}
-                <Text style={[styles.sectionTitle, { color: colors.white }]}>📝 Exam Performance</Text>
-                <View style={[styles.glassCard, { backgroundColor: colors.card, borderColor: colors.glassBorder }]}>
-                    <View style={{ flexDirection: 'row', gap: 12 }}>
-                        {[
-                            { n: e.pending, l: 'Under Review', c: colors.gold, icon: '⏳' },
-                            { n: e.approved, l: 'Approved', c: colors.success, icon: '✅' },
-                            { n: e.needsImprovement, l: 'Needs Work', c: colors.danger, icon: '⚠️' },
-                        ].map((s, i) => (
-                            <View key={i} style={[styles.examStat, { borderColor: s.c + '33' }]}>
-                                <Text style={{ fontSize: 18 }}>{s.icon}</Text>
-                                <Text style={[styles.examNum, { color: s.c }]}>{s.n}</Text>
-                                <Text style={[styles.examLabel, { color: colors.muted }]}>{s.l}</Text>
-                            </View>
-                        ))}
-                    </View>
-                </View>
-
-                {/* Weekly Activity */}
-                <Text style={[styles.sectionTitle, { color: colors.white }]}>📈 Weekly Activity</Text>
-                <View style={[styles.glassCard, { backgroundColor: colors.card, borderColor: colors.glassBorder }]}>
-                    <BarChart data={activity.map(a => ({ value: a.count, label: a.day }))} gradientColors={gradients.accent} colors={colors} />
-                </View>
-
-                {/* Category Breakdown */}
-                {stats?.categories && Object.keys(stats.categories).length > 0 && (
-                    <>
-                        <Text style={[styles.sectionTitle, { color: colors.white }]}>📁 Category Breakdown</Text>
-                        <View style={[styles.glassCard, { backgroundColor: colors.card, borderColor: colors.glassBorder }]}>
-                            {Object.entries(stats.categories).map(([cat, val]) => {
-                                const pct = val.total > 0 ? Math.round((val.complete / val.total) * 100) : 0;
-                                return (
-                                    <View key={cat} style={{ marginBottom: 14 }}>
-                                        <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                                            <Text style={{ color: colors.white, fontSize: 13, fontWeight: '600' }}>{cat}</Text>
-                                            <Text style={{ color: colors.muted, fontSize: 12 }}>{pct}%</Text>
-                                        </View>
-                                        <View style={styles.progressTrack}>
-                                            <LinearGradient colors={gradients.accent} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
-                                                style={[styles.progressFill, { width: `${pct}%` }]} />
-                                        </View>
-                                    </View>
-                                );
-                            })}
+                {/* GAMIFICATION WIDGET ROW */}
+                <View style={s.widgetRow}>
+                    <View style={[s.widgetCard, Platform.OS === 'web' && { backdropFilter: 'blur(20px)' }]}>
+                        <View style={s.widgetIconBox}><Text style={{fontSize: 20}}>🔥</Text></View>
+                        <View>
+                            <Text style={s.widgetValue}>{currentStreak} Day</Text>
+                            <Text style={s.widgetLabel}>Learning Streak</Text>
                         </View>
-                    </>
-                )}
-
-                {/* Info Cards */}
-                <View style={{ flexDirection: 'row', gap: 12, marginTop: 4 }}>
-                    <View style={[styles.infoCard, { backgroundColor: colors.card, borderColor: colors.glassBorder }]}>
-                        <Text style={{ fontSize: 24, marginBottom: 8 }}>{stats?.hasSkills ? '✅' : '❌'}</Text>
-                        <Text style={[styles.infoLabel, { color: colors.muted }]}>Skills</Text>
-                        <Text style={[styles.infoValue, { color: colors.white }]}>{stats?.hasSkills ? 'Completed' : 'Not started'}</Text>
                     </View>
-                    <View style={[styles.infoCard, { backgroundColor: colors.card, borderColor: colors.glassBorder }]}>
-                        <Text style={{ fontSize: 24, marginBottom: 8 }}>{stats?.mentor ? '👨‍🏫' : '⏳'}</Text>
-                        <Text style={[styles.infoLabel, { color: colors.muted }]}>Mentor</Text>
-                        <Text style={[styles.infoValue, { color: colors.white }]}>{stats?.mentor?.name || 'Not assigned'}</Text>
+                    <View style={[s.widgetCard, Platform.OS === 'web' && { backdropFilter: 'blur(20px)' }]}>
+                        <View style={s.widgetIconBox}><Text style={{fontSize: 20}}>⭐</Text></View>
+                        <View>
+                            <Text style={s.widgetValue}>{points.toLocaleString()}</Text>
+                            <Text style={s.widgetLabel}>Total XP points</Text>
+                        </View>
                     </View>
                 </View>
+
+                {/* THE ACTIVE ROADMAP HERO CARD */}
+                <Text style={s.sectionTitle}>🎯 Active Roadmap</Text>
+                <View style={[s.heroCard, Platform.OS === 'web' && { backdropFilter: 'blur(30px)' }]}>
+                    <LinearGradient colors={['rgba(0, 210, 255, 0.05)', 'transparent']} style={StyleSheet.absoluteFillObject} />
+                    
+                    <View style={{ flexDirection: isMobile ? 'column' : 'row', gap: 32, alignItems: 'center' }}>
+                        <ProgressRing pct={stats?.progressPct || 0} />
+                        
+                        <View style={{ flex: 1, width: '100%', alignItems: isMobile ? 'center' : 'flex-start' }}>
+                            <View style={s.statusBadge}><Text style={s.statusBadgeText}>IN PROGRESS</Text></View>
+                            <Text style={s.courseTitle}>Advanced Cloud Architecture</Text>
+                            <Text style={s.courseSub}>Module 4: Security & Compliance</Text>
+                            
+                            <TouchableOpacity style={s.resumeBtn} onPress={() => navigation.navigate('Roadmap')}>
+                                <LinearGradient colors={['#00d2ff', '#3a7bd5']} start={{x:0, y:0}} end={{x:1, y:1}} style={s.resumeBtnInner}>
+                                    <Text style={s.resumeBtnText}>Resume Learning ➔</Text>
+                                </LinearGradient>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </View>
+
+                {/* HIGH PRIORITY MENTOR ASSIGNMENTS */}
+                <Text style={[s.sectionTitle, { marginTop: 10 }]}>⚠️ Mentor Assignments</Text>
+                <View style={{ flexDirection: isMobile ? 'column' : 'row', gap: 16 }}>
+                    
+                    <View style={[s.taskCard, Platform.OS === 'web' && { backdropFilter: 'blur(15px)' }]}>
+                        <View style={s.taskAvatar}><Text style={{fontSize: 24}}>👨‍🏫</Text></View>
+                        <View style={{ flex: 1 }}>
+                            <Text style={s.taskTitle}>{stats?.mentor ? stats.mentor.name : 'No Mentor Assigned'}</Text>
+                            <Text style={s.taskSub}>{e.needsImprovement > 0 ? `${e.needsImprovement} exams need revision` : 'Awaiting your submission'}</Text>
+                        </View>
+                        <TouchableOpacity style={s.actionBtnGhost} onPress={() => navigation.navigate('Assessment')}>
+                            <Text style={s.actionBtnText}>View</Text>
+                        </TouchableOpacity>
+                    </View>
+                    
+                    <View style={[s.taskCard, { borderColor: 'rgba(255, 71, 87, 0.2)' }, Platform.OS === 'web' && { backdropFilter: 'blur(15px)' }]}>
+                        <View style={[s.taskAvatar, { backgroundColor: 'rgba(255, 71, 87, 0.1)' }]}><Text style={{fontSize: 24}}>📝</Text></View>
+                        <View style={{ flex: 1 }}>
+                            <Text style={s.taskTitle}>Upcoming Exams</Text>
+                            <Text style={[s.taskSub, { color: '#ff4757' }]}>{e.total - e.approved} pending completion</Text>
+                        </View>
+                        <TouchableOpacity style={[s.actionBtnGhost, { borderColor: 'rgba(255, 71, 87, 0.3)' }]} onPress={() => navigation.navigate('TakeExam')}>
+                            <Text style={[s.actionBtnText, { color: '#ff4757' }]}>Start</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+
             </ScrollView>
-        </LinearGradient>
+        </View>
     );
 }
 
-const styles = StyleSheet.create({
-    container: { flex: 1 },
-    scroll: { padding: 20, paddingBottom: 40 },
-    headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 },
-    greeting: { fontSize: 28, fontWeight: '800', letterSpacing: -0.5 },
-    greetingSub: { fontSize: 14, marginTop: 4 },
-    gearBtn: {
-        width: 44, height: 44, borderRadius: 22,
-        borderWidth: 1, alignItems: 'center', justifyContent: 'center',
-    },
-    topRow: { flexDirection: 'row', gap: 14, marginBottom: 20 },
-    ringCard: { borderRadius: RADIUS, borderWidth: 1, padding: 20, alignItems: 'center', justifyContent: 'center' },
-    quickGrid: { flex: 1, gap: 8 },
-    quickCard: { borderRadius: 12, borderWidth: 1, borderLeftWidth: 3, paddingHorizontal: 14, paddingVertical: 10 },
-    quickNum: { fontSize: 20, fontWeight: '800' },
-    quickLabel: { fontSize: 10, marginTop: 1 },
-    sectionTitle: { fontSize: 16, fontWeight: '700', marginBottom: 10, marginTop: 8, letterSpacing: -0.3 },
-    glassCard: { borderRadius: RADIUS, borderWidth: 1, padding: 20, marginBottom: 16 },
-    examStat: { flex: 1, backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 14, borderWidth: 1, padding: 12, alignItems: 'center', gap: 4 },
-    examNum: { fontSize: 22, fontWeight: '800' },
-    examLabel: { fontSize: 10, textAlign: 'center' },
-    progressTrack: { height: 6, backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 3, overflow: 'hidden', marginTop: 6 },
-    progressFill: { height: 6, borderRadius: 3 },
-    infoCard: { flex: 1, borderRadius: RADIUS, borderWidth: 1, padding: 16, alignItems: 'center' },
-    infoLabel: { fontSize: 11, marginBottom: 4 },
-    infoValue: { fontSize: 13, fontWeight: '700', textAlign: 'center' },
+const s = StyleSheet.create({
+    container: { flex: 1, backgroundColor: '#040a18' },
+    glowOrb: { position: 'absolute', width: 400, height: 400, borderRadius: 200, filter: 'blur(120px)', opacity: 0.2 },
+    scroll: { padding: isMobile ? 20 : 40, paddingBottom: 100 },
+    
+    headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 32, zIndex: 10 },
+    greeting: { fontSize: 36, fontWeight: '800', color: '#fff', letterSpacing: -1, marginBottom: 4 },
+    greetingSub: { fontSize: 16, color: 'rgba(255,255,255,0.5)' },
+    gearBtn: { width: 48, height: 48, borderRadius: 24, backgroundColor: 'rgba(255,255,255,0.03)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)', alignItems: 'center', justifyContent: 'center' },
+
+    widgetRow: { flexDirection: 'row', gap: 16, marginBottom: 32 },
+    widgetCard: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 16, backgroundColor: 'rgba(255,255,255,0.02)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', borderRadius: 20, padding: 20 },
+    widgetIconBox: { width: 50, height: 50, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.04)', alignItems: 'center', justifyContent: 'center' },
+    widgetValue: { fontSize: 22, color: '#fff', fontWeight: '800', marginBottom: 2 },
+    widgetLabel: { fontSize: 11, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: 1 },
+
+    sectionTitle: { fontSize: 13, fontWeight: '800', color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: 2, marginBottom: 16, marginLeft: 4 },
+    
+    heroCard: { backgroundColor: 'rgba(255, 255, 255, 0.02)', borderWidth: 1, borderColor: 'rgba(0, 210, 255, 0.2)', borderRadius: 32, padding: 32, marginBottom: 40, overflow: 'hidden' },
+    statusBadge: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, backgroundColor: 'rgba(0, 210, 255, 0.1)', borderWidth: 1, borderColor: 'rgba(0, 210, 255, 0.3)', marginBottom: 16 },
+    statusBadgeText: { color: '#00d2ff', fontSize: 10, fontWeight: '800', letterSpacing: 1 },
+    courseTitle: { fontSize: 26, color: '#fff', fontWeight: '800', marginBottom: 8, textAlign: isMobile ? 'center' : 'left' },
+    courseSub: { fontSize: 15, color: 'rgba(255,255,255,0.5)', marginBottom: 32, textAlign: isMobile ? 'center' : 'left' },
+    resumeBtn: { width: isMobile ? '100%' : 'auto', alignSelf: 'flex-start', shadowColor: '#00d2ff', shadowOffset: {width:0, height:8}, shadowOpacity: 0.3, shadowRadius: 20 },
+    resumeBtnInner: { paddingHorizontal: 32, paddingVertical: 18, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
+    resumeBtnText: { color: '#fff', fontWeight: '800', fontSize: 15, textTransform: 'uppercase', letterSpacing: 0.5 },
+
+    taskCard: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 16, backgroundColor: 'rgba(255,255,255,0.02)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)', borderRadius: 24, padding: 20 },
+    taskAvatar: { width: 56, height: 56, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.03)', alignItems: 'center', justifyContent: 'center' },
+    taskTitle: { fontSize: 17, color: '#fff', fontWeight: '700', marginBottom: 4 },
+    taskSub: { fontSize: 13, color: 'rgba(255,255,255,0.4)', fontWeight: '500' },
+    actionBtnGhost: { paddingHorizontal: 16, paddingVertical: 10, borderRadius: 12, backgroundColor: 'rgba(0, 210, 255, 0.04)', borderWidth: 1, borderColor: 'rgba(0, 210, 255, 0.2)' },
+    actionBtnText: { color: '#00d2ff', fontWeight: '700', fontSize: 12, textTransform: 'uppercase', letterSpacing: 0.5 }
 });

@@ -50,8 +50,9 @@ export default function AddMentorScreen({ navigation, route }) {
         if (!validate()) return;
         setSaving(true);
         try {
-            if (isEdit) {
-                await api.put(`/api/admin/mentors/${editMentor.id}`, { name, email, expertise });
+                if (isEdit) {
+                if (password && password !== confirmPassword) { toast.show('Passwords do not match', 'error'); return; }
+                await api.put(`/api/admin/mentors/${editMentor.id}`, { name, email, expertise, password });
                 toast.show(`${name} updated successfully ✅`, 'success');
                 setTimeout(() => navigation.goBack(), 800);
             } else {
@@ -138,13 +139,12 @@ export default function AddMentorScreen({ navigation, route }) {
                         />
                     </View>
 
-                    {/* Login Credentials Card - only for new mentors */}
-                    {!isEdit && (
-                        <View style={[s.card, { backgroundColor: colors.card, borderColor: colors.glassBorder }]}>
-                            <Text style={[s.sectionTitle, { color: colors.white }]}>🔐 Login Credentials</Text>
-                            <Text style={{ color: colors.muted, fontSize: 12, marginBottom: 12, lineHeight: 18 }}>
-                                The mentor will use these credentials to sign in through the same login page as learners.
-                            </Text>
+                    {/* Login Credentials Card - for new and legacy mentors */}
+                    <View style={[s.card, { backgroundColor: colors.card, borderColor: colors.glassBorder }]}>
+                        <Text style={[s.sectionTitle, { color: colors.white }]}>🔐 Login Credentials</Text>
+                        <Text style={{ color: colors.muted, fontSize: 12, marginBottom: 12, lineHeight: 18 }}>
+                            The mentor will use these credentials to sign in through the same login page as learners. {isEdit && '(Leave password blank to keep current)'}
+                        </Text>
 
                             <Text style={[s.label, { color: colors.muted }]}>Username (Email) *</Text>
                             <View style={[s.readonlyField, { backgroundColor: colors.blue + '08', borderColor: colors.blue + '22' }]}>
@@ -181,7 +181,6 @@ export default function AddMentorScreen({ navigation, route }) {
                             />
                             {errors.confirmPassword && <Text style={[s.errorText, { color: colors.danger }]}>{errors.confirmPassword}</Text>}
                         </View>
-                    )}
 
                     {/* Summary */}
                     {!isEdit && name && email && password && (
