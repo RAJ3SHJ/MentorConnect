@@ -44,17 +44,26 @@ router.post('/login', (req, res) => {
     res.json({ token, user: { id: user.id, name: user.name, email: user.email, role } });
 });
 
-// POST /api/auth/admin-login — dedicated admin passcode login
-router.post('/admin-login', (req, res) => {
-    const { passcode } = req.body;
-    if (passcode !== '1234') {
-        return res.status(401).json({ error: 'Invalid admin passcode' });
+// POST /api/auth/quantum-login — authenticate Admin or Mentor using PIN
+router.post('/quantum-login', (req, res) => {
+    const { pin, role } = req.body;
+    if (!pin || !role) {
+        return res.status(400).json({ error: 'PIN and requested role required' });
     }
+
+    if (pin !== '1234') {
+        return res.status(401).json({ error: 'Invalid Secure PIN' });
+    }
+
+    if (role !== 'admin' && role !== 'mentor') {
+        return res.status(400).json({ error: 'Invalid role requested' });
+    }
+
     const token = jwt.sign(
-        { id: 0, name: 'Admin', email: 'admin@mentorpath.com', role: 'admin' },
+        { id: role === 'admin' ? 0 : 999, name: role === 'admin' ? 'Rajesh J.' : 'Primary Mentor', email: `${role}@mentorpath.com`, role: role },
         JWT_SECRET, { expiresIn: '7d' }
     );
-    res.json({ token, user: { id: 0, name: 'Admin', email: 'admin@mentorpath.com', role: 'admin' } });
+    res.json({ token, user: { id: role === 'admin' ? 0 : 999, name: role === 'admin' ? 'Rajesh J.' : 'Primary Mentor', email: `${role}@mentorpath.com`, role: role } });
 });
 
 // GET /api/auth/profile

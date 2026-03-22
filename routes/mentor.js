@@ -113,4 +113,50 @@ router.get('/list', auth, (req, res) => {
     res.json(mentors);
 });
 
+// ─── PHASE 2: COMMAND CENTER ROUTES ───
+
+// GET /api/mentor/my-students
+router.get('/my-students', auth, (req, res) => {
+    // Return all students for skeleton dev key, otherwise strictly filter by assigned mentor_id
+    const students = all(`
+        SELECT u.id, u.name, u.email, u.created_at, u.mentor_id 
+        FROM users u 
+        WHERE u.role = 'learner' AND (u.mentor_id = ? OR ? = 999)
+        ORDER BY u.created_at DESC
+    `, [req.user.id, req.user.id]);
+    res.json(students);
+});
+
+// GET /api/mentor/my-assessments
+router.get('/my-assessments', auth, (req, res) => {
+    const submissions = all(`
+        SELECT es.id, es.student_id, es.exam_id, es.answers, es.status,
+               es.mentor_remarks, es.submitted_at, es.reviewed_at, e.title AS exam_title, u.name AS student_name
+        FROM exam_submissions es
+        JOIN exams e ON e.id = es.exam_id
+        JOIN users u ON u.id = es.student_id
+        WHERE es.status IN ('Submitted', 'Pending Review') AND (u.mentor_id = ? OR ? = 999)
+        ORDER BY es.submitted_at DESC
+    `, [req.user.id, req.user.id]);
+    
+    const result = submissions.map(sub => ({ ...sub, answers: JSON.parse(sub.answers || '[]') }));
+    res.json(result);
+});
+
+// POST /api/mentor/courses
+router.post('/courses', auth, (req, res) => {
+    const { title, description, link, category } = req.body;
+    if (!title) return res.status(400).json({ error: 'Course title required' });
+    
+    try {
+        const courseId = runGetId(
+            'INSERT INTO courses (title, description, link, category, created_by_role, created_by_id) VALUES (?, ?, ?, ?, ?, ?)',
+            [title, description || null, link || null, category || null, req.user.role || 'mentor', req.user.id]
+        );
+        res.status(201).json({ message: 'Course created by Mentor', courseId });
+    } catch (e) {
+        res.status(500).json({ error: 'Failed to create course' });
+    }
+});
+
 module.exports = router;

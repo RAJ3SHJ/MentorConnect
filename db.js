@@ -121,6 +121,17 @@ async function initDb() {
     db.run("ALTER TABLE notifications ADD COLUMN mentor_id INTEGER");
   } catch (e) { /* column already exists */ }
 
+  // Migration: Phase 3 Quantum Update - Add mentor_id to users
+  try {
+    db.run("ALTER TABLE users ADD COLUMN mentor_id INTEGER REFERENCES users(id)");
+  } catch (e) { /* column already exists */ }
+
+  // Migration: Phase 3 Quantum Update - Add created_by fields to courses
+  try {
+    db.run("ALTER TABLE courses ADD COLUMN created_by_role TEXT");
+    db.run("ALTER TABLE courses ADD COLUMN created_by_id INTEGER");
+  } catch (e) { /* columns already exist */ }
+
   saveToDisk();
   console.log('✅ Database initialized at', DB_PATH);
 }

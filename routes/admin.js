@@ -52,25 +52,49 @@ router.post('/mentors', auth, (req, res) => {
 
 // PUT /api/admin/mentors/:id — update a mentor
 router.put('/mentors/:id', auth, (req, res) => {
-    const { name, email, expertise } = req.body;
+    const { name, email, expertise, password } = req.body;
     if (!name || !email) return res.status(400).json({ error: 'Name and email required' });
 
     const existing = get('SELECT id FROM mentors WHERE id = ?', [req.params.id]);
     if (!existing) return res.status(404).json({ error: 'Mentor not found' });
 
     run('UPDATE mentors SET name = ?, email = ?, expertise = ? WHERE id = ?',
-        [name, email, expertise || null, req.params.id]);
-    res.json({ message: 'Mentor updated' });
+        [name, email.toLowerCase(), expertise || null, req.params.id]);
+
+    // Update or Insert into users table
+    const existingUser = get('SELECT id FROM users WHERE email = ?', [email.toLowerCase()]);
+    if (existingUser) {
+        if (password) {
+            const hash = bcrypt.hashSync(password, 10);
+            run('UPDATE users SET name = ?, password_hash = ?, role = ? WHERE id = ?', [name, hash, 'mentor', existingUser.id]);
+        } else {
+            run('UPDATE users SET name = ?, role = ? WHERE id = ?', [name, 'mentor', existingUser.id]);
+        }
+    } else if (password) {
+        // Hydrate legacy mentor
+        const hash = bcrypt.hashSync(password, 10);
+        runGetId(
+            'INSERT INTO users (name, email, password_hash, role) VALUES (?, ?, ?, ?)',
+            [name, email.toLowerCase(), hash, 'mentor']
+        );
+    }
+    res.json({ message: 'Mentor updated with credentials sync' });
 });
 
 // DELETE /api/admin/mentors/:id — delete a mentor
 router.delete('/mentors/:id', auth, (req, res) => {
-    const existing = get('SELECT id FROM mentors WHERE id = ?', [req.params.id]);
+    const existing = get('SELECT id, email FROM mentors WHERE id = ?', [req.params.id]);
     if (!existing) return res.status(404).json({ error: 'Mentor not found' });
 
     // Remove assignments first
     run('DELETE FROM mentor_assignments WHERE mentor_id = ?', [req.params.id]);
     run('DELETE FROM mentors WHERE id = ?', [req.params.id]);
+    
+    // Purge Auth Profile
+    if (existing.email) {
+        run('DELETE FROM users WHERE email = ? AND role = ?', [existing.email.toLowerCase(), 'mentor']);
+    }
+
     res.json({ message: 'Mentor deleted' });
 });
 
