@@ -44,6 +44,19 @@ router.post('/login', (req, res) => {
     res.json({ token, user: { id: user.id, name: user.name, email: user.email, role } });
 });
 
+// POST /api/auth/admin-login — dedicated admin passcode login
+router.post('/admin-login', (req, res) => {
+    const { passcode } = req.body;
+    if (passcode !== '1234') {
+        return res.status(401).json({ error: 'Invalid admin passcode' });
+    }
+    const token = jwt.sign(
+        { id: 0, name: 'Admin', email: 'admin@mentorpath.com', role: 'admin' },
+        JWT_SECRET, { expiresIn: '7d' }
+    );
+    res.json({ token, user: { id: 0, name: 'Admin', email: 'admin@mentorpath.com', role: 'admin' } });
+});
+
 // GET /api/auth/profile
 const auth = require('../middleware/auth');
 router.get('/profile', auth.default || auth, (req, res) => {

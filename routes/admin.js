@@ -2,6 +2,29 @@ const router = require('express').Router();
 const { run, get, all, runGetId } = require('../db');
 const auth = require('../middleware/auth');
 
+// ─── STUDENTS ───
+
+// GET /api/admin/students — list all learners
+router.get('/students', auth, (req, res) => {
+    const students = all("SELECT id, name, email, created_at FROM users WHERE role = 'learner' ORDER BY created_at DESC");
+    res.json(students);
+});
+
+// DELETE /api/admin/students/:id — delete a student and their data
+router.delete('/students/:id', auth, (req, res) => {
+    const existing = get('SELECT id FROM users WHERE id = ?', [req.params.id]);
+    if (!existing) return res.status(404).json({ error: 'Student not found' });
+
+    run('DELETE FROM roadmap WHERE student_id = ?', [req.params.id]);
+    run('DELETE FROM mentor_assignments WHERE student_id = ?', [req.params.id]);
+    run('DELETE FROM student_skills WHERE student_id = ?', [req.params.id]);
+    run('DELETE FROM exam_submissions WHERE student_id = ?', [req.params.id]);
+    run('DELETE FROM notifications WHERE student_id = ?', [req.params.id]);
+    run('DELETE FROM users WHERE id = ?', [req.params.id]);
+    
+    res.json({ message: 'Student deleted' });
+});
+
 // ─── MENTORS ───
 
 // GET /api/admin/mentors — list all mentors
@@ -163,7 +186,7 @@ router.delete('/exams/:id', auth, (req, res) => {
 
 // GET /api/admin/stats — overall platform stats
 router.get('/stats', auth, (req, res) => {
-    const totalStudents = get('SELECT COUNT(*) as c FROM users');
+    const totalStudents = get("SELECT COUNT(*) as c FROM users WHERE role = 'learner'");
     const totalMentors = get('SELECT COUNT(*) as c FROM mentors');
     const totalCourses = get('SELECT COUNT(*) as c FROM courses');
     const totalExams = get('SELECT COUNT(*) as c FROM exams');
