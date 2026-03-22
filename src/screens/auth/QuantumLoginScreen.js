@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, ActivityIndicator, Alert, Platform } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, ActivityIndicator, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import api from '../../api/client';
 import { useAuth } from '../../context/AuthContext';
+import { useToast } from '../../components/Toast';
 
 export default function QuantumLoginScreen({ navigation }) {
     const { login } = useAuth();
+    const toast = useToast();
     const [role, setRole] = useState('admin'); // 'admin' or 'mentor'
     const [pin, setPin] = useState('');
     const [email, setEmail] = useState('');
@@ -20,11 +22,11 @@ export default function QuantumLoginScreen({ navigation }) {
 
     const handleLogin = async () => {
         if (isAd && (!pin || pin.length < 4)) {
-            Alert.alert('Error', 'Please enter a 4-digit PIN');
+            toast.show('Please enter a 4-digit PIN', 'error');
             return;
         }
         if (!isAd && (!email || !password)) {
-            Alert.alert('Error', 'Please enter email and password');
+            toast.show('Please enter email and password', 'error');
             return;
         }
         setLoading(true);
@@ -40,7 +42,12 @@ export default function QuantumLoginScreen({ navigation }) {
                 await login(data.token, data.user);
             }
         } catch (err) {
-            Alert.alert('Access Denied', err.response?.data?.error || err.message || 'Invalid credentials');
+            console.error('Quantum Login Error:', err);
+            let msg = err.response?.data?.error || err.message || 'Access Denied';
+            if (err.message === 'Network Error') {
+                msg = '🔌 Connection Error: Cannot reach server. Please check your EXPO_PUBLIC_API_URL in Vercel/Netlify.';
+            }
+            toast.show(msg, 'error');
             if (isAd) setPin('');
         } finally {
             setLoading(false);

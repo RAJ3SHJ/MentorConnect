@@ -39,7 +39,7 @@ export default function RegisterScreen({ navigation }) {
             console.error('Registration Error:', e);
             let msg = e.response?.data?.error || 'Registration failed';
             if (e.message === 'Network Error') {
-                msg = '🔌 Connection Error: Cannot reach server. Please ensure your EXPO_PUBLIC_API_URL is correct in Netlify.';
+                msg = '🔌 Connection Error: Cannot reach server. Please ensure your EXPO_PUBLIC_API_URL is correct in Vercel/Netlify.';
             }
             toast.show(msg, 'error');
         } finally { setLoading(false); }
