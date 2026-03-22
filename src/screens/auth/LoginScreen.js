@@ -71,6 +71,10 @@ export default function LoginScreen({ navigation }) {
                 <TouchableOpacity onPress={() => navigation.navigate('Register')}>
                     <Text style={[s.link, { color: colors.muted }]}>Don't have an account? <Text style={{ color: colors.blue, fontWeight: '700' }}>Sign Up</Text></Text>
                 </TouchableOpacity>
+
+                <TouchableOpacity onPress={() => navigation.navigate('AdminLogin')} style={{ marginTop: 24 }}>
+                    <Text style={{ color: colors.muted, fontSize: 13, textDecorationLine: 'underline' }}>Secure Admin Login</Text>
+                </TouchableOpacity>
             </View>
         </LinearGradient>
     );

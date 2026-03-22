@@ -5,6 +5,7 @@ import { useTheme } from '../ThemeContext';
 import AuthNavigator from './AuthNavigator';
 import StudentTabs from './StudentTabs';
 import MentorTabs from './MentorTabs';
+import AdminTabs from './AdminTabs';
 import { View, ActivityIndicator } from 'react-native';
 
 const Stack = createNativeStackNavigator();
@@ -24,7 +25,9 @@ export default function AppNavigator() {
     return (
         <Stack.Navigator screenOptions={{ headerShown: false }}>
             {user ? (
-                isMentor ? (
+                user.role === 'admin' ? (
+                    <Stack.Screen name="AdminRoot" component={AdminTabs} />
+                ) : user.role === 'mentor' ? (
                     <Stack.Screen name="MentorTabs" component={MentorTabs} />
                 ) : (
                     <Stack.Screen name="StudentTabs" component={StudentTabs} />

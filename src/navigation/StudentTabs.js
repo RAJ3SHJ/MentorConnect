@@ -12,17 +12,8 @@ import RoadmapScreen from '../screens/student/RoadmapScreen';
 import LibraryScreen from '../screens/student/LibraryScreen';
 import SettingsScreen from '../screens/student/SettingsScreen';
 
-// Admin Screens
-import AdminPasscodeModal from '../screens/admin/AdminPasscodeModal';
-import AdminDashboardScreen from '../screens/admin/AdminDashboardScreen';
-import AddMentorScreen from '../screens/admin/AddMentorScreen';
-import AddCourseScreen from '../screens/admin/AddCourseScreen';
-import AddExamScreen from '../screens/admin/AddExamScreen';
-import UploadExcelScreen from '../screens/admin/UploadExcelScreen';
-
 const Tab = createBottomTabNavigator();
 const DashStack = createNativeStackNavigator();
-const AdminStack = createNativeStackNavigator();
 const ExamStack = createNativeStackNavigator();
 
 function DashboardNavigator() {
@@ -40,19 +31,6 @@ function ExamNavigator() {
             <ExamStack.Screen name="AssessmentHome" component={AssessmentScreen} />
             <ExamStack.Screen name="TakeExam" component={TakeExamScreen} />
         </ExamStack.Navigator>
-    );
-}
-
-function AdminNavigator() {
-    return (
-        <AdminStack.Navigator screenOptions={{ headerShown: false }}>
-            <AdminStack.Screen name="AdminPasscode" component={AdminPasscodeModal} />
-            <AdminStack.Screen name="AdminDashboard" component={AdminDashboardScreen} />
-            <AdminStack.Screen name="AddMentor" component={AddMentorScreen} />
-            <AdminStack.Screen name="AddCourse" component={AddCourseScreen} />
-            <AdminStack.Screen name="AddExam" component={AddExamScreen} />
-            <AdminStack.Screen name="UploadExcel" component={UploadExcelScreen} />
-        </AdminStack.Navigator>
     );
 }
 
@@ -100,8 +78,6 @@ export default function StudentTabs() {
                 options={{ tabBarIcon: ({ focused }) => <TabIcon emoji="🗺️" label="Roadmap" focused={focused} colors={colors} /> }} />
             <Tab.Screen name="Library" component={LibraryScreen}
                 options={{ tabBarIcon: ({ focused }) => <TabIcon emoji="📚" label="Library" focused={focused} colors={colors} /> }} />
-            <Tab.Screen name="Admin" component={AdminNavigator}
-                options={{ tabBarIcon: ({ focused }) => <TabIcon emoji="🔐" label="Admin" focused={focused} colors={colors} /> }} />
         </Tab.Navigator>
     );
 }
