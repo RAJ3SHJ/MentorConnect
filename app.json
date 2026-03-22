@@ -1,0 +1,26 @@
+{
+    "expo": {
+        "name": "MentorPath",
+        "slug": "mentor-app",
+        "version": "1.0.0",
+        "orientation": "portrait",
+        "userInterfaceStyle": "dark",
+        "splash": {
+            "backgroundColor": "#0A0F1E"
+        },
+        "assetBundlePatterns": [
+            "**/*"
+        ],
+        "ios": {
+            "supportsTablet": false
+        },
+        "android": {
+            "adaptiveIcon": {
+                "backgroundColor": "#0A0F1E"
+            }
+        },
+        "web": {
+            "bundler": "metro"
+        }
+    }
+}

@@ -1,0 +1,93 @@
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import api from '../../api/client';
+import { useAuth } from '../../context/AuthContext';
+import { useTheme } from '../../ThemeContext';
+import { useToast } from '../../components/Toast';
+import { RADIUS } from '../../theme';
+
+export default function LoginScreen({ navigation }) {
+    const { login } = useAuth();
+    const { colors, gradients } = useTheme();
+    const toast = useToast();
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
+    const [loading, setLoading] = useState(false);
+    const [errors, setErrors] = useState({});
+
+    const validate = () => {
+        const e = {};
+        if (!email.trim()) e.email = 'Email is required';
+        else if (!/\S+@\S+\.\S+/.test(email)) e.email = 'Invalid email format';
+        if (!password) e.password = 'Password is required';
+        setErrors(e);
+        return Object.keys(e).length === 0;
+    };
+
+    const handleLogin = async () => {
+        if (!validate()) return;
+        setLoading(true);
+        try {
+            const res = await api.post('/api/auth/login', { email, password });
+            toast.show('Welcome back! 👋', 'success');
+            login(res.data.token, res.data.user);
+        } catch (e) {
+            toast.show(e.response?.data?.error || 'Login failed', 'error');
+        } finally { setLoading(false); }
+    };
+
+    return (
+        <LinearGradient colors={gradients.bg} style={s.container}>
+            <View style={[s.orb1, { backgroundColor: colors.blue }]} />
+            <View style={[s.orb2, { backgroundColor: colors.purple }]} />
+            <View style={s.inner}>
+                <Text style={{ fontSize: 40, marginBottom: 16 }}>👋</Text>
+                <Text style={[s.title, { color: colors.white }]}>Welcome Back</Text>
+                <Text style={[s.subtitle, { color: colors.muted }]}>Login to continue learning</Text>
+
+                <View style={[s.card, { backgroundColor: colors.card, borderColor: colors.glassBorder }]}>
+                    <Text style={[s.label, { color: colors.muted }]}>EMAIL</Text>
+                    <TextInput style={[s.input, { borderColor: errors.email ? colors.danger : colors.glassBorder, color: colors.white }]}
+                        placeholder="you@example.com" placeholderTextColor={colors.muted}
+                        value={email} onChangeText={t => { setEmail(t); if (errors.email) setErrors(e => ({ ...e, email: null })); }}
+                        autoCapitalize="none" keyboardType="email-address" />
+                    {errors.email && <Text style={[s.error, { color: colors.danger }]}>⚠ {errors.email}</Text>}
+
+                    <Text style={[s.label, { color: colors.muted }]}>PASSWORD</Text>
+                    <TextInput style={[s.input, { borderColor: errors.password ? colors.danger : colors.glassBorder, color: colors.white }]}
+                        placeholder="••••••••" placeholderTextColor={colors.muted}
+                        value={password} onChangeText={t => { setPassword(t); if (errors.password) setErrors(e => ({ ...e, password: null })); }}
+                        secureTextEntry />
+                    {errors.password && <Text style={[s.error, { color: colors.danger }]}>⚠ {errors.password}</Text>}
+
+                    <TouchableOpacity onPress={handleLogin} disabled={loading} activeOpacity={0.85}>
+                        <LinearGradient colors={gradients.accent} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={s.btn}>
+                            {loading ? <ActivityIndicator color="#FFF" /> : <Text style={s.btnText}>Login →</Text>}
+                        </LinearGradient>
+                    </TouchableOpacity>
+                </View>
+
+                <TouchableOpacity onPress={() => navigation.navigate('Register')}>
+                    <Text style={[s.link, { color: colors.muted }]}>Don't have an account? <Text style={{ color: colors.blue, fontWeight: '700' }}>Sign Up</Text></Text>
+                </TouchableOpacity>
+            </View>
+        </LinearGradient>
+    );
+}
+
+const s = StyleSheet.create({
+    container: { flex: 1 },
+    orb1: { position: 'absolute', width: 200, height: 200, borderRadius: 100, opacity: 0.04, top: 40, right: -30 },
+    orb2: { position: 'absolute', width: 180, height: 180, borderRadius: 90, opacity: 0.04, bottom: 80, left: -40 },
+    inner: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 32 },
+    title: { fontSize: 28, fontWeight: '800', letterSpacing: -0.5, marginBottom: 8 },
+    subtitle: { fontSize: 15, marginBottom: 32 },
+    card: { borderRadius: RADIUS, borderWidth: 1, padding: 24, width: '100%', maxWidth: 400 },
+    label: { fontSize: 11, fontWeight: '600', textTransform: 'uppercase', marginTop: 12, marginBottom: 6 },
+    input: { backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 12, padding: 14, fontSize: 15, borderWidth: 1 },
+    error: { fontSize: 12, fontWeight: '600', marginTop: 4 },
+    btn: { borderRadius: RADIUS, paddingVertical: 14, alignItems: 'center', marginTop: 20 },
+    btnText: { color: '#FFF', fontWeight: '700', fontSize: 16 },
+    link: { marginTop: 24, fontSize: 14 },
+});
