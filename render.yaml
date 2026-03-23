@@ -1,0 +1,28 @@
+services:
+  # 1. Backend API (Node.js + SQLite)
+  - type: web
+    name: mentor-app-backend
+    env: node
+    plan: free
+    branch: backend # Points to your backend branch
+    buildCommand: npm install
+    startCommand: node server.js
+    envVars:
+      - key: NODE_VERSION
+        value: 20
+      - key: PORT
+        value: 3001
+
+  # 2. Frontend App (Expo Web)
+  - type: static
+    name: mentor-app-frontend
+    env: static
+    branch: main # Points to your frontend branch
+    buildCommand: npm install && npx expo export --platform web
+    publishDir: dist
+    envVars:
+      - key: EXPO_PUBLIC_API_URL
+        fromService:
+          type: web
+          name: mentor-app-backend
+          property: host
