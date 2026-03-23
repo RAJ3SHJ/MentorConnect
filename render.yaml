@@ -14,11 +14,12 @@ services:
         value: 3001
 
   # 2. Frontend App (Expo Web)
-  - type: static_site
+  - type: web
     name: mentor-app-frontend
+    runtime: static
     branch: main # Points to your frontend branch
     buildCommand: npm install && npx expo export --platform web
-    publishDir: dist
+    staticPublishPath: dist
     envVars:
       - key: EXPO_PUBLIC_API_URL
         fromService:
