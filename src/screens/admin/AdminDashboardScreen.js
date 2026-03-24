@@ -143,7 +143,7 @@ export default function AdminDashboardScreen({ navigation }) {
                     <TouchableOpacity style={s.hideSidebarBtn} onPress={() => toggleSidebar(false)}>
                         <Text style={{ color: 'rgba(255,255,255,0.4)', fontWeight: '600' }}>← Hide Sidebar</Text>
                     </TouchableOpacity>
-                </React.Animated.View>
+                </Animated.View>
             </>
         );
     };
