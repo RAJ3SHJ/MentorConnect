@@ -1,7 +1,7 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import {
     View, Text, StyleSheet, ScrollView, TouchableOpacity,
-    TextInput, RefreshControl, Platform, Alert, Dimensions,
+    TextInput, RefreshControl, Platform, Alert, useWindowDimensions,
     Animated
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -10,10 +10,9 @@ import api from '../../api/client';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../components/Toast';
 
-const { width } = Dimensions.get('window');
-const isMobile = width < 768;
-
 export default function AdminDashboardScreen({ navigation }) {
+    const { width } = useWindowDimensions();
+    const isMobile = width < 768;
     const toast = useToast();
     const { logout } = useAuth();
     const [tab, setTab] = useState('overview');
@@ -131,7 +130,15 @@ export default function AdminDashboardScreen({ navigation }) {
                         {tabs.map(t => {
                             const active = tab === t.key;
                             return (
-                                <TouchableOpacity key={t.key} style={[s.sidebarItem, active && s.sidebarItemActive]} onPress={() => { setTab(t.key); setSearch(''); toggleSidebar(false); }}>
+                                <TouchableOpacity 
+                                    key={t.key} 
+                                    style={[s.sidebarItem, active && s.sidebarItemActive, Platform.OS === 'web' && { cursor: 'pointer' }]} 
+                                    onPress={() => { 
+                                        setTab(t.key); 
+                                        setSearch(''); 
+                                        toggleSidebar(false); 
+                                    }}
+                                >
                                     <View style={s.sidebarIconBox}><Text style={{ fontSize: 20 }}>{t.icon}</Text></View>
                                     <Text style={[s.sidebarText, active && s.sidebarTextActive]}>{t.label}</Text>
                                     {t.count !== undefined && <View style={s.sidebarBadge}><Text style={s.sidebarBadgeText}>{t.count}</Text></View>}
