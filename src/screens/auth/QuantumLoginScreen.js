@@ -21,34 +21,22 @@ export default function QuantumLoginScreen({ navigation }) {
     const glowPos = isAd ? { right: -50, top: -50 } : { left: -50, bottom: -50 };
 
     const handleLogin = async () => {
-        if (isAd && (!pin || pin.length < 4)) {
+        if (!pin || pin.length < 4) {
             toast.show('Please enter a 4-digit PIN', 'error');
-            return;
-        }
-        if (!isAd && (!email || !password)) {
-            toast.show('Please enter email and password', 'error');
             return;
         }
         setLoading(true);
         try {
-            if (isAd) {
-                const { data } = await api.post('/api/auth/quantum-login', { pin, role });
-                await login(data.token, data.user);
-            } else {
-                const { data } = await api.post('/api/auth/login', { email: email.trim(), password });
-                if (data.user.role !== 'mentor') {
-                    throw new Error('This account is not authorized as a Mentor.');
-                }
-                await login(data.token, data.user);
-            }
+            const { data } = await api.post('/api/auth/quantum-login', { pin, role });
+            await login(data.token, data.user);
         } catch (err) {
             console.error('Quantum Login Error:', err);
             let msg = err.response?.data?.error || err.message || 'Access Denied';
             if (err.message === 'Network Error') {
-                msg = '🔌 Connection Error: Cannot reach server. Please check your EXPO_PUBLIC_API_URL in Vercel/Netlify.';
+                msg = '🔌 Connection Error: Cannot reach server. Please check your Render logs.';
             }
             toast.show(msg, 'error');
-            if (isAd) setPin('');
+            setPin('');
         } finally {
             setLoading(false);
         }
@@ -81,44 +69,20 @@ export default function QuantumLoginScreen({ navigation }) {
 
                 {/* Title */}
                 <Text style={s.title}>{isAd ? 'System Administrator' : 'Mentor Command Center'}</Text>
-                <Text style={s.subtitle}>{isAd ? 'Enter 4-digit secure PIN to continue' : 'Enter your mentor credentials'}</Text>
+                <Text style={s.subtitle}>Enter 4-digit secure PIN to continue</Text>
 
-                {/* Conditional Inputs */}
-                {isAd ? (
-                    <TextInput
-                        style={[s.pinInput, { borderColor: `rgba(0,242,96, 0.3)` }]}
-                        keyboardType="numeric"
-                        secureTextEntry
-                        maxLength={4}
-                        placeholder="••••"
-                        placeholderTextColor="rgba(255,255,255,0.2)"
-                        value={pin}
-                        onChangeText={setPin}
-                        autoFocus
-                    />
-                ) : (
-                    <View style={{ width: '100%', marginBottom: 32 }}>
-                        <Text style={s.label}>Work Email</Text>
-                        <TextInput
-                            style={s.textInput}
-                            placeholder="mentor@mentorconnect.com"
-                            placeholderTextColor="rgba(255,255,255,0.2)"
-                            value={email}
-                            onChangeText={setEmail}
-                            keyboardType="email-address"
-                            autoCapitalize="none"
-                        />
-                        <Text style={[s.label, { marginTop: 16 }]}>Password</Text>
-                        <TextInput
-                            style={s.textInput}
-                            placeholder="••••••••"
-                            placeholderTextColor="rgba(255,255,255,0.2)"
-                            value={password}
-                            onChangeText={setPassword}
-                            secureTextEntry
-                        />
-                    </View>
-                )}
+                {/* PIN Input */}
+                <TextInput
+                    style={[s.pinInput, { borderColor: `${activeColor}4D` }]}
+                    keyboardType="numeric"
+                    secureTextEntry
+                    maxLength={4}
+                    placeholder="••••"
+                    placeholderTextColor="rgba(255,255,255,0.2)"
+                    value={pin}
+                    onChangeText={setPin}
+                    autoFocus
+                />
 
                 {/* Submit */}
                 <TouchableOpacity onPress={handleLogin} disabled={loading} style={s.submitBtn}>
