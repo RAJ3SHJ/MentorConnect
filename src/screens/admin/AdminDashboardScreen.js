@@ -23,6 +23,17 @@ export default function AdminDashboardScreen({ navigation }) {
     const [exams, setExams] = useState([]);
     const [search, setSearch] = useState('');
     const [refreshing, setRefreshing] = useState(false);
+    const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+    const sidebarAnim = React.useRef(new React.Animated.Value(-300)).current;
+
+    const toggleSidebar = (open) => {
+        setIsSidebarOpen(open);
+        React.Animated.timing(sidebarAnim, {
+            toValue: open ? 0 : -300,
+            duration: 300,
+            useNativeDriver: Platform.OS !== 'web',
+        }).start();
+    };
 
     const fetchAll = async () => {
         try {
@@ -64,7 +75,12 @@ export default function AdminDashboardScreen({ navigation }) {
 
     const renderHeader = () => (
         <View style={s.header}>
-            <Text style={s.headerTitle}>Admin Panel</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
+                <TouchableOpacity style={s.menuBtn} onPress={() => toggleSidebar(true)}>
+                    <Text style={{ fontSize: 24, color: '#fff' }}>☰</Text>
+                </TouchableOpacity>
+                <Text style={s.headerTitle}>Admin Panel</Text>
+            </View>
             <View style={s.userHub}>
                 {!isMobile && (
                     <View style={s.userInfo}>
@@ -90,29 +106,44 @@ export default function AdminDashboardScreen({ navigation }) {
         </View>
     );
 
-    const renderTabs = () => {
+    const renderSidebar = () => {
         const tabs = [
-            { key: 'overview', label: 'OVERVIEW' },
-            { key: 'students', label: `LEARNERS (${students.length})` },
-            { key: 'mentors', label: `MENTORS (${mentors.length})` },
-            { key: 'courses', label: `COURSES (${courses.length})` },
-            { key: 'exams', label: `EXAMS (${exams.length})` },
+            { key: 'overview', label: 'Overview', icon: '📊' },
+            { key: 'students', label: 'Learners', icon: '🎓', count: students.length },
+            { key: 'mentors', label: 'Mentors', icon: '👨‍🏫', count: mentors.length },
+            { key: 'courses', label: 'Courses', icon: '📚', count: courses.length },
+            { key: 'exams', label: 'Exams', icon: '📝', count: exams.length },
         ];
         
         return (
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexGrow: 0, marginBottom: 32, zIndex: 2 }}>
-                <View style={[s.tabContainer, Platform.OS === 'web' && { backdropFilter: 'blur(25px)' }]}>
-                    {tabs.map(t => {
-                        const active = tab === t.key;
-                        return (
-                            <TouchableOpacity key={t.key} style={[s.tabPill, active && s.tabPillActive]} onPress={() => { setTab(t.key); setSearch(''); }}>
-                                <Text style={[s.tabText, active && s.tabTextActive]}>{t.label}</Text>
-                                {active && <View style={s.tabIndicator} />}
-                            </TouchableOpacity>
-                        );
-                    })}
-                </View>
-            </ScrollView>
+            <>
+                {isSidebarOpen && <TouchableOpacity activeOpacity={1} style={s.backdrop} onPress={() => toggleSidebar(false)} />}
+                <React.Animated.View style={[s.sidebar, { transform: [{ translateX: sidebarAnim }] }, Platform.OS === 'web' && { backdropFilter: 'blur(30px)' }]}>
+                    <View style={s.sidebarHeader}>
+                        <Text style={s.sidebarTitle}>Navigation</Text>
+                        <TouchableOpacity onPress={() => toggleSidebar(false)}>
+                            <Text style={{ fontSize: 20, color: 'rgba(255,255,255,0.4)' }}>✕</Text>
+                        </TouchableOpacity>
+                    </View>
+
+                    <View style={s.sidebarBody}>
+                        {tabs.map(t => {
+                            const active = tab === t.key;
+                            return (
+                                <TouchableOpacity key={t.key} style={[s.sidebarItem, active && s.sidebarItemActive]} onPress={() => { setTab(t.key); setSearch(''); toggleSidebar(false); }}>
+                                    <View style={s.sidebarIconBox}><Text style={{ fontSize: 20 }}>{t.icon}</Text></View>
+                                    <Text style={[s.sidebarText, active && s.sidebarTextActive]}>{t.label}</Text>
+                                    {t.count !== undefined && <View style={s.sidebarBadge}><Text style={s.sidebarBadgeText}>{t.count}</Text></View>}
+                                </TouchableOpacity>
+                            );
+                        })}
+                    </View>
+
+                    <TouchableOpacity style={s.hideSidebarBtn} onPress={() => toggleSidebar(false)}>
+                        <Text style={{ color: 'rgba(255,255,255,0.4)', fontWeight: '600' }}>← Hide Sidebar</Text>
+                    </TouchableOpacity>
+                </React.Animated.View>
+            </>
         );
     };
 
@@ -205,7 +236,11 @@ export default function AdminDashboardScreen({ navigation }) {
 
             <ScrollView contentContainerStyle={s.scroll} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#fff" />}>
                 {renderHeader()}
-                {renderTabs()}
+                
+                {/* Visual Tab Breadcrumb for context */}
+                <View style={s.breadcrumb}>
+                    <Text style={s.breadcrumbText}>Admin / <Text style={{ color: '#00d2ff' }}>{tab.charAt(0).toUpperCase() + tab.slice(1)}</Text></Text>
+                </View>
 
                 {tab === 'overview' ? renderOverview() : (
                     <View style={{ zIndex: 10 }}>
@@ -246,6 +281,8 @@ export default function AdminDashboardScreen({ navigation }) {
                     )}
                 </View>
             )}
+
+            {renderSidebar()}
         </View>
     );
 }
@@ -256,22 +293,41 @@ const s = StyleSheet.create({
     scroll: { padding: isMobile ? 16 : 40, paddingBottom: 100 },
     
     header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 40, zIndex: 10, flexWrap: 'wrap', gap: 20 },
-    headerTitle: { fontSize: 36, fontWeight: '800', color: '#fff', letterSpacing: -1 },
-    userHub: { flexDirection: 'row', alignItems: 'center', gap: 16, backgroundColor: 'rgba(255,255,255,0.02)', padding: 8, paddingLeft: 24, borderRadius: 40, borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)' },
-    userInfo: { alignItems: 'flex-end' },
+    headerTitle: { fontSize: isMobile ? 24 : 36, fontWeight: '800', color: '#fff', letterSpacing: -1 },
+    menuBtn: { width: 44, height: 44, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.05)', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
+    userHub: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: 'rgba(255,255,255,0.02)', padding: 6, paddingLeft: 16, borderRadius: 40, borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)' },
+    userInfo: { alignItems: 'flex-end', display: isMobile ? 'none' : 'flex' },
     userName: { color: '#fff', fontWeight: '700', fontSize: 13, letterSpacing: 0.5 },
     userRole: { color: 'rgba(255,255,255,0.3)', fontSize: 10, textTransform: 'uppercase', letterSpacing: 1, marginTop: 2 },
-    avatar: { width: 38, height: 38, borderRadius: 19, backgroundColor: 'rgba(0, 210, 255, 0.1)', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(0, 210, 255, 0.3)' },
-    avatarText: { color: '#00d2ff', fontWeight: '800', fontSize: 13 },
-    logoutBtn: { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(255, 71, 87, 0.2)', backgroundColor: 'transparent' },
+    avatar: { width: 34, height: 34, borderRadius: 17, backgroundColor: 'rgba(0, 210, 255, 0.1)', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(0, 210, 255, 0.3)' },
+    avatarText: { color: '#00d2ff', fontWeight: '800', fontSize: 12 },
+    logoutBtn: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(255, 71, 87, 0.2)', backgroundColor: 'transparent' },
     logoutBtnText: { color: '#ff4757', fontWeight: '600', fontSize: 16 },
+    
+    breadcrumb: { marginBottom: 24, paddingLeft: 4 },
+    breadcrumbText: { color: 'rgba(255,255,255,0.3)', fontSize: 13, textTransform: 'uppercase', letterSpacing: 1.5, fontWeight: '600' },
 
-    tabContainer: { flexDirection: 'row', backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 20, padding: 6, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)' },
-    tabPill: { paddingVertical: 12, paddingHorizontal: 24, borderRadius: 14, position: 'relative' },
-    tabPillActive: { backgroundColor: 'rgba(255,255,255,0.06)' },
-    tabText: { color: 'rgba(255,255,255,0.4)', fontWeight: '600', fontSize: 12, letterSpacing: 1 },
-    tabTextActive: { color: '#fff', fontWeight: '800' },
-    tabIndicator: { position: 'absolute', bottom: -6, left: '20%', right: '20%', height: 3, backgroundColor: '#00f260', borderRadius: 2, shadowColor: '#00f260', shadowOffset: {width:0,height:0}, shadowOpacity: 1, shadowRadius: 8 },
+    sidebar: { 
+        position: 'absolute', top: 0, left: 0, bottom: 0, width: 280, 
+        backgroundColor: 'rgba(12, 36, 49, 0.95)', zIndex: 2000, 
+        padding: 24, borderRightWidth: 1, borderRightColor: 'rgba(255,255,255,0.1)',
+        paddingTop: Platform.OS === 'ios' ? 60 : 40 
+    },
+    backdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 1999 },
+    sidebarTitle: { color: '#fff', fontSize: 20, fontWeight: '800' },
+    sidebarHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 40 },
+    sidebarBody: { flex: 1 },
+    sidebarItem: { 
+        flexDirection: 'row', alignItems: 'center', gap: 16, padding: 16, 
+        borderRadius: 16, marginBottom: 8, backgroundColor: 'rgba(255,255,255,0.02)' 
+    },
+    sidebarItemActive: { backgroundColor: 'rgba(0, 210, 255, 0.12)', borderWidth: 1, borderColor: 'rgba(0, 210, 255, 0.2)' },
+    sidebarIconBox: { width: 40, height: 40, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.05)', alignItems: 'center', justifyContent: 'center' },
+    sidebarText: { color: 'rgba(255,255,255,0.5)', fontSize: 15, fontWeight: '600' },
+    sidebarTextActive: { color: '#fff', fontWeight: '800' },
+    sidebarBadge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.1)' },
+    sidebarBadgeText: { color: 'rgba(255,255,255,0.6)', fontSize: 10, fontWeight: '700' },
+    hideSidebarBtn: { marginTop: 20, alignItems: 'center', padding: 12 },
 
     glassCard: {
         backgroundColor: 'rgba(255, 255, 255, 0.02)',
