@@ -51,7 +51,8 @@ router.post('/quantum-login', (req, res) => {
         return res.status(400).json({ error: 'PIN and requested role required' });
     }
 
-    if (pin !== '1234') {
+    const expectedPin = role === 'admin' ? '1230' : '1234';
+    if (pin !== expectedPin) {
         return res.status(401).json({ error: 'Invalid Secure PIN' });
     }
 
