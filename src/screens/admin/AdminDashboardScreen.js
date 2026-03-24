@@ -135,7 +135,7 @@ export default function AdminDashboardScreen({ navigation }) {
                 <View style={[s.col, isMobile && s.colMobile]}>
                     <View style={[s.glowOrb, { backgroundColor: '#00d2ff', left: -80, top: 0, opacity: 0.15 }]} />
                     <StatCard title="LEARNERS" val={stats.totalStudents} icon="🎓" />
-                    <View style={{ height: isMobile ? 12 : 0 }} />
+                    <View style={{ height: isMobile ? 20 : 0 }} />
                     <StatCard title="MENTORS" val={stats.totalMentors} icon="👨‍🏫" />
                 </View>
 
@@ -165,7 +165,7 @@ export default function AdminDashboardScreen({ navigation }) {
                 <View style={[s.col, isMobile && s.colMobile]}>
                     <View style={[s.glowOrb, { backgroundColor: '#ff416c', right: -20, bottom: -20, opacity: 0.15 }]} />
                     <StatCard title="SUBMISSIONS" val={stats.totalSubmissions} icon="📝" />
-                    <View style={{ height: isMobile ? 12 : 0 }} />
+                    <View style={{ height: isMobile ? 20 : 0 }} />
                     <StatCard title="PENDING" val={stats.pendingReviews} icon="⏳" />
                 </View>
             </View>
@@ -286,12 +286,12 @@ const s = StyleSheet.create({
     colDom: { flex: 1.5, position: 'relative' },
     colMobile: { flex: 0 },
 
-    statCard: { flexDirection: 'row', alignItems: 'center', gap: 16, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.1)', flex: 0, minHeight: 100 },
+    statCard: { flexDirection: 'row', alignItems: 'center', gap: 16, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.1)', flex: 0, minHeight: 110, marginBottom: isMobile ? 12 : 0 },
     statIconBox: { width: 56, height: 56, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.04)', alignItems: 'center', justifyContent: 'center' },
     statVal: { fontSize: 32, fontWeight: '800', color: '#fff', letterSpacing: -1, marginBottom: 2 },
     statTitle: { fontSize: 10, fontWeight: '800', color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: 1 },
 
-    centerCard: { flex: 0, justifyContent: 'space-between', padding: isMobile ? 24 : 36, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.1)', minHeight: 280, marginVertical: isMobile ? 12 : 0 },
+    centerCard: { flex: 0, justifyContent: 'space-between', padding: isMobile ? 24 : 36, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.1)', minHeight: 280, marginVertical: isMobile ? 24 : 0 },
     centerCardTitle: { fontSize: 12, color: 'rgba(255,255,255,0.4)', fontWeight: '800', textTransform: 'uppercase', letterSpacing: 2, marginBottom: 24 },
     graphPlaceholder: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-evenly', height: 120 },
     bar: { width: isMobile ? 12 : 28, borderRadius: 14, backgroundColor: 'transparent' },
