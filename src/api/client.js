@@ -1,7 +1,12 @@
 import axios from 'axios';
 
 // For Expo, use EXPO_PUBLIC_ prefix for environment variables
-const BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3001';
+let BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3001';
+
+// Fix for Render: if host is provided without protocol, prepend https://
+if (BASE_URL.includes('onrender.com') && !BASE_URL.startsWith('http')) {
+    BASE_URL = `https://${BASE_URL}`;
+}
 
 console.log('🌐 API Base URL:', BASE_URL);
 

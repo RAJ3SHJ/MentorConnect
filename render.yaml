@@ -22,4 +22,7 @@ services:
     staticPublishPath: dist
     envVars:
       - key: EXPO_PUBLIC_API_URL
-        value: https://mentor-app-backend.onrender.com
+        fromService:
+          type: web
+          name: mentor-app-backend
+          property: host
