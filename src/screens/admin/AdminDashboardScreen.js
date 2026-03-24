@@ -66,10 +66,12 @@ export default function AdminDashboardScreen({ navigation }) {
         <View style={s.header}>
             <Text style={s.headerTitle}>Admin Panel</Text>
             <View style={s.userHub}>
-                <View style={s.userInfo}>
-                    <Text style={s.userName}>Rajesh J.</Text>
-                    <Text style={s.userRole}>Administrator</Text>
-                </View>
+                {!isMobile && (
+                    <View style={s.userInfo}>
+                        <Text style={s.userName}>Rajesh J.</Text>
+                        <Text style={s.userRole}>Administrator</Text>
+                    </View>
+                )}
                 <View style={s.avatar}>
                     <Text style={s.avatarText}>RJ</Text>
                 </View>
@@ -133,6 +135,7 @@ export default function AdminDashboardScreen({ navigation }) {
                 <View style={[s.col, isMobile && s.colMobile]}>
                     <View style={[s.glowOrb, { backgroundColor: '#00d2ff', left: -80, top: 0, opacity: 0.15 }]} />
                     <StatCard title="LEARNERS" val={stats.totalStudents} icon="🎓" />
+                    <View style={{ height: isMobile ? 12 : 0 }} />
                     <StatCard title="MENTORS" val={stats.totalMentors} icon="👨‍🏫" />
                 </View>
 
@@ -152,8 +155,8 @@ export default function AdminDashboardScreen({ navigation }) {
                         </View>
                         <View style={s.centerCardMetrics}>
                             <View style={s.badge}><Text style={s.badgeText}>{stats.totalCourses} Courses</Text></View>
-                            <Text style={{ color: 'rgba(255,255,255,0.1)', fontSize: 24, fontWeight: '300' }}>|</Text>
-                            <View style={[s.badge, { borderColor: 'rgba(138,43,226,0.5)', backgroundColor: 'rgba(138,43,226,0.05)' }]}><Text style={s.badgeText}>{stats.totalExams} Live Exams</Text></View>
+                            {!isMobile && <Text style={{ color: 'rgba(255,255,255,0.1)', fontSize: 24, fontWeight: '300' }}>|</Text>}
+                            <View style={[s.badge, { borderColor: 'rgba(138,43,226,0.5)', backgroundColor: 'rgba(138,43,226,0.05)', marginTop: isMobile ? 8 : 0 }]}><Text style={s.badgeText}>{stats.totalExams} Live Exams</Text></View>
                         </View>
                     </View>
                 </View>
@@ -162,6 +165,7 @@ export default function AdminDashboardScreen({ navigation }) {
                 <View style={[s.col, isMobile && s.colMobile]}>
                     <View style={[s.glowOrb, { backgroundColor: '#ff416c', right: -20, bottom: -20, opacity: 0.15 }]} />
                     <StatCard title="SUBMISSIONS" val={stats.totalSubmissions} icon="📝" />
+                    <View style={{ height: isMobile ? 12 : 0 }} />
                     <StatCard title="PENDING" val={stats.pendingReviews} icon="⏳" />
                 </View>
             </View>
@@ -254,13 +258,13 @@ const s = StyleSheet.create({
     header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 40, zIndex: 10, flexWrap: 'wrap', gap: 20 },
     headerTitle: { fontSize: 36, fontWeight: '800', color: '#fff', letterSpacing: -1 },
     userHub: { flexDirection: 'row', alignItems: 'center', gap: 16, backgroundColor: 'rgba(255,255,255,0.02)', padding: 8, paddingLeft: 24, borderRadius: 40, borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)' },
-    userInfo: { alignItems: 'flex-end', display: isMobile ? 'none' : 'flex' },
-    userName: { color: '#fff', fontWeight: '700', fontSize: 14, letterSpacing: 0.5 },
-    userRole: { color: 'rgba(255,255,255,0.3)', fontSize: 10, textTransform: 'uppercase', letterSpacing: 1.5, marginTop: 2 },
-    avatar: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(0, 210, 255, 0.1)', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(0, 210, 255, 0.3)' },
-    avatarText: { color: '#00d2ff', fontWeight: '800', fontSize: 15 },
-    logoutBtn: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(255, 71, 87, 0.2)', backgroundColor: 'transparent' },
-    logoutBtnText: { color: '#ff4757', fontWeight: '600', fontSize: 18 },
+    userInfo: { alignItems: 'flex-end' },
+    userName: { color: '#fff', fontWeight: '700', fontSize: 13, letterSpacing: 0.5 },
+    userRole: { color: 'rgba(255,255,255,0.3)', fontSize: 10, textTransform: 'uppercase', letterSpacing: 1, marginTop: 2 },
+    avatar: { width: 38, height: 38, borderRadius: 19, backgroundColor: 'rgba(0, 210, 255, 0.1)', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(0, 210, 255, 0.3)' },
+    avatarText: { color: '#00d2ff', fontWeight: '800', fontSize: 13 },
+    logoutBtn: { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(255, 71, 87, 0.2)', backgroundColor: 'transparent' },
+    logoutBtnText: { color: '#ff4757', fontWeight: '600', fontSize: 16 },
 
     tabContainer: { flexDirection: 'row', backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 20, padding: 6, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)' },
     tabPill: { paddingVertical: 12, paddingHorizontal: 24, borderRadius: 14, position: 'relative' },
@@ -282,16 +286,16 @@ const s = StyleSheet.create({
     colDom: { flex: 1.5, position: 'relative' },
     colMobile: { flex: 0 },
 
-    statCard: { flexDirection: 'row', alignItems: 'center', gap: 24, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.1)', flex: 1 },
-    statIconBox: { width: 64, height: 64, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.04)', alignItems: 'center', justifyContent: 'center' },
-    statVal: { fontSize: 42, fontWeight: '800', color: '#fff', letterSpacing: -1.5, marginBottom: 2 },
-    statTitle: { fontSize: 11, fontWeight: '800', color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: 2 },
+    statCard: { flexDirection: 'row', alignItems: 'center', gap: 16, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.1)', flex: 0, minHeight: 100 },
+    statIconBox: { width: 56, height: 56, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.04)', alignItems: 'center', justifyContent: 'center' },
+    statVal: { fontSize: 32, fontWeight: '800', color: '#fff', letterSpacing: -1, marginBottom: 2 },
+    statTitle: { fontSize: 10, fontWeight: '800', color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: 1 },
 
-    centerCard: { flex: 1, justifyContent: 'space-between', padding: 36, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.1)' },
-    centerCardTitle: { fontSize: 13, color: 'rgba(255,255,255,0.4)', fontWeight: '800', textTransform: 'uppercase', letterSpacing: 2.5, marginBottom: 32 },
-    graphPlaceholder: { flex: 1, flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-evenly', minHeight: 160 },
-    bar: { width: isMobile ? 16 : 28, borderRadius: 14, backgroundColor: 'transparent' },
-    centerCardMetrics: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 24, marginTop: 40 },
+    centerCard: { flex: 0, justifyContent: 'space-between', padding: isMobile ? 24 : 36, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.1)', minHeight: 280, marginVertical: isMobile ? 12 : 0 },
+    centerCardTitle: { fontSize: 12, color: 'rgba(255,255,255,0.4)', fontWeight: '800', textTransform: 'uppercase', letterSpacing: 2, marginBottom: 24 },
+    graphPlaceholder: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-evenly', height: 120 },
+    bar: { width: isMobile ? 12 : 28, borderRadius: 14, backgroundColor: 'transparent' },
+    centerCardMetrics: { flexDirection: isMobile ? 'column' : 'row', alignItems: 'center', justifyContent: 'center', gap: isMobile ? 8 : 24, marginTop: 32 },
     badge: { paddingHorizontal: 20, paddingVertical: 10, borderRadius: 24, backgroundColor: 'rgba(0,210,255,0.05)', borderWidth: 1, borderColor: 'rgba(0,210,255,0.2)' },
     badgeText: { color: '#fff', fontWeight: '800', letterSpacing: 0.5, fontSize: 13 },
 

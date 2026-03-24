@@ -11,12 +11,18 @@ const AdminStack = createNativeStackNavigator();
 
 export default function AdminTabs() {
     return (
-        <AdminStack.Navigator screenOptions={{ headerShown: false }}>
-            <AdminStack.Screen name="AdminDashboard" component={AdminDashboardScreen} />
-            <AdminStack.Screen name="AddMentor" component={AddMentorScreen} />
-            <AdminStack.Screen name="AddCourse" component={AddCourseScreen} />
-            <AdminStack.Screen name="AddExam" component={AddExamScreen} />
-            <AdminStack.Screen name="UploadExcel" component={UploadExcelScreen} />
+        <AdminStack.Navigator screenOptions={{ 
+            headerShown: true,
+            headerStyle: { backgroundColor: '#04161F' },
+            headerTintColor: '#fff',
+            headerTitleStyle: { fontWeight: '700' },
+            headerShadowVisible: false
+        }}>
+            <AdminStack.Screen name="AdminDashboard" component={AdminDashboardScreen} options={{ headerShown: false }} />
+            <AdminStack.Screen name="AddMentor" component={AddMentorScreen} options={{ title: 'Add Mentor' }} />
+            <AdminStack.Screen name="AddCourse" component={AddCourseScreen} options={{ title: 'Add Course' }} />
+            <AdminStack.Screen name="AddExam" component={AddExamScreen} options={{ title: 'Add Exam' }} />
+            <AdminStack.Screen name="UploadExcel" component={UploadExcelScreen} options={{ title: 'Bulk Upload' }} />
         </AdminStack.Navigator>
     );
 }

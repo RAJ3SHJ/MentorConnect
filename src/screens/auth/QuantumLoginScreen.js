@@ -111,7 +111,21 @@ const s = StyleSheet.create({
     title: { color: '#fff', fontSize: 24, fontWeight: '800', letterSpacing: -0.5, marginBottom: 8, textAlign: 'center' },
     subtitle: { color: 'rgba(255,255,255,0.4)', fontSize: 13, marginBottom: 32, textAlign: 'center' },
 
-    pinInput: { width: '100%', height: 72, backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 16, borderWidth: 1, color: '#fff', fontSize: 40, textAlign: 'center', letterSpacing: 20, marginBottom: 40 },
+    pinInput: {
+        width: '100%',
+        height: 72,
+        fontSize: 24,
+        color: '#fff',
+        fontWeight: '700',
+        textAlign: 'center',
+        paddingVertical: 14,
+        paddingHorizontal: 20,
+        borderRadius: 16,
+        borderWidth: 1,
+        marginBottom: 32,
+        letterSpacing: 10,
+        backgroundColor: 'rgba(255,255,255,0.03)'
+    },
     
     label: { color: 'rgba(255,255,255,0.6)', fontSize: 12, fontWeight: '600', textTransform: 'uppercase', marginBottom: 8, marginLeft: 4 },
     textInput: { width: '100%', height: 56, backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 12, borderWidth: 1, borderColor: 'rgba(0, 210, 255, 0.2)', color: '#fff', fontSize: 16, paddingHorizontal: 16 },

@@ -126,9 +126,6 @@ export default function UploadExcelScreen({ navigation, route }) {
     return (
         <LinearGradient colors={GRADIENTS.bg} style={styles.container}>
             <ScrollView contentContainerStyle={styles.scroll}>
-                <TouchableOpacity onPress={() => navigation.goBack()} style={styles.back}>
-                    <Text style={styles.backText}>← Back</Text>
-                </TouchableOpacity>
 
                 <Text style={styles.title}>
                     Upload {uploadType === 'courses' ? 'Courses' : 'Exams'} 📤
@@ -219,8 +216,6 @@ export default function UploadExcelScreen({ navigation, route }) {
 const styles = StyleSheet.create({
     container: { flex: 1 },
     scroll: { padding: 24, paddingBottom: 40 },
-    back: { marginTop: 16, marginBottom: 24 },
-    backText: { color: COLORS.muted, fontSize: 15 },
     title: { color: COLORS.white, fontSize: 28, fontWeight: '800', letterSpacing: -0.5 },
     subtitle: { color: COLORS.muted, fontSize: 14, marginTop: 6, marginBottom: 24 },
     guideCard: {

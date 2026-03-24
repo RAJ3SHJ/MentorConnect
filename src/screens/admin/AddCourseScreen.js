@@ -51,9 +51,6 @@ export default function AddCourseScreen({ navigation, route }) {
         <LinearGradient colors={GRADIENTS.bg} style={styles.container}>
             <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
                 <ScrollView contentContainerStyle={styles.scroll}>
-                    <TouchableOpacity onPress={() => navigation.goBack()} style={styles.back}>
-                        <Text style={styles.backText}>← Back</Text>
-                    </TouchableOpacity>
 
                     <Text style={styles.title}>{isEdit ? 'Edit Course ✏️' : 'Add Course 📚'}</Text>
                     <Text style={styles.subtitle}>{isEdit ? `Editing "${editCourse.title}"` : 'Create a new course for the library'}</Text>
@@ -91,8 +88,6 @@ export default function AddCourseScreen({ navigation, route }) {
 const styles = StyleSheet.create({
     container: { flex: 1 },
     scroll: { padding: 24, paddingBottom: 40 },
-    back: { marginTop: 16, marginBottom: 24 },
-    backText: { color: COLORS.muted, fontSize: 15 },
     title: { color: COLORS.white, fontSize: 28, fontWeight: '800' },
     subtitle: { color: COLORS.muted, fontSize: 14, marginTop: 6, marginBottom: 24 },
     card: {

@@ -92,9 +92,6 @@ export default function AddMentorScreen({ navigation, route }) {
         <LinearGradient colors={gradients.bg} style={s.container}>
             <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
                 <ScrollView contentContainerStyle={s.scroll}>
-                    <TouchableOpacity onPress={() => navigation.goBack()} style={s.back}>
-                        <Text style={[s.backText, { color: colors.muted }]}>← Back</Text>
-                    </TouchableOpacity>
 
                     <Text style={[s.title, { color: colors.white }]}>
                         {isEdit ? '✏️ Edit Mentor' : '👨‍🏫 Create Mentor Account'}
@@ -216,8 +213,6 @@ export default function AddMentorScreen({ navigation, route }) {
 const s = StyleSheet.create({
     container: { flex: 1 },
     scroll: { padding: 24, paddingBottom: 40 },
-    back: { marginTop: 16, marginBottom: 24 },
-    backText: { fontSize: 15 },
     title: { fontSize: 26, fontWeight: '800', letterSpacing: -0.5 },
     card: { borderRadius: RADIUS, borderWidth: 1, padding: 20, marginBottom: 16 },
     sectionTitle: { fontSize: 16, fontWeight: '700', marginBottom: 12 },
