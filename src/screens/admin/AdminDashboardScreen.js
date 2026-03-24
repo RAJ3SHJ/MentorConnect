@@ -1,7 +1,8 @@
 import React, { useState, useCallback } from 'react';
 import {
     View, Text, StyleSheet, ScrollView, TouchableOpacity,
-    TextInput, RefreshControl, Platform, Alert, Dimensions
+    TextInput, RefreshControl, Platform, Alert, Dimensions,
+    Animated
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect } from '@react-navigation/native';
@@ -24,11 +25,11 @@ export default function AdminDashboardScreen({ navigation }) {
     const [search, setSearch] = useState('');
     const [refreshing, setRefreshing] = useState(false);
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-    const sidebarAnim = React.useRef(new React.Animated.Value(-300)).current;
+    const sidebarAnim = React.useRef(new Animated.Value(-300)).current;
 
     const toggleSidebar = (open) => {
         setIsSidebarOpen(open);
-        React.Animated.timing(sidebarAnim, {
+        Animated.timing(sidebarAnim, {
             toValue: open ? 0 : -300,
             duration: 300,
             useNativeDriver: Platform.OS !== 'web',
@@ -118,7 +119,7 @@ export default function AdminDashboardScreen({ navigation }) {
         return (
             <>
                 {isSidebarOpen && <TouchableOpacity activeOpacity={1} style={s.backdrop} onPress={() => toggleSidebar(false)} />}
-                <React.Animated.View style={[s.sidebar, { transform: [{ translateX: sidebarAnim }] }, Platform.OS === 'web' && { backdropFilter: 'blur(30px)' }]}>
+                <Animated.View style={[s.sidebar, { transform: [{ translateX: sidebarAnim }] }, Platform.OS === 'web' && { backdropFilter: 'blur(30px)' }]}>
                     <View style={s.sidebarHeader}>
                         <Text style={s.sidebarTitle}>Navigation</Text>
                         <TouchableOpacity onPress={() => toggleSidebar(false)}>
