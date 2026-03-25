@@ -1,5 +1,5 @@
 const router = require('express').Router();
-const { run, get, all, runGetId } = require('../db');
+const { run, get, all, runGetId, isPG } = require('../db');
 const auth = require('../middleware/auth');
 
 // GET /api/mentor/students
@@ -206,10 +206,17 @@ router.get('/notification-count', auth, async (req, res) => {
 
 // POST /api/mentor/connect/:studentId — ATOMIC student claim (race-condition-proof)
 router.post('/connect/:studentId', auth, async (req, res) => {
-    const mentorUserId = req.user.id;
-    const studentId = parseInt(req.params.studentId);
-
     try {
+        const studentId = parseInt(req.params.studentId);
+        const mentorUserId = req.user.id;
+
+        // Resolve the actual mentor_id from the mentors table (legacy mapping)
+        const mentorProfile = await get('SELECT id FROM mentors WHERE email = ?', [req.user.email]);
+        if (!mentorProfile) {
+            return res.status(404).json({ error: 'Mentor profile not found for this user' });
+        }
+        const mentorId = mentorProfile.id;
+
         const existing = await get('SELECT id, mentor_user_id FROM mentor_assignments WHERE student_id = ?', [studentId]);
         if (existing) {
             return res.status(409).json({ error: 'Student already connected to another mentor' });
@@ -217,7 +224,7 @@ router.post('/connect/:studentId', auth, async (req, res) => {
 
         await runGetId(
             'INSERT INTO mentor_assignments (mentor_id, student_id, mentor_user_id) VALUES (?, ?, ?)',
-            [mentorUserId, studentId, mentorUserId]
+            [mentorId, studentId, mentorUserId]
         );
 
         await run('UPDATE users SET mentor_id = ? WHERE id = ?', [mentorUserId, studentId]);
