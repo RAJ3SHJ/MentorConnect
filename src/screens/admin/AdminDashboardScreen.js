@@ -73,25 +73,27 @@ export default function AdminDashboardScreen({ navigation }) {
     else if (tab === 'courses') activeList = filterList(courses, 'title');
     else if (tab === 'exams') activeList = filterList(exams, 'title');
 
+    const styles = useMemo(() => getStyles(isMobile), [isMobile]);
+    
     const renderHeader = () => (
-        <View style={s.header}>
+        <View style={styles.header}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
-                <TouchableOpacity style={s.menuBtn} onPress={() => toggleSidebar(true)}>
+                <TouchableOpacity style={styles.menuBtn} onPress={() => toggleSidebar(true)}>
                     <Text style={{ fontSize: 24, color: '#fff' }}>☰</Text>
                 </TouchableOpacity>
-                <Text style={s.headerTitle}>Admin Panel</Text>
+                <Text style={styles.headerTitle}>Admin Panel</Text>
             </View>
-            <View style={s.userHub}>
+            <View style={styles.userHub}>
                 {!isMobile && (
-                    <View style={s.userInfo}>
-                        <Text style={s.userName}>Rajesh J.</Text>
-                        <Text style={s.userRole}>Administrator</Text>
+                    <View style={styles.userInfo}>
+                        <Text style={styles.userName}>Rajesh J.</Text>
+                        <Text style={styles.userRole}>Administrator</Text>
                     </View>
                 )}
-                <View style={s.avatar}>
-                    <Text style={s.avatarText}>RJ</Text>
+                <View style={styles.avatar}>
+                    <Text style={styles.avatarText}>RJ</Text>
                 </View>
-                <TouchableOpacity style={s.logoutBtn} onPress={() => {
+                <TouchableOpacity style={styles.logoutBtn} onPress={() => {
                     if (Platform.OS === 'web') {
                         logout();
                     } else {
@@ -100,7 +102,7 @@ export default function AdminDashboardScreen({ navigation }) {
                         ]);
                     }
                 }}>
-                    <Text style={s.logoutBtnText}>➔</Text>
+                    <Text style={styles.logoutBtnText}>➔</Text>
                 </TouchableOpacity>
             </View>
         </View>
@@ -117,37 +119,37 @@ export default function AdminDashboardScreen({ navigation }) {
         
         return (
             <>
-                {isSidebarOpen && <TouchableOpacity activeOpacity={1} style={s.backdrop} onPress={() => toggleSidebar(false)} />}
-                <Animated.View style={[s.sidebar, { transform: [{ translateX: sidebarAnim }] }, Platform.OS === 'web' && { backdropFilter: 'blur(30px)' }]}>
-                    <View style={s.sidebarHeader}>
-                        <Text style={s.sidebarTitle}>Navigation</Text>
+                {isSidebarOpen && <TouchableOpacity activeOpacity={1} style={styles.backdrop} onPress={() => toggleSidebar(false)} />}
+                <Animated.View style={[styles.sidebar, { transform: [{ translateX: sidebarAnim }] }, Platform.OS === 'web' && { backdropFilter: 'blur(30px)' }]}>
+                    <View style={styles.sidebarHeader}>
+                        <Text style={styles.sidebarTitle}>Navigation</Text>
                         <TouchableOpacity onPress={() => toggleSidebar(false)}>
                             <Text style={{ fontSize: 20, color: 'rgba(255,255,255,0.4)' }}>✕</Text>
                         </TouchableOpacity>
                     </View>
 
-                    <View style={s.sidebarBody}>
+                    <View style={styles.sidebarBody}>
                         {tabs.map(t => {
                             const active = tab === t.key;
                             return (
                                 <TouchableOpacity 
                                     key={t.key} 
-                                    style={[s.sidebarItem, active && s.sidebarItemActive, Platform.OS === 'web' && { cursor: 'pointer' }]} 
+                                    style={[styles.sidebarItem, active && styles.sidebarItemActive, Platform.OS === 'web' && { cursor: 'pointer' }]} 
                                     onPress={() => { 
                                         setTab(t.key); 
                                         setSearch(''); 
                                         toggleSidebar(false); 
                                     }}
                                 >
-                                    <View style={s.sidebarIconBox}><Text style={{ fontSize: 20 }}>{t.icon}</Text></View>
-                                    <Text style={[s.sidebarText, active && s.sidebarTextActive]}>{t.label}</Text>
-                                    {t.count !== undefined && <View style={s.sidebarBadge}><Text style={s.sidebarBadgeText}>{t.count}</Text></View>}
+                                    <View style={styles.sidebarIconBox}><Text style={{ fontSize: 20 }}>{t.icon}</Text></View>
+                                    <Text style={[styles.sidebarText, active && styles.sidebarTextActive]}>{t.label}</Text>
+                                    {t.count !== undefined && <View style={styles.sidebarBadge}><Text style={styles.sidebarBadgeText}>{t.count}</Text></View>}
                                 </TouchableOpacity>
                             );
                         })}
                     </View>
 
-                    <TouchableOpacity style={s.hideSidebarBtn} onPress={() => toggleSidebar(false)}>
+                    <TouchableOpacity style={styles.hideSidebarBtn} onPress={() => toggleSidebar(false)}>
                         <Text style={{ color: 'rgba(255,255,255,0.4)', fontWeight: '600' }}>← Hide Sidebar</Text>
                     </TouchableOpacity>
                 </Animated.View>
@@ -159,49 +161,49 @@ export default function AdminDashboardScreen({ navigation }) {
         if (!stats) return null;
         
         const StatCard = ({ title, val, icon }) => (
-            <View style={[s.glassCard, s.statCard]}>
-                <View style={s.statIconBox}><Text style={{ fontSize: 26 }}>{icon}</Text></View>
+            <View style={[styles.glassCard, styles.statCard]}>
+                <View style={styles.statIconBox}><Text style={{ fontSize: 26 }}>{icon}</Text></View>
                 <View style={{ flex: 1 }}>
-                    <Text style={s.statVal}>{val}</Text>
-                    <Text style={s.statTitle}>{title}</Text>
+                    <Text style={styles.statVal}>{val}</Text>
+                    <Text style={styles.statTitle}>{title}</Text>
                 </View>
             </View>
         );
 
         return (
-            <View style={[s.grid, isMobile && s.gridMobile]}>
+            <View style={[styles.grid, isMobile && styles.gridMobile]}>
                 {/* Column 1: Cyan */}
-                <View style={[s.col, isMobile && s.colMobile]}>
-                    <View style={[s.glowOrb, { backgroundColor: '#00d2ff', left: -80, top: 0, opacity: 0.15 }]} />
+                <View style={[styles.col, isMobile && styles.colMobile]}>
+                    <View style={[styles.glowOrb, { backgroundColor: '#00d2ff', left: -80, top: 0, opacity: 0.15 }]} />
                     <StatCard title="LEARNERS" val={stats.totalStudents} icon="🎓" />
                     <StatCard title="MENTORS" val={stats.totalMentors} icon="👨‍🏫" />
                 </View>
 
                 {/* Column 2: Blue/Purple, Dominant */}
-                <View style={[s.colDom, isMobile && s.colMobile]}>
-                    <View style={[s.glowOrb, { backgroundColor: '#8a2be2', right: -50, top: 20, opacity: 0.15, width: 300, height: 300 }]} />
-                    <View style={[s.glassCard, s.centerCard]}>
-                        <Text style={s.centerCardTitle}>Platform Performance</Text>
-                        <View style={s.graphPlaceholder}>
-                            <LinearGradient colors={['#00d2ff', 'transparent']} style={[s.bar, { height: '30%' }]} />
-                            <LinearGradient colors={['#00d2ff', 'transparent']} style={[s.bar, { height: '55%' }]} />
-                            <LinearGradient colors={['#00d2ff', 'transparent']} style={[s.bar, { height: '40%' }]} />
-                            <LinearGradient colors={['#00d2ff', 'transparent']} style={[s.bar, { height: '80%' }]} />
-                            <LinearGradient colors={['#00d2ff', 'transparent']} style={[s.bar, { height: '65%' }]} />
-                            <LinearGradient colors={['#00d2ff', 'transparent']} style={[s.bar, { height: '100%' }]} />
-                            <LinearGradient colors={['#00d2ff', 'transparent']} style={[s.bar, { height: '85%' }]} />
+                <View style={[styles.colDom, isMobile && styles.colMobile]}>
+                    <View style={[styles.glowOrb, { backgroundColor: '#8a2be2', right: -50, top: 20, opacity: 0.15, width: 300, height: 300 }]} />
+                    <View style={[styles.glassCard, styles.centerCard]}>
+                        <Text style={styles.centerCardTitle}>Platform Performance</Text>
+                        <View style={styles.graphPlaceholder}>
+                            <LinearGradient colors={['#00d2ff', 'transparent']} style={[styles.bar, { height: '30%' }]} />
+                            <LinearGradient colors={['#00d2ff', 'transparent']} style={[styles.bar, { height: '55%' }]} />
+                            <LinearGradient colors={['#00d2ff', 'transparent']} style={[styles.bar, { height: '40%' }]} />
+                            <LinearGradient colors={['#00d2ff', 'transparent']} style={[styles.bar, { height: '80%' }]} />
+                            <LinearGradient colors={['#00d2ff', 'transparent']} style={[styles.bar, { height: '65%' }]} />
+                            <LinearGradient colors={['#00d2ff', 'transparent']} style={[styles.bar, { height: '100%' }]} />
+                            <LinearGradient colors={['#00d2ff', 'transparent']} style={[styles.bar, { height: '85%' }]} />
                         </View>
-                        <View style={s.centerCardMetrics}>
-                            <View style={s.badge}><Text style={s.badgeText}>{stats.totalCourses} Courses</Text></View>
+                        <View style={styles.centerCardMetrics}>
+                            <View style={styles.badge}><Text style={styles.badgeText}>{stats.totalCourses} Courses</Text></View>
                             {!isMobile && <Text style={{ color: 'rgba(255,255,255,0.1)', fontSize: 24, fontWeight: '300' }}>|</Text>}
-                            <View style={[s.badge, { borderColor: 'rgba(138,43,226,0.5)', backgroundColor: 'rgba(138,43,226,0.05)', marginTop: isMobile ? 8 : 0 }]}><Text style={s.badgeText}>{stats.totalExams} Live Exams</Text></View>
+                            <View style={[styles.badge, { borderColor: 'rgba(138,43,226,0.5)', backgroundColor: 'rgba(138,43,226,0.05)', marginTop: isMobile ? 8 : 0 }]}><Text style={styles.badgeText}>{stats.totalExams} Live Exams</Text></View>
                         </View>
                     </View>
                 </View>
 
                 {/* Column 3: Red/Amber */}
-                <View style={[s.col, isMobile && s.colMobile]}>
-                    <View style={[s.glowOrb, { backgroundColor: '#ff416c', right: -20, bottom: -20, opacity: 0.15 }]} />
+                <View style={[styles.col, isMobile && styles.colMobile]}>
+                    <View style={[styles.glowOrb, { backgroundColor: '#ff416c', right: -20, bottom: -20, opacity: 0.15 }]} />
                     <StatCard title="SUBMISSIONS" val={stats.totalSubmissions} icon="📝" />
                     <StatCard title="PENDING" val={stats.pendingReviews} icon="⏳" />
                 </View>
@@ -210,17 +212,17 @@ export default function AdminDashboardScreen({ navigation }) {
     };
 
     const renderEntity = (item, emojis, type, titleKey, subKey) => (
-        <View key={item.id} style={[s.glassCard, s.listItem]}>
+        <View key={item.id} style={[styles.glassCard, styles.listItem]}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 20, flex: 1 }}>
-                <View style={s.listAvatar}><Text style={{ fontSize: 24 }}>{emojis}</Text></View>
+                <View style={styles.listAvatar}><Text style={{ fontSize: 24 }}>{emojis}</Text></View>
                 <View>
-                    <Text style={s.listTitle}>{item[titleKey]}</Text>
-                    <Text style={s.listSub}>{item[subKey] || 'N/A'}</Text>
+                    <Text style={styles.listTitle}>{item[titleKey]}</Text>
+                    <Text style={styles.listSub}>{item[subKey] || 'N/A'}</Text>
                 </View>
             </View>
             <View style={{ flexDirection: 'row', gap: 12 }}>
                 {type !== 'students' && (
-                    <TouchableOpacity style={s.listBtnGhost} onPress={() => {
+                    <TouchableOpacity style={styles.listBtnGhost} onPress={() => {
                         if(type==='mentors') navigation.navigate('AddMentor', {editMentor: item});
                         if(type==='courses') navigation.navigate('AddCourse', {editCourse: item});
                         if(type==='exams') navigation.navigate('AddExam', {editExamId: item.id});
@@ -228,7 +230,7 @@ export default function AdminDashboardScreen({ navigation }) {
                         <Text style={{ color: '#00d2ff', fontWeight: '600', fontSize: 13, textTransform: 'uppercase', letterSpacing: 0.5 }}>Edit</Text>
                     </TouchableOpacity>
                 )}
-                <TouchableOpacity style={s.listBtnDangerGhost} onPress={() => confirmDelete(type, item.id, item[titleKey])}>
+                <TouchableOpacity style={styles.listBtnDangerGhost} onPress={() => confirmDelete(type, item.id, item[titleKey])}>
                     <Text style={{ color: '#ff4757', fontWeight: '600', fontSize: 13, textTransform: 'uppercase', letterSpacing: 0.5 }}>Delete</Text>
                 </TouchableOpacity>
             </View>
@@ -236,30 +238,30 @@ export default function AdminDashboardScreen({ navigation }) {
     );
 
     return (
-        <View style={s.container}>
+        <View style={styles.container}>
             {/* Deep Radial Gradient Illusion */}
             <LinearGradient colors={['#04161F', '#0c2431']} style={StyleSheet.absoluteFillObject} />
 
-            <ScrollView contentContainerStyle={s.scroll} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#fff" />}>
+            <ScrollView contentContainerStyle={styles.scroll} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#fff" />}>
                 {renderHeader()}
                 
                 {/* Visual Tab Breadcrumb for context */}
-                <View style={s.breadcrumb}>
-                    <Text style={s.breadcrumbText}>Admin / <Text style={{ color: '#00d2ff' }}>{tab.toUpperCase()}</Text></Text>
+                <View style={styles.breadcrumb}>
+                    <Text style={styles.breadcrumbText}>Admin / <Text style={{ color: '#00d2ff' }}>{tab.toUpperCase()}</Text></Text>
                 </View>
 
                 {tab === 'overview' ? renderOverview() : (
                     <View style={{ zIndex: 10 }}>
-                        <View style={[s.glassCard, s.searchBar]}>
+                        <View style={[styles.glassCard, styles.searchBar]}>
                             <Text style={{ fontSize: 18 }}>🔍</Text>
-                            <TextInput style={s.searchInput} placeholder={`Search ${tab}…`} placeholderTextColor="rgba(255,255,255,0.3)" value={search} onChangeText={setSearch} />
+                            <TextInput style={styles.searchInput} placeholder={`Search ${tab}…`} placeholderTextColor="rgba(255,255,255,0.3)" value={search} onChangeText={setSearch} />
                             {search.length > 0 && <TouchableOpacity onPress={() => setSearch('')}><Text style={{ color: '#fff', opacity: 0.5, fontSize: 18 }}>✕</Text></TouchableOpacity>}
                         </View>
                         
                         {activeList.length === 0 ? (
-                            <View style={s.empty}>
+                            <View style={styles.empty}>
                                 <Text style={{ fontSize: 56, marginBottom: 20 }}>📭</Text>
-                                <Text style={s.emptyTitle}>No tracking data</Text>
+                                <Text style={styles.emptyTitle}>No tracking data</Text>
                             </View>
                         ) : (
                             activeList.map(item => {
@@ -274,14 +276,14 @@ export default function AdminDashboardScreen({ navigation }) {
             </ScrollView>
 
             {(tab !== 'students' && tab !== 'overview') && (
-                <View style={s.fabArea}>
+                <View style={styles.fabArea}>
                     <TouchableOpacity onPress={() => navigation.navigate(tab === 'mentors' ? 'AddMentor' : tab === 'courses' ? 'AddCourse' : 'AddExam')}>
-                        <LinearGradient colors={['#00d2ff', '#3a7bd5']} style={s.fabBtn} start={{x:0, y:0}} end={{x:1, y:1}}>
-                            <Text style={s.fabBtnText}>+ Create {tab.slice(0,-1)}</Text>
+                        <LinearGradient colors={['#00d2ff', '#3a7bd5']} style={styles.fabBtn} start={{x:0, y:0}} end={{x:1, y:1}}>
+                            <Text style={styles.fabBtnText}>+ Create {tab.slice(0,-1)}</Text>
                         </LinearGradient>
                     </TouchableOpacity>
                     {(tab === 'courses' || tab === 'exams') && (
-                        <TouchableOpacity style={[s.fabBtn, { backgroundColor: 'rgba(255,255,255,0.05)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' }]} onPress={() => navigation.navigate('UploadExcel')}>
+                        <TouchableOpacity style={[styles.fabBtn, { backgroundColor: 'rgba(255,255,255,0.05)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' }]} onPress={() => navigation.navigate('UploadExcel')}>
                             <Text style={{ color: '#fff', fontWeight: '700', letterSpacing: 0.5 }}>📤 Bulk Upload</Text>
                         </TouchableOpacity>
                     )}
@@ -293,7 +295,7 @@ export default function AdminDashboardScreen({ navigation }) {
     );
 }
 
-const s = StyleSheet.create({
+const getStyles = (isMobile) => StyleSheet.create({
     container: { flex: 1, backgroundColor: '#04161F' },
     glowOrb: { position: 'absolute', width: 250, height: 250, borderRadius: 125, filter: 'blur(80px)', zIndex: 0 },
     scroll: { padding: isMobile ? 16 : 40, paddingBottom: 100 },
