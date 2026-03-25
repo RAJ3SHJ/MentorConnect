@@ -174,7 +174,6 @@ export default function AdminDashboardScreen({ navigation }) {
                 <View style={[s.col, isMobile && s.colMobile]}>
                     <View style={[s.glowOrb, { backgroundColor: '#00d2ff', left: -80, top: 0, opacity: 0.15 }]} />
                     <StatCard title="LEARNERS" val={stats.totalStudents} icon="🎓" />
-                    <View style={{ height: isMobile ? 20 : 0 }} />
                     <StatCard title="MENTORS" val={stats.totalMentors} icon="👨‍🏫" />
                 </View>
 
@@ -204,7 +203,6 @@ export default function AdminDashboardScreen({ navigation }) {
                 <View style={[s.col, isMobile && s.colMobile]}>
                     <View style={[s.glowOrb, { backgroundColor: '#ff416c', right: -20, bottom: -20, opacity: 0.15 }]} />
                     <StatCard title="SUBMISSIONS" val={stats.totalSubmissions} icon="📝" />
-                    <View style={{ height: isMobile ? 20 : 0 }} />
                     <StatCard title="PENDING" val={stats.pendingReviews} icon="⏳" />
                 </View>
             </View>
@@ -247,7 +245,7 @@ export default function AdminDashboardScreen({ navigation }) {
                 
                 {/* Visual Tab Breadcrumb for context */}
                 <View style={s.breadcrumb}>
-                    <Text style={s.breadcrumbText}>Admin / <Text style={{ color: '#00d2ff' }}>{tab.charAt(0).toUpperCase() + tab.slice(1)}</Text></Text>
+                    <Text style={s.breadcrumbText}>Admin / <Text style={{ color: '#00d2ff' }}>{tab.toUpperCase()}</Text></Text>
                 </View>
 
                 {tab === 'overview' ? renderOverview() : (
@@ -300,7 +298,7 @@ const s = StyleSheet.create({
     glowOrb: { position: 'absolute', width: 250, height: 250, borderRadius: 125, filter: 'blur(80px)', zIndex: 0 },
     scroll: { padding: isMobile ? 16 : 40, paddingBottom: 100 },
     
-    header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 40, zIndex: 10, flexWrap: 'wrap', gap: 20 },
+    header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: isMobile ? 24 : 40, zIndex: 10, flexWrap: 'wrap', gap: 20 },
     headerTitle: { fontSize: isMobile ? 24 : 36, fontWeight: '800', color: '#fff', letterSpacing: -1 },
     menuBtn: { width: 44, height: 44, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.05)', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
     userHub: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: 'rgba(255,255,255,0.02)', padding: 6, paddingLeft: 16, borderRadius: 40, borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)' },
@@ -312,7 +310,7 @@ const s = StyleSheet.create({
     logoutBtn: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(255, 71, 87, 0.2)', backgroundColor: 'transparent' },
     logoutBtnText: { color: '#ff4757', fontWeight: '600', fontSize: 16 },
     
-    breadcrumb: { marginBottom: 24, paddingLeft: 4 },
+    breadcrumb: { marginBottom: isMobile ? 12 : 24, paddingLeft: 4 },
     breadcrumbText: { color: 'rgba(255,255,255,0.3)', fontSize: 13, textTransform: 'uppercase', letterSpacing: 1.5, fontWeight: '600' },
 
     sidebar: { 
@@ -344,29 +342,29 @@ const s = StyleSheet.create({
         ...(Platform.OS === 'web' ? { backdropFilter: 'blur(20px)' } : {})
     },
 
-    grid: { flexDirection: 'row', gap: 24, zIndex: 10, alignItems: 'stretch' },
-    gridMobile: { flexDirection: 'column' },
-    col: { flex: 1, gap: 24, position: 'relative' },
+    grid: { flexDirection: 'row', gap: 24, zIndex: 10 },
+    gridMobile: { flexDirection: 'column', gap: 12 },
+    col: { flex: 1, gap: 12, position: 'relative' },
     colDom: { flex: 1.5, position: 'relative' },
-    colMobile: { flex: 0 },
+    colMobile: { flex: 0, gap: 12 },
 
-    statCard: { flexDirection: 'row', alignItems: 'center', gap: 16, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.1)', flex: 0, minHeight: 110, marginBottom: isMobile ? 12 : 0 },
+    statCard: { flexDirection: 'row', alignItems: 'center', gap: 16, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.1)', flex: 0, minHeight: isMobile ? 80 : 110, marginBottom: isMobile ? 12 : 0 },
     statIconBox: { width: 56, height: 56, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.04)', alignItems: 'center', justifyContent: 'center' },
     statVal: { fontSize: 32, fontWeight: '800', color: '#fff', letterSpacing: -1, marginBottom: 2 },
     statTitle: { fontSize: 10, fontWeight: '800', color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: 1 },
 
-    centerCard: { flex: 0, justifyContent: 'space-between', padding: isMobile ? 24 : 36, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.1)', minHeight: 280, marginVertical: isMobile ? 24 : 0 },
+    centerCard: { flex: 0, justifyContent: 'space-between', padding: isMobile ? 20 : 36, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.1)', minHeight: isMobile ? 220 : 280, marginVertical: isMobile ? 12 : 0 },
     centerCardTitle: { fontSize: 12, color: 'rgba(255,255,255,0.4)', fontWeight: '800', textTransform: 'uppercase', letterSpacing: 2, marginBottom: 24 },
     graphPlaceholder: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-evenly', height: 120 },
     bar: { width: isMobile ? 12 : 28, borderRadius: 14, backgroundColor: 'transparent' },
-    centerCardMetrics: { flexDirection: isMobile ? 'column' : 'row', alignItems: 'center', justifyContent: 'center', gap: isMobile ? 8 : 24, marginTop: 32 },
-    badge: { paddingHorizontal: 20, paddingVertical: 10, borderRadius: 24, backgroundColor: 'rgba(0,210,255,0.05)', borderWidth: 1, borderColor: 'rgba(0,210,255,0.2)' },
+    centerCardMetrics: { flexDirection: isMobile ? 'row' : 'row', alignItems: 'center', justifyContent: 'center', gap: isMobile ? 12 : 24, marginTop: isMobile ? 24 : 32 },
+    badge: { paddingHorizontal: isMobile ? 14 : 20, paddingVertical: isMobile ? 6 : 10, borderRadius: 24, backgroundColor: 'rgba(0,210,255,0.05)', borderWidth: 1, borderColor: 'rgba(0,210,255,0.2)' },
     badgeText: { color: '#fff', fontWeight: '800', letterSpacing: 0.5, fontSize: 13 },
 
     searchBar: { flexDirection: 'row', alignItems: 'center', paddingVertical: 18, paddingHorizontal: 24, marginBottom: 24, gap: 16, borderRadius: 20 },
     searchInput: { flex: 1, color: '#fff', fontSize: 16 },
     
-    listItem: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 24, marginBottom: 16, borderLeftWidth: 2, borderLeftColor: 'rgba(255,255,255,0.15)' },
+    listItem: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: isMobile ? 16 : 24, marginBottom: 12, borderLeftWidth: 2, borderLeftColor: 'rgba(255,255,255,0.15)' },
     listAvatar: { width: 56, height: 56, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.03)', alignItems: 'center', justifyContent: 'center' },
     listTitle: { fontSize: 18, fontWeight: '700', color: '#fff', marginBottom: 6, letterSpacing: -0.5 },
     listSub: { fontSize: 13, color: 'rgba(255,255,255,0.3)', fontWeight: '500' },
