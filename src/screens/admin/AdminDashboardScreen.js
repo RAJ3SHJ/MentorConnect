@@ -171,41 +171,32 @@ export default function AdminDashboardScreen({ navigation }) {
         );
 
         return (
-            <View style={[styles.grid, isMobile && styles.gridMobile]}>
-                {/* Column 1: Cyan */}
-                <View style={[styles.col, isMobile && styles.colMobile]}>
-                    <View style={[styles.glowOrb, { backgroundColor: '#00d2ff', left: -80, top: 0, opacity: 0.15 }]} />
+            <View style={styles.overviewContainer}>
+                {/* Stats Section: 1x4 stack for mobile, 2 columns for tablet/desktop */}
+                <View style={[styles.statGrid, isMobile && styles.statGridMobile]}>
                     <StatCard title="LEARNERS" val={stats.totalStudents} icon="🎓" />
                     <StatCard title="MENTORS" val={stats.totalMentors} icon="👨‍🏫" />
-                </View>
-
-                {/* Column 2: Blue/Purple, Dominant */}
-                <View style={[styles.colDom, isMobile && styles.colMobile]}>
-                    <View style={[styles.glowOrb, { backgroundColor: '#8a2be2', right: -50, top: 20, opacity: 0.15, width: 300, height: 300 }]} />
-                    <View style={[styles.glassCard, styles.centerCard]}>
-                        <Text style={styles.centerCardTitle}>Platform Performance</Text>
-                        <View style={styles.graphPlaceholder}>
-                            <LinearGradient colors={['#00d2ff', 'transparent']} style={[styles.bar, { height: '30%' }]} />
-                            <LinearGradient colors={['#00d2ff', 'transparent']} style={[styles.bar, { height: '55%' }]} />
-                            <LinearGradient colors={['#00d2ff', 'transparent']} style={[styles.bar, { height: '40%' }]} />
-                            <LinearGradient colors={['#00d2ff', 'transparent']} style={[styles.bar, { height: '80%' }]} />
-                            <LinearGradient colors={['#00d2ff', 'transparent']} style={[styles.bar, { height: '65%' }]} />
-                            <LinearGradient colors={['#00d2ff', 'transparent']} style={[styles.bar, { height: '100%' }]} />
-                            <LinearGradient colors={['#00d2ff', 'transparent']} style={[styles.bar, { height: '85%' }]} />
-                        </View>
-                        <View style={styles.centerCardMetrics}>
-                            <View style={styles.badge}><Text style={styles.badgeText}>{stats.totalCourses} Courses</Text></View>
-                            {!isMobile && <Text style={{ color: 'rgba(255,255,255,0.1)', fontSize: 24, fontWeight: '300' }}>|</Text>}
-                            <View style={[styles.badge, { borderColor: 'rgba(138,43,226,0.5)', backgroundColor: 'rgba(138,43,226,0.05)', marginTop: isMobile ? 8 : 0 }]}><Text style={styles.badgeText}>{stats.totalExams} Live Exams</Text></View>
-                        </View>
-                    </View>
-                </View>
-
-                {/* Column 3: Red/Amber */}
-                <View style={[styles.col, isMobile && styles.colMobile]}>
-                    <View style={[styles.glowOrb, { backgroundColor: '#ff416c', right: -20, bottom: -20, opacity: 0.15 }]} />
                     <StatCard title="SUBMISSIONS" val={stats.totalSubmissions} icon="📝" />
                     <StatCard title="PENDING" val={stats.pendingReviews} icon="⏳" />
+                </View>
+
+                {/* Performance Section: Full width below stats */}
+                <View style={[styles.glassCard, styles.centerCard, isMobile && styles.centerCardMobile]}>
+                    <Text style={styles.centerCardTitle}>Platform Performance</Text>
+                    <View style={styles.graphPlaceholder}>
+                        <LinearGradient colors={['#00d2ff', 'transparent']} style={[styles.bar, { height: '30%' }]} />
+                        <LinearGradient colors={['#00d2ff', 'transparent']} style={[styles.bar, { height: '55%' }]} />
+                        <LinearGradient colors={['#00d2ff', 'transparent']} style={[styles.bar, { height: '40%' }]} />
+                        <LinearGradient colors={['#00d2ff', 'transparent']} style={[styles.bar, { height: '80%' }]} />
+                        <LinearGradient colors={['#00d2ff', 'transparent']} style={[styles.bar, { height: '65%' }]} />
+                        <LinearGradient colors={['#00d2ff', 'transparent']} style={[styles.bar, { height: '100%' }]} />
+                        <LinearGradient colors={['#00d2ff', 'transparent']} style={[styles.bar, { height: '85%' }]} />
+                    </View>
+                    <View style={styles.centerCardMetrics}>
+                        <View style={styles.badge}><Text style={styles.badgeText}>{stats.totalCourses} Courses</Text></View>
+                        {!isMobile && <Text style={{ color: 'rgba(255,255,255,0.1)', fontSize: 24, fontWeight: '300' }}>|</Text>}
+                        <View style={[styles.badge, { borderColor: 'rgba(138,43,226,0.5)', backgroundColor: 'rgba(138,43,226,0.05)' }]}><Text style={styles.badgeText}>{stats.totalExams} Live Exams</Text></View>
+                    </View>
                 </View>
             </View>
         );
@@ -344,23 +335,22 @@ const getStyles = (isMobile) => StyleSheet.create({
         ...(Platform.OS === 'web' ? { backdropFilter: 'blur(20px)' } : {})
     },
 
-    grid: { flexDirection: 'row', gap: 24, zIndex: 10 },
-    gridMobile: { flexDirection: 'column', gap: 12 },
-    col: { flex: 1, gap: 12, position: 'relative' },
-    colDom: { flex: 1.5, position: 'relative' },
-    colMobile: { flex: 0, gap: 12 },
+    overviewContainer: { gap: 20 },
+    statGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 16 },
+    statGridMobile: { flexDirection: 'column', gap: 12 },
 
-    statCard: { flexDirection: 'row', alignItems: 'center', gap: 16, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.1)', flex: 0, minHeight: isMobile ? 80 : 110, marginBottom: isMobile ? 12 : 0 },
+    statCard: { flexDirection: 'row', alignItems: 'center', gap: 16, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.1)', flex: isMobile ? 0 : 1, minHeight: isMobile ? 90 : 110, minWidth: isMobile ? '100%' : 200 },
     statIconBox: { width: 56, height: 56, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.04)', alignItems: 'center', justifyContent: 'center' },
     statVal: { fontSize: 32, fontWeight: '800', color: '#fff', letterSpacing: -1, marginBottom: 2 },
     statTitle: { fontSize: 10, fontWeight: '800', color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: 1 },
 
-    centerCard: { flex: 0, justifyContent: 'space-between', padding: isMobile ? 20 : 36, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.1)', minHeight: isMobile ? 220 : 280, marginVertical: isMobile ? 12 : 0 },
+    centerCard: { flex: 0, justifyContent: 'space-between', padding: isMobile ? 20 : 36, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.1)', minHeight: isMobile ? 260 : 320 },
+    centerCardMobile: { marginTop: 8 },
     centerCardTitle: { fontSize: 12, color: 'rgba(255,255,255,0.4)', fontWeight: '800', textTransform: 'uppercase', letterSpacing: 2, marginBottom: 24 },
     graphPlaceholder: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-evenly', height: 120 },
     bar: { width: isMobile ? 12 : 28, borderRadius: 14, backgroundColor: 'transparent' },
-    centerCardMetrics: { flexDirection: isMobile ? 'row' : 'row', alignItems: 'center', justifyContent: 'center', gap: isMobile ? 12 : 24, marginTop: isMobile ? 24 : 32 },
-    badge: { paddingHorizontal: isMobile ? 14 : 20, paddingVertical: isMobile ? 6 : 10, borderRadius: 24, backgroundColor: 'rgba(0,210,255,0.05)', borderWidth: 1, borderColor: 'rgba(0,210,255,0.2)' },
+    centerCardMetrics: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: isMobile ? 12 : 24, marginTop: isMobile ? 24 : 32, flexWrap: 'wrap' },
+    badge: { paddingHorizontal: isMobile ? 14 : 20, paddingVertical: isMobile ? 10 : 12, borderRadius: 24, backgroundColor: 'rgba(0,210,255,0.05)', borderWidth: 1, borderColor: 'rgba(0,210,255,0.2)' },
     badgeText: { color: '#fff', fontWeight: '800', letterSpacing: 0.5, fontSize: 13 },
 
     searchBar: { flexDirection: 'row', alignItems: 'center', paddingVertical: 18, paddingHorizontal: 24, marginBottom: 24, gap: 16, borderRadius: 20 },
