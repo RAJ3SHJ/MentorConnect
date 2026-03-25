@@ -1,0 +1,13 @@
+﻿node.exe : unknown or unexpected option: 
+--no-pwa
+At line:1 char:1
++ & "C:\Program Files\nodejs/node.exe" 
+"C:\Program Files\nodejs/node_mo ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified 
+   : (unknown or unexpected option: --no-  
+  pwa:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeComman 
+   dError
+ 

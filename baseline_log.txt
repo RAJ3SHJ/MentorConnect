@@ -1,0 +1,38 @@
+﻿env: load .env
+env: export EXPO_PUBLIC_API_URL
+Starting Metro Bundler
+| Warning: Unknown at rule: @tailwind (global.css:1:10):
+| > 1 | @tailwind base;
+|     |          ^
+|   2 | @tailwind components;
+|   3 | @tailwind utilities;
+|   4 | 
+| Warning: Unknown at rule: @tailwind (global.css:2:10):
+|   1 | @tailwind base;
+| > 2 | @tailwind components;
+|     |          ^
+|   3 | @tailwind utilities;
+|   4 | 
+| Warning: Unknown at rule: @tailwind (global.css:3:10):
+|   1 | @tailwind base;
+|   2 | @tailwind components;
+| > 3 | @tailwind utilities;
+|     |          ^
+|   4 | 
+| (node:36844) DeprecationWarning: Passing lineNumber and colNumber is deprecated to @babel/code-frame. Please use `codeFrameColumns`.
+| (Use `node --trace-deprecation ...` to show where the warning was created)
+Web Bundled 14438ms node_modules\expo\AppEntry.js (525 modules)
+
+ΓÇ║ Assets (2):
+node_modules\@react-navigation\elements\lib\module\assets\back-icon-mask.5223c8d9b0d08b82a5670fb5f71faf78.png (913 B)
+node_modules\@react-navigation\elements\lib\module\assets\back-icon.35ba0eaec5a4f5ed12ca16fabeae451d.png (207 B)
+
+ΓÇ║ web bundles (2):
+_expo/static/css/global-3cacee391842ae4718002b75462bf182.css (56 B)
+_expo/static/js/web/AppEntry-9ffd3083a082b22b3cafba22edaeb4b4.js (1.31 MB)
+
+ΓÇ║ Files (2):
+index.html (1.37 kB)
+metadata.json (49 B)
+
+Exported: dist
