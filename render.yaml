@@ -20,6 +20,10 @@ services:
     branch: main # Points to your frontend branch
     buildCommand: npm install && npx expo export --platform web
     staticPublishPath: dist
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
     envVars:
       - key: EXPO_PUBLIC_API_URL
         fromService:
