@@ -1,0 +1,58 @@
+﻿env: load .env
+env: export EXPO_PUBLIC_API_URL
+Starting project at C:\Users\rajes\OneDrive\Documents\Apps\mentor-app
+Starting Metro Bundler
+node.exe : The following packages should 
+be updated for best compatibility with the 
+installed expo version:
+At line:1 char:1
++ & "C:\Program Files\nodejs/node.exe" 
+"C:\Program Files\nodejs/node_mo ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified 
+   : (The following p...d expo version::S  
+  tring) [], RemoteException
+    + FullyQualifiedErrorId : NativeComman 
+   dError
+ 
+  @react-native-async-storage/async-storage
+@2.2.0 - expected version: 1.23.1
+  expo-document-picker@55.0.8 - expected 
+version: ~13.0.3
+  react-native@0.76.7 - expected version: 
+0.76.9
+Your project may not work correctly until 
+you install the expected versions of the 
+packages.
+Waiting on http://localhost:8081
+Logs for your project will appear below.
+| Warning: Unknown at rule: @tailwind (global.css:1:10):
+| > 1 | @tailwind base;
+|     |          ^
+|   2 | @tailwind components;
+|   3 | @tailwind utilities;
+|   4 | 
+| Warning: Unknown at rule: @tailwind (global.css:2:10):
+|   1 | @tailwind base;
+| > 2 | @tailwind components;
+|     |          ^
+|   3 | @tailwind utilities;
+|   4 | 
+| Warning: Unknown at rule: @tailwind (global.css:3:10):
+|   1 | @tailwind base;
+|   2 | @tailwind components;
+| > 3 | @tailwind utilities;
+|     |          ^
+|   4 | 
+| (node:22520) DeprecationWarning: Passing lineNumber and colNumber is deprecated to @babel/code-frame. Please use `codeFrameColumns`.
+| (Use `node --trace-deprecation ...` to show where the warning was created)
+Web Bundled 3480ms node_modules\expo\AppEntry.js (533 modules)
+Web Bundled 54ms node_modules\expo\AppEntry.js (1 module)
+Web Bundled 97ms node_modules\expo\AppEntry.js (1 module)
+Web Bundled 47ms node_modules\expo\AppEntry.js (1 module)
+ΓÇ║ Detected a change in babel.config.js. Restart the server to see the new results. You may need to clear the bundler cache with the --clear flag for your changes to take effect.
+ΓÇ║ Detected a change in babel.config.js. Restart the server to see the new results. You may need to clear the bundler cache with the --clear flag for your changes to take effect.
+ΓÇ║ Detected a change in babel.config.js. Restart the server to see the new results. You may need to clear the bundler cache with the --clear flag for your changes to take effect.
+ΓÇ║ Detected a change in babel.config.js. Restart the server to see the new results. You may need to clear the bundler cache with the --clear flag for your changes to take effect.
+ΓÇ║ Detected a change in babel.config.js. Restart the server to see the new results. You may need to clear the bundler cache with the --clear flag for your changes to take effect.

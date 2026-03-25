@@ -1,3 +1,4 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+/* Responsive Dashboard Styles - Standard CSS */
+@media (min-width: 1024px) {
+  /* Desktop specific overrides if needed */
+}
