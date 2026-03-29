@@ -8,6 +8,8 @@ services:
     buildCommand: npm install
     startCommand: node server.js
     envVars:
+      - key: DATABASE_URL
+        value: postgresql://postgres:MinnyMinny%401230@db.fxmqluspbkjjajdnnxel.supabase.co:5432/postgres
       - key: NODE_VERSION
         value: 20
       - key: PORT
