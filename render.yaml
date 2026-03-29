@@ -9,7 +9,7 @@ services:
     startCommand: node server.js
     envVars:
       - key: DATABASE_URL
-        value: postgresql://postgres:MinnyMinny%401230@db.fxmqluspbkjjajdnnxel.supabase.co:5432/postgres
+        value: postgresql://postgres.fxmqluspbkjjajdnnxel:MinnyMinny%401230@aws-1-ap-southeast-2.pooler.supabase.com:6543/postgres
       - key: NODE_VERSION
         value: 20
       - key: PORT
