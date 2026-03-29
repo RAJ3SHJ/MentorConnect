@@ -3,10 +3,11 @@
     "name": "MentorPath",
     "slug": "mentor-app",
     "version": "1.0.0",
+    "icon": "./src/assets/icon.png",
     "orientation": "portrait",
     "userInterfaceStyle": "dark",
     "splash": {
-      "image": "./assets/splash.png",
+      "image": "./src/assets/splash.png",
       "resizeMode": "contain",
       "backgroundColor": "#0A0F1E"
     },
@@ -19,6 +20,7 @@
     "android": {
       "package": "com.raj3shj.mentorconnect",
       "adaptiveIcon": {
+        "foregroundImage": "./src/assets/adaptive-icon.png",
         "backgroundColor": "#0A0F1E"
       }
     },
