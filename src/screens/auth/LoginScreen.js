@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import api from '../../api/client';
 import { useAuth } from '../../context/AuthContext';
@@ -44,43 +44,50 @@ export default function LoginScreen({ navigation }) {
 
     return (
         <LinearGradient colors={gradients.bg} style={s.container}>
-            <View style={[s.orb1, { backgroundColor: colors.blue }]} />
-            <View style={[s.orb2, { backgroundColor: colors.purple }]} />
-            <View style={s.inner}>
-                <Text style={{ fontSize: 40, marginBottom: 16 }}>👋</Text>
-                <Text style={[s.title, { color: colors.white }]}>Welcome Back</Text>
-                <Text style={[s.subtitle, { color: colors.muted }]}>Login to continue learning</Text>
+            <KeyboardAvoidingView 
+                behavior={Platform.OS === 'ios' ? 'padding' : 'height'} 
+                style={{ flex: 1 }}
+            >
+                <ScrollView contentContainerStyle={{ flexGrow: 1 }} showsVerticalScrollIndicator={false}>
+                    <View style={[s.orb1, { backgroundColor: colors.blue }]} />
+                    <View style={[s.orb2, { backgroundColor: colors.purple }]} />
+                    <View style={s.inner}>
+                        <Text style={{ fontSize: 40, marginBottom: 16 }}>👋</Text>
+                        <Text style={[s.title, { color: colors.white }]}>Welcome Back</Text>
+                        <Text style={[s.subtitle, { color: colors.muted }]}>Login to continue learning</Text>
 
-                <View style={[s.card, { backgroundColor: colors.card, borderColor: colors.glassBorder }]}>
-                    <Text style={[s.label, { color: colors.muted }]}>EMAIL</Text>
-                    <TextInput style={[s.input, { borderColor: errors.email ? colors.danger : colors.glassBorder, color: colors.white }]}
-                        placeholder="you@example.com" placeholderTextColor={colors.muted}
-                        value={email} onChangeText={t => { setEmail(t); if (errors.email) setErrors(e => ({ ...e, email: null })); }}
-                        autoCapitalize="none" keyboardType="email-address" />
-                    {errors.email && <Text style={[s.error, { color: colors.danger }]}>⚠ {errors.email}</Text>}
+                        <View style={[s.card, { backgroundColor: colors.card, borderColor: colors.glassBorder }]}>
+                            <Text style={[s.label, { color: colors.muted }]}>EMAIL</Text>
+                            <TextInput style={[s.input, { borderColor: errors.email ? colors.danger : colors.glassBorder, color: colors.white }]}
+                                placeholder="you@example.com" placeholderTextColor={colors.muted}
+                                value={email} onChangeText={t => { setEmail(t); if (errors.email) setErrors(e => ({ ...e, email: null })); }}
+                                autoCapitalize="none" keyboardType="email-address" />
+                            {errors.email && <Text style={[s.error, { color: colors.danger }]}>⚠ {errors.email}</Text>}
 
-                    <Text style={[s.label, { color: colors.muted }]}>PASSWORD</Text>
-                    <TextInput style={[s.input, { borderColor: errors.password ? colors.danger : colors.glassBorder, color: colors.white }]}
-                        placeholder="••••••••" placeholderTextColor={colors.muted}
-                        value={password} onChangeText={t => { setPassword(t); if (errors.password) setErrors(e => ({ ...e, password: null })); }}
-                        secureTextEntry autoComplete="password" textContentType="password" />
-                    {errors.password && <Text style={[s.error, { color: colors.danger }]}>⚠ {errors.password}</Text>}
+                            <Text style={[s.label, { color: colors.muted }]}>PASSWORD</Text>
+                            <TextInput style={[s.input, { borderColor: errors.password ? colors.danger : colors.glassBorder, color: colors.white }]}
+                                placeholder="••••••••" placeholderTextColor={colors.muted}
+                                value={password} onChangeText={t => { setPassword(t); if (errors.password) setErrors(e => ({ ...e, password: null })); }}
+                                secureTextEntry autoComplete="password" textContentType="password" />
+                            {errors.password && <Text style={[s.error, { color: colors.danger }]}>⚠ {errors.password}</Text>}
 
-                    <TouchableOpacity onPress={handleLogin} disabled={loading} activeOpacity={0.85}>
-                        <LinearGradient colors={gradients.accent} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={s.btn}>
-                            {loading ? <ActivityIndicator color="#FFF" /> : <Text style={s.btnText}>Login →</Text>}
-                        </LinearGradient>
-                    </TouchableOpacity>
-                </View>
+                            <TouchableOpacity onPress={handleLogin} disabled={loading} activeOpacity={0.85}>
+                                <LinearGradient colors={gradients.accent} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={s.btn}>
+                                    {loading ? <ActivityIndicator color="#FFF" /> : <Text style={s.btnText}>Login →</Text>}
+                                </LinearGradient>
+                            </TouchableOpacity>
+                        </View>
 
-                <TouchableOpacity onPress={() => navigation.navigate('Register')}>
-                    <Text style={[s.link, { color: colors.muted }]}>Don't have an account? <Text style={{ color: colors.blue, fontWeight: '700' }}>Sign Up</Text></Text>
-                </TouchableOpacity>
+                        <TouchableOpacity onPress={() => navigation.navigate('Register')}>
+                            <Text style={[s.link, { color: colors.muted }]}>Don't have an account? <Text style={{ color: colors.blue, fontWeight: '700' }}>Sign Up</Text></Text>
+                        </TouchableOpacity>
 
-                <TouchableOpacity onPress={() => navigation.navigate('QuantumLogin')} style={{ marginTop: 24 }}>
-                    <Text style={{ color: '#00d2ff', fontSize: 14, fontWeight: '700', letterSpacing: 0.5 }}>Admin / Mentor Login ✨</Text>
-                </TouchableOpacity>
-            </View>
+                        <TouchableOpacity onPress={() => navigation.navigate('QuantumLogin')} style={{ marginTop: 24 }}>
+                            <Text style={{ color: '#00d2ff', fontSize: 14, fontWeight: '700', letterSpacing: 0.5 }}>Admin / Mentor Login ✨</Text>
+                        </TouchableOpacity>
+                    </View>
+                </ScrollView>
+            </KeyboardAvoidingView>
         </LinearGradient>
     );
 }

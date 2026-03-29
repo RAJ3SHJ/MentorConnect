@@ -1,0 +1,20 @@
+[
+  {
+    "id": "587bd40e-fc51-4751-8e40-83176b6fa551",
+    "status": "FINISHED",
+    "p": "ANDROID",
+    "commit": "e89842b8264cb3baf582c79cc053e1c6854f59bf",
+    "dates": "2026-03-29T03:44:41.325Z"
+  },
+  {
+    "id": "2833c96e-5093-45b0-91f3-d14b13ee9350",
+    "status": "ERRORED",
+    "p": "ANDROID",
+    "commit": "dfbabe21250ac548e4f40a44a8af18d8e1ccde84",
+    "err": {
+      "errorCode": "UNKNOWN_ERROR",
+      "message": "Unknown error. See logs of the Prebuild build phase for more information."
+    },
+    "dates": "2026-03-29T03:15:10.737Z"
+  }
+]

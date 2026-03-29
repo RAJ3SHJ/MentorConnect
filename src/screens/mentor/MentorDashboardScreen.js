@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
     View, Text, StyleSheet, ScrollView, TouchableOpacity,
     RefreshControl, Modal, TextInput, ActivityIndicator, Platform, Alert
@@ -6,7 +6,9 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect } from '@react-navigation/native';
 import api from '../../api/client';
+import { supabase } from '../../api/supabase';
 import { useAuth } from '../../context/AuthContext';
+import { useToast } from '../../components/Toast';
 
 const C = {
     bg: '#020b14',
@@ -23,6 +25,7 @@ const C = {
 
 export default function MentorDashboardScreen({ navigation }) {
     const { user, logout } = useAuth();
+    const toast = useToast();
     const [roster, setRoster] = useState([]);
     const [assessments, setAssessments] = useState([]);
     const [refreshing, setRefreshing] = useState(false);
@@ -44,6 +47,26 @@ export default function MentorDashboardScreen({ navigation }) {
             setAssessments(aRes.data || []);
         } catch (e) { console.error('Failed to fetch Mentor data', e.message); }
     };
+
+    // Real-time listener for new submissions
+    useEffect(() => {
+        const channel = supabase
+            .channel('db-changes')
+            .on('postgres_changes', { 
+                event: 'INSERT', 
+                schema: 'public', 
+                table: 'exam_submissions' 
+            }, (payload) => {
+                console.log('⚡ Real-time Submission Received!', payload);
+                toast.show('New assessment received! 📝', 'success');
+                fetchData();
+            })
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
+    }, []);
 
     useFocusEffect(useCallback(() => { fetchData(); }, []));
     const onRefresh = async () => { setRefreshing(true); await fetchData(); setRefreshing(false); };

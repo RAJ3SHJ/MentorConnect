@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import api from '../../api/client';
 import { useAuth } from '../../context/AuthContext';
@@ -49,45 +49,52 @@ export default function RegisterScreen({ navigation }) {
 
     return (
         <LinearGradient colors={gradients.bg} style={s.container}>
-            <View style={[s.orb1, { backgroundColor: colors.blue }]} />
-            <View style={[s.orb2, { backgroundColor: colors.purple }]} />
-            <View style={s.inner}>
-                <Text style={{ fontSize: 40, marginBottom: 16 }}>🎓</Text>
-                <Text style={[s.title, { color: colors.white }]}>Create Account</Text>
-                <Text style={[s.subtitle, { color: colors.muted }]}>Start your learning journey</Text>
+            <KeyboardAvoidingView 
+                behavior={Platform.OS === 'ios' ? 'padding' : 'height'} 
+                style={{ flex: 1 }}
+            >
+                <ScrollView contentContainerStyle={{ flexGrow: 1 }} showsVerticalScrollIndicator={false}>
+                    <View style={[s.orb1, { backgroundColor: colors.blue }]} />
+                    <View style={[s.orb2, { backgroundColor: colors.purple }]} />
+                    <View style={s.inner}>
+                        <Text style={{ fontSize: 40, marginBottom: 16 }}>🎓</Text>
+                        <Text style={[s.title, { color: colors.white }]}>Create Account</Text>
+                        <Text style={[s.subtitle, { color: colors.muted }]}>Start your learning journey</Text>
 
-                <View style={[s.card, { backgroundColor: colors.card, borderColor: colors.glassBorder }]}>
-                    <Text style={[s.label, { color: colors.muted }]}>FULL NAME</Text>
-                    <TextInput style={[s.input, { borderColor: errors.name ? colors.danger : colors.glassBorder, color: colors.white }]}
-                        placeholder="John Doe" placeholderTextColor={colors.muted}
-                        value={name} onChangeText={t => { setName(t); clearError('name'); }} />
-                    {errors.name && <Text style={[s.error, { color: colors.danger }]}>⚠ {errors.name}</Text>}
+                        <View style={[s.card, { backgroundColor: colors.card, borderColor: colors.glassBorder }]}>
+                            <Text style={[s.label, { color: colors.muted }]}>FULL NAME</Text>
+                            <TextInput style={[s.input, { borderColor: errors.name ? colors.danger : colors.glassBorder, color: colors.white }]}
+                                placeholder="John Doe" placeholderTextColor={colors.muted}
+                                value={name} onChangeText={t => { setName(t); clearError('name'); }} />
+                            {errors.name && <Text style={[s.error, { color: colors.danger }]}>⚠ {errors.name}</Text>}
 
-                    <Text style={[s.label, { color: colors.muted }]}>EMAIL</Text>
-                    <TextInput style={[s.input, { borderColor: errors.email ? colors.danger : colors.glassBorder, color: colors.white }]}
-                        placeholder="you@example.com" placeholderTextColor={colors.muted}
-                        value={email} onChangeText={t => { setEmail(t); clearError('email'); }}
-                        autoCapitalize="none" keyboardType="email-address" />
-                    {errors.email && <Text style={[s.error, { color: colors.danger }]}>⚠ {errors.email}</Text>}
+                            <Text style={[s.label, { color: colors.muted }]}>EMAIL</Text>
+                            <TextInput style={[s.input, { borderColor: errors.email ? colors.danger : colors.glassBorder, color: colors.white }]}
+                                placeholder="you@example.com" placeholderTextColor={colors.muted}
+                                value={email} onChangeText={t => { setEmail(t); clearError('email'); }}
+                                autoCapitalize="none" keyboardType="email-address" />
+                            {errors.email && <Text style={[s.error, { color: colors.danger }]}>⚠ {errors.email}</Text>}
 
-                    <Text style={[s.label, { color: colors.muted }]}>PASSWORD</Text>
-                    <TextInput style={[s.input, { borderColor: errors.password ? colors.danger : colors.glassBorder, color: colors.white }]}
-                        placeholder="Min 4 characters" placeholderTextColor={colors.muted}
-                        value={password} onChangeText={t => { setPassword(t); clearError('password'); }}
-                        secureTextEntry autoComplete="password" textContentType="password" />
-                    {errors.password && <Text style={[s.error, { color: colors.danger }]}>⚠ {errors.password}</Text>}
+                            <Text style={[s.label, { color: colors.muted }]}>PASSWORD</Text>
+                            <TextInput style={[s.input, { borderColor: errors.password ? colors.danger : colors.glassBorder, color: colors.white }]}
+                                placeholder="Min 4 characters" placeholderTextColor={colors.muted}
+                                value={password} onChangeText={t => { setPassword(t); clearError('password'); }}
+                                secureTextEntry autoComplete="password" textContentType="password" />
+                            {errors.password && <Text style={[s.error, { color: colors.danger }]}>⚠ {errors.password}</Text>}
 
-                    <TouchableOpacity onPress={handleRegister} disabled={loading} activeOpacity={0.85}>
-                        <LinearGradient colors={gradients.accent} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={s.btn}>
-                            {loading ? <ActivityIndicator color="#FFF" /> : <Text style={s.btnText}>Create Account →</Text>}
-                        </LinearGradient>
-                    </TouchableOpacity>
-                </View>
+                            <TouchableOpacity onPress={handleRegister} disabled={loading} activeOpacity={0.85}>
+                                <LinearGradient colors={gradients.accent} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={s.btn}>
+                                    {loading ? <ActivityIndicator color="#FFF" /> : <Text style={s.btnText}>Create Account →</Text>}
+                                </LinearGradient>
+                            </TouchableOpacity>
+                        </View>
 
-                <TouchableOpacity onPress={() => navigation.navigate('Login')}>
-                    <Text style={[s.link, { color: colors.muted }]}>Already have an account? <Text style={{ color: colors.blue, fontWeight: '700' }}>Login</Text></Text>
-                </TouchableOpacity>
-            </View>
+                        <TouchableOpacity onPress={() => navigation.navigate('Login')}>
+                            <Text style={[s.link, { color: colors.muted }]}>Already have an account? <Text style={{ color: colors.blue, fontWeight: '700' }}>Login</Text></Text>
+                        </TouchableOpacity>
+                    </View>
+                </ScrollView>
+            </KeyboardAvoidingView>
         </LinearGradient>
     );
 }
