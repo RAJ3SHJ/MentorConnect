@@ -9,7 +9,9 @@ import api from '../../api/client';
 import { COLORS, RADIUS, GRADIENTS } from '../../theme';
 
 // SheetJS will be loaded dynamically
-let XLSX = null;
+import XLSX from 'xlsx';
+import * as FileSystem from 'expo-file-system';
+
 
 export default function UploadExcelScreen({ navigation, route }) {
     const uploadType = route.params?.type || 'courses'; // 'courses' | 'exams'
@@ -35,22 +37,18 @@ export default function UploadExcelScreen({ navigation, route }) {
             setFile(picked);
             setResult(null);
 
-            // Load and parse the file
-            if (!XLSX) {
-                XLSX = require('xlsx');
-            }
-
             let data;
+
             if (Platform.OS === 'web') {
                 // On web, fetch the file URI as arraybuffer
                 const resp = await fetch(picked.uri);
                 const buf = await resp.arrayBuffer();
                 data = new Uint8Array(buf);
             } else {
-                const FileSystem = require('expo-file-system');
                 const base64 = await FileSystem.readAsStringAsync(picked.uri, { encoding: FileSystem.EncodingType.Base64 });
                 data = base64;
             }
+
 
             const workbook = XLSX.read(data, { type: Platform.OS === 'web' ? 'array' : 'base64' });
 

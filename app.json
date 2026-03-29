@@ -1,26 +1,32 @@
 {
-    "expo": {
-        "name": "MentorPath",
-        "slug": "mentor-app",
-        "version": "1.0.0",
-        "orientation": "portrait",
-        "userInterfaceStyle": "dark",
-        "splash": {
-            "backgroundColor": "#0A0F1E"
-        },
-        "assetBundlePatterns": [
-            "**/*"
-        ],
-        "ios": {
-            "supportsTablet": false
-        },
-        "android": {
-            "adaptiveIcon": {
-                "backgroundColor": "#0A0F1E"
-            }
-        },
-        "web": {
-            "bundler": "metro"
-        }
+  "expo": {
+    "name": "MentorPath",
+    "slug": "mentor-app",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "splash": {
+      "backgroundColor": "#0A0F1E"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": false
+    },
+    "android": {
+      "package": "com.raj3shj.mentorconnect",
+      "adaptiveIcon": {
+        "backgroundColor": "#0A0F1E"
+      }
+    },
+    "web": {
+      "bundler": "metro"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "90fafba0-ce0a-4d02-8d41-83d0f8d797e0"
+      }
     }
+  }
 }

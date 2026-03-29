@@ -1,5 +1,6 @@
-import React from 'react';
 import "./global.css";
+
+
 import { NavigationContainer } from '@react-navigation/native';
 import { StatusBar } from 'expo-status-bar';
 import { AuthProvider } from './src/context/AuthContext';
