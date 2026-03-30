@@ -3,6 +3,7 @@ import {
     View, Text, StyleSheet, ScrollView, TouchableOpacity,
     RefreshControl, Dimensions, Platform, Modal, TextInput, Alert
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect } from '@react-navigation/native';
 import api from '../../api/client';
@@ -107,6 +108,7 @@ function FeedbackDrawer({ visible, notification, onClose, onSubmitted }) {
 
 // ── Main Notification Feed ──
 export default function NotificationFeedScreen() {
+    const insets = useSafeAreaInsets();
     const { user } = useAuth();
     const toast = useToast();
     const [notifications, setNotifications] = useState([]);
@@ -140,20 +142,37 @@ export default function NotificationFeedScreen() {
         } finally { setConnecting(null); }
     };
 
-    const TriggerBadge = ({ type }) => (
-        <View style={[s.badge, { backgroundColor: type === 'exam' ? 'rgba(138,43,226,0.2)' : 'rgba(0,210,255,0.15)', borderColor: type === 'exam' ? 'rgba(138,43,226,0.5)' : 'rgba(0,210,255,0.4)' }]}>
-            <Text style={[s.badgeText, { color: type === 'exam' ? '#bf80ff' : '#00d2ff' }]}>
-                {type === 'exam' ? '📝 EXAM SUBMITTED' : '✅ COURSE COMPLETED'}
-            </Text>
-        </View>
-    );
+    const TriggerBadge = ({ type }) => {
+        let color = '#00d2ff';
+        let bg = 'rgba(0,210,255,0.15)';
+        let border = 'rgba(0,210,255,0.4)';
+        let label = '✅ COURSE COMPLETED';
+
+        if (type === 'exam') {
+            color = '#bf80ff';
+            bg = 'rgba(138,43,226,0.2)';
+            border = 'rgba(138,43,226,0.5)';
+            label = '📝 EXAM SUBMITTED';
+        } else if (type === 'skills') {
+            color = '#ff9f43';
+            bg = 'rgba(255,159,67,0.15)';
+            border = 'rgba(255,159,67,0.4)';
+            label = '🎯 SKILLS SUBMITTED';
+        }
+
+        return (
+            <View style={[s.badge, { backgroundColor: bg, borderColor: border }]}>
+                <Text style={[s.badgeText, { color }]}>{label}</Text>
+            </View>
+        );
+    };
 
     return (
         <View style={s.container}>
             <LinearGradient colors={['#040a18', '#0B132B']} style={StyleSheet.absoluteFillObject} />
             <View style={[s.glowOrb, { backgroundColor: '#8a2be2', top: -80, right: -80 }]} />
 
-            <ScrollView contentContainerStyle={s.scroll} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#00d2ff" />}>
+            <ScrollView contentContainerStyle={[s.scroll, { paddingTop: insets.top > 0 ? insets.top : 20, paddingBottom: insets.bottom + 100 }]} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#00d2ff" />}>
                 <Text style={s.heading}>🔔 Student Alerts</Text>
                 <Text style={s.sub}>{notifications.length} student{notifications.length !== 1 ? 's' : ''} awaiting review</Text>
 

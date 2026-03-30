@@ -3,6 +3,7 @@ import {
     View, Text, StyleSheet, ScrollView, TouchableOpacity,
     TextInput, RefreshControl, Platform,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect } from '@react-navigation/native';
 import api from '../../api/client';
@@ -13,6 +14,7 @@ import { RADIUS } from '../../theme';
 const DEFAULT_SKILLS = ['Agile', 'SQL', 'Business Analysis', 'Requirement Elicitation'];
 
 export default function AssessmentScreen({ navigation }) {
+    const insets = useSafeAreaInsets();
     const { colors, gradients } = useTheme();
     const toast = useToast();
     const [tab, setTab] = useState('skills');
@@ -135,7 +137,7 @@ export default function AssessmentScreen({ navigation }) {
 
     return (
         <LinearGradient colors={gradients.bg} style={st.container}>
-            <View style={st.header}>
+            <View style={[st.header, { paddingTop: insets.top > 0 ? insets.top : 20 }]}>
                 <Text style={[st.title, { color: colors.white }]}>Assessment</Text>
                 <View style={[st.tabs, { backgroundColor: colors.card, borderColor: colors.glassBorder }]}>
                     {['skills', 'exams'].map(t => (
@@ -147,6 +149,7 @@ export default function AssessmentScreen({ navigation }) {
             </View>
 
             <ScrollView style={{ flex: 1 }}
+                contentContainerStyle={{ paddingBottom: insets.bottom + 40 }}
                 refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.blue} />}>
                 {tab === 'skills' ? (
                     <View style={st.section}>

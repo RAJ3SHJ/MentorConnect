@@ -1,5 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, RefreshControl, TouchableOpacity, Platform, useWindowDimensions } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import api from '../../api/client';
@@ -40,6 +41,7 @@ const ProgressRing = ({ pct, size = 130, stroke = 10 }) => {
 };
 
 export default function DashboardScreen() {
+    const insets = useSafeAreaInsets();
     const { user } = useAuth();
     const navigation = useNavigation();
     const { width } = useWindowDimensions();
@@ -68,7 +70,7 @@ export default function DashboardScreen() {
 
             <ScrollView
                 style={{ flex: 1 }}
-                contentContainerStyle={s.scroll}
+                contentContainerStyle={[s.scroll, { paddingTop: insets.top > 0 ? insets.top : 20, paddingBottom: insets.bottom + 80 }]}
                 refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={C.primary} />}
             >
                 {/* ── Header ── */}

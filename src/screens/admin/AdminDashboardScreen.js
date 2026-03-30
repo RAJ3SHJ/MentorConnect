@@ -4,6 +4,7 @@ import {
     TextInput, RefreshControl, Platform, Alert, useWindowDimensions,
     Animated
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect } from '@react-navigation/native';
 import api from '../../api/client';
@@ -27,6 +28,7 @@ const C = {
 const RADIUS = { sm: 12, md: 16, lg: 24, xl: 32 };
 
 export default function AdminDashboardScreen({ navigation }) {
+    const insets = useSafeAreaInsets();
     const { width } = useWindowDimensions();
     const isMobile = width < 768;
     const toast = useToast();
@@ -92,7 +94,7 @@ export default function AdminDashboardScreen({ navigation }) {
 
     // ── Header ──────────────────────────────────────────────────────────────
     const renderHeader = () => (
-        <View style={s.header}>
+        <View style={[s.header, { marginTop: insets.top > 0 ? insets.top : 20 }]}>
             <View style={s.headerLeft}>
                 <TouchableOpacity style={s.menuBtn} onPress={() => toggleSidebar(true)}>
                     <Text style={{ fontSize: 22, color: C.white }}>☰</Text>
@@ -268,7 +270,7 @@ export default function AdminDashboardScreen({ navigation }) {
 
             <ScrollView
                 style={{ flex: 1 }}
-                contentContainerStyle={[s.scroll, { paddingHorizontal: isMobile ? 16 : 40 }]}
+                contentContainerStyle={[s.scroll, { paddingHorizontal: isMobile ? 16 : 40, paddingBottom: insets.bottom + 60 }]}
                 refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#fff" />}
             >
                 {renderHeader()}

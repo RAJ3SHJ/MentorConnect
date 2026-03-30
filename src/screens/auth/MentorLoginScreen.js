@@ -1,12 +1,15 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TextInput, ActivityIndicator, Platform, KeyboardAvoidingView, ScrollView, TouchableOpacity } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import api from '../../api/client';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../components/Toast';
 import { useTheme } from '../../ThemeContext';
+import { supabase } from '../../api/supabase';
 
 export default function MentorLoginScreen({ navigation }) {
+    const insets = useSafeAreaInsets();
     const { login } = useAuth();
     const { colors, gradients } = useTheme();
     const toast = useToast();
@@ -27,19 +30,34 @@ export default function MentorLoginScreen({ navigation }) {
         if (!validate()) return;
         setLoading(true);
         try {
-            // Mentors use the standard /api/auth/login endpoint
-            const { data } = await api.post('/api/auth/login', { email, password });
-            
-            if (data.user.role !== 'mentor') {
-                toast.show('Access Denied: Mentor accounts only', 'error');
+            const { data, error } = await supabase.auth.signInWithPassword({
+                email,
+                password,
+            });
+
+            if (error) throw error;
+
+            // Fetch the user profile from our public.mentors table to confirm role/identity
+            const { data: profile, error: profileError } = await supabase
+                .from('mentors')
+                .select('*')
+                .eq('id', data.user.id)
+                .single();
+
+            if (profileError || !profile) {
+                // If they logged in but aren't in the mentors table, they might be a student or admin
+                // For now, we restrict this screen to Mentors
+                await supabase.auth.signOut();
+                toast.show('Access Denied: Mentor profile not found', 'error');
                 return;
             }
-            
-            await login(data.token, data.user);
+
+            // Successfully authenticated as a mentor
+            await login(data.session.access_token, { ...data.user, role: 'mentor', ...profile });
+            toast.show(`Welcome back, ${profile.name || 'Mentor'}! 👋`, 'success');
         } catch (err) {
-            console.error('Mentor Login Error:', err);
-            let msg = err.response?.data?.error || err.message || 'Login failed';
-            toast.show(msg, 'error');
+            console.error('Mentor Login Error:', err.message);
+            toast.show(err.message || 'Login failed', 'error');
         } finally {
             setLoading(false);
         }
@@ -51,7 +69,7 @@ export default function MentorLoginScreen({ navigation }) {
                 behavior={Platform.OS === 'ios' ? 'padding' : 'height'} 
                 style={{ flex: 1 }}
             >
-                <ScrollView contentContainerStyle={{ flexGrow: 1 }} showsVerticalScrollIndicator={false}>
+                <ScrollView contentContainerStyle={{ flexGrow: 1, paddingTop: insets.top, paddingBottom: insets.bottom + 20 }} showsVerticalScrollIndicator={false}>
                     <View style={[s.glowOrb, { backgroundColor: '#00d2ff', left: -50, bottom: -50 }]} />
                     
                     <View style={s.inner}>

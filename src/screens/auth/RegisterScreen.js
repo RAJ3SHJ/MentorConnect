@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import api from '../../api/client';
 import { useAuth } from '../../context/AuthContext';
@@ -8,6 +9,7 @@ import { useToast } from '../../components/Toast';
 import { RADIUS } from '../../theme';
 
 export default function RegisterScreen({ navigation }) {
+    const insets = useSafeAreaInsets();
     const { login } = useAuth();
     const { colors, gradients } = useTheme();
     const toast = useToast();
@@ -53,7 +55,7 @@ export default function RegisterScreen({ navigation }) {
                 behavior={Platform.OS === 'ios' ? 'padding' : 'height'} 
                 style={{ flex: 1 }}
             >
-                <ScrollView contentContainerStyle={{ flexGrow: 1 }} showsVerticalScrollIndicator={false}>
+                <ScrollView contentContainerStyle={{ flexGrow: 1, paddingTop: insets.top, paddingBottom: insets.bottom + 20 }} showsVerticalScrollIndicator={false}>
                     <View style={[s.orb1, { backgroundColor: colors.blue }]} />
                     <View style={[s.orb2, { backgroundColor: colors.purple }]} />
                     <View style={s.inner}>

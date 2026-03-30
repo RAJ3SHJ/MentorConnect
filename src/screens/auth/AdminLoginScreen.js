@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, ActivityIndicator, Platform, KeyboardAvoidingView, ScrollView } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import api from '../../api/client';
 import { useAuth } from '../../context/AuthContext';
@@ -7,6 +8,7 @@ import { useToast } from '../../components/Toast';
 import { useTheme } from '../../ThemeContext';
 
 export default function AdminLoginScreen({ navigation }) {
+    const insets = useSafeAreaInsets();
     const { login } = useAuth();
     const { colors, gradients } = useTheme();
     const toast = useToast();
@@ -20,8 +22,10 @@ export default function AdminLoginScreen({ navigation }) {
         }
         setLoading(true);
         try {
+            // Updated endpoint to reflect new auth architecture
             const { data } = await api.post('/api/auth/quantum-login', { pin, role: 'admin' });
-            await login(data.token, data.user);
+            await login(data.token, { ...data.user, isAdmin: true });
+            toast.show('Executive access granted. Welcome, Admin.', 'success');
         } catch (err) {
             console.error('Admin Login Error:', err);
             let msg = err.response?.data?.error || err.message || 'Access Denied';
@@ -38,14 +42,16 @@ export default function AdminLoginScreen({ navigation }) {
                 behavior={Platform.OS === 'ios' ? 'padding' : 'height'} 
                 style={{ flex: 1 }}
             >
-                <ScrollView contentContainerStyle={{ flexGrow: 1 }} showsVerticalScrollIndicator={false}>
+                <ScrollView contentContainerStyle={{ flexGrow: 1, paddingTop: insets.top, paddingBottom: insets.bottom + 20 }} showsVerticalScrollIndicator={false}>
                     <View style={[s.glowOrb, { backgroundColor: '#00f260', right: -50, top: -50 }]} />
                     
                     <View style={s.inner}>
                         <View style={[s.glassCard, Platform.OS === 'web' && { backdropFilter: 'blur(20px)' }]}>
-                            <Text style={{ fontSize: 40, marginBottom: 16 }}>🛡️</Text>
-                            <Text style={s.title}>System Administrator</Text>
-                            <Text style={s.subtitle}>Enter 4-digit secure PIN to continue</Text>
+                            <View style={s.iconBox}>
+                                <Text style={{ fontSize: 40 }}>🛡️</Text>
+                            </View>
+                            <Text style={s.title}>Executive Pulse</Text>
+                            <Text style={s.subtitle}>Enter 4-digit secure PIN for administrative entry</Text>
 
                             <TextInput
                                 style={[s.pinInput, { borderColor: 'rgba(0,242,96,0.3)' }]}
@@ -83,32 +89,34 @@ const s = StyleSheet.create({
     glassCard: { 
         width: '100%', 
         maxWidth: 420, 
-        padding: 32, 
-        borderRadius: 24, 
+        padding: 40, 
+        borderRadius: 32, 
         backgroundColor: 'rgba(255,255,255,0.03)', 
         borderWidth: 1, 
         borderColor: 'rgba(255,255,255,0.08)', 
         alignItems: 'center' 
     },
-    title: { color: '#fff', fontSize: 24, fontWeight: '800', letterSpacing: -0.5, marginBottom: 8, textAlign: 'center' },
-    subtitle: { color: 'rgba(255,255,255,0.4)', fontSize: 13, marginBottom: 32, textAlign: 'center' },
+    iconBox: { width: 80, height: 80, borderRadius: 24, backgroundColor: 'rgba(0,242,96,0.1)', alignItems: 'center', justifyContent: 'center', marginBottom: 20 },
+    title: { color: '#fff', fontSize: 28, fontWeight: '900', letterSpacing: -0.5, marginBottom: 8, textAlign: 'center' },
+    subtitle: { color: 'rgba(255,255,255,0.4)', fontSize: 13, marginBottom: 32, textAlign: 'center', lineHeight: 20 },
     pinInput: {
         width: '100%',
-        height: 72,
-        fontSize: 24,
+        height: 80,
+        fontSize: 32,
         color: '#fff',
-        fontWeight: '700',
+        fontWeight: '900',
         textAlign: 'center',
         paddingVertical: 14,
         paddingHorizontal: 20,
-        borderRadius: 16,
+        borderRadius: 20,
         borderWidth: 1,
         marginBottom: 32,
-        letterSpacing: 10,
+        letterSpacing: 20,
         backgroundColor: 'rgba(255,255,255,0.03)'
     },
     submitBtn: { width: '100%' },
-    gradientBtn: { width: '100%', paddingVertical: 18, borderRadius: 16, alignItems: 'center' },
+    gradientBtn: { width: '100%', paddingVertical: 20, borderRadius: 20, alignItems: 'center' },
     submitText: { color: '#fff', fontWeight: '800', fontSize: 16, letterSpacing: 1, textTransform: 'uppercase' },
     backText: { color: 'rgba(255,255,255,0.3)', fontSize: 13, textDecorationLine: 'underline' }
 });
+

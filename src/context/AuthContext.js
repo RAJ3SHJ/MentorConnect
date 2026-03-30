@@ -52,9 +52,10 @@ export function AuthProvider({ children }) {
 
     const role = user?.role || 'learner';
     const isMentor = role === 'mentor';
+    const isAdmin = role === 'admin' || !!user?.isAdmin;
 
     return (
-        <AuthContext.Provider value={{ user, token, loading, login, logout, role, isMentor }}>
+        <AuthContext.Provider value={{ user, token, loading, login, logout, role, isMentor, isAdmin }}>
             {children}
         </AuthContext.Provider>
     );
