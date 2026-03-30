@@ -124,35 +124,53 @@ router.get('/list', auth, async (req, res) => {
 
 // ─── PHASE 2: COMMAND CENTER ROUTES ───
 
-// GET /api/mentor/my-students
+// GET /api/mentor/my-students — isolated to current mentor
 router.get('/my-students', auth, async (req, res) => {
     try {
+        const mentorId = req.user.id; // This is the Supabase UUID from the JWT
+
+        // Fetch students assigned to this specific mentor UID
         const students = await all(`
-            SELECT u.id, u.name, u.email, u.created_at, u.mentor_id 
-            FROM users u 
-            WHERE u.role = 'learner' AND (u.mentor_id = ? OR ? = 999)
-            ORDER BY u.created_at DESC
-        `, [req.user.id, req.user.id]);
+            SELECT u.id, u.name, u.email, u.created_at, ma.assigned_at
+            FROM mentor_assignments ma
+            JOIN users u ON u.id = ma.student_id
+            WHERE ma.mentor_id = ?
+            ORDER BY ma.assigned_at DESC
+        `, [mentorId]);
+
         res.json(students);
-    } catch (e) { res.status(500).json({ error: e.message }); }
+    } catch (e) {
+        console.error('Fetch Students Error:', e.message);
+        res.status(500).json({ error: 'Failed to retrieve your student roster' });
+    }
 });
 
-// GET /api/mentor/my-assessments
+// GET /api/mentor/my-assessments — filtered by mentor's assigned students
 router.get('/my-assessments', auth, async (req, res) => {
     try {
+        const mentorId = req.user.id;
+
         const submissions = await all(`
             SELECT es.id, es.student_id, es.exam_id, es.answers, es.status,
-                   es.mentor_remarks, es.submitted_at, es.reviewed_at, e.title AS exam_title, u.name AS student_name
+                   es.mentor_remarks, es.submitted_at, es.reviewed_at, 
+                   e.title AS exam_title, u.name AS student_name
             FROM exam_submissions es
             JOIN exams e ON e.id = es.exam_id
             JOIN users u ON u.id = es.student_id
-            WHERE es.status IN ('Submitted', 'Pending Review') AND (u.mentor_id = ? OR ? = 999)
+            JOIN mentor_assignments ma ON ma.student_id = u.id
+            WHERE ma.mentor_id = ? AND es.status IN ('Submitted', 'Pending Review')
             ORDER BY es.submitted_at DESC
-        `, [req.user.id, req.user.id]);
+        `, [mentorId]);
         
-        const result = submissions.map(sub => ({ ...sub, answers: JSON.parse(sub.answers || '[]') }));
+        const result = submissions.map(sub => ({ 
+            ...sub, 
+            answers: JSON.parse(sub.answers || '[]') 
+        }));
         res.json(result);
-    } catch (e) { res.status(500).json({ error: e.message }); }
+    } catch (e) {
+        console.error('Fetch Assessments Error:', e.message);
+        res.status(500).json({ error: 'Failed to retrieve pending assessments' });
+    }
 });
 
 // POST /api/mentor/courses
@@ -179,8 +197,8 @@ router.get('/notifications', auth, async (req, res) => {
         const notifications = await all(`
             SELECT mn.id, mn.student_id, mn.trigger_type, mn.reference_id, mn.created_at,
                    u.name AS student_name, u.email AS student_email,
-                   CASE WHEN mn.trigger_type = 'exam'
-                        THEN e.title
+                   CASE WHEN mn.trigger_type = 'exam' THEN e.title
+                        WHEN mn.trigger_type = 'skills' THEN ss.goal
                         ELSE c.title
                    END AS reference_title,
                    es.status AS submission_status
@@ -189,6 +207,7 @@ router.get('/notifications', auth, async (req, res) => {
             LEFT JOIN exam_submissions es ON es.id = mn.reference_id AND mn.trigger_type = 'exam'
             LEFT JOIN exams e ON e.id = es.exam_id
             LEFT JOIN courses c ON c.id = mn.reference_id AND mn.trigger_type = 'course'
+            LEFT JOIN student_skills ss ON ss.id = mn.reference_id AND mn.trigger_type = 'skills'
             WHERE mn.is_claimed = 0
             ORDER BY mn.created_at DESC
         `);

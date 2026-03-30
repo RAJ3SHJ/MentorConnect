@@ -185,4 +185,16 @@ async function runGetId(sql, params = []) {
 function getDb() { return isPG ? pool : sqlite; }
 function saveToDisk() {}
 
-module.exports = { initDb, getDb, run, get, all, runGetId, saveToDisk, isPG };
+const { createClient } = require('@supabase/supabase-js');
+let supabaseAdmin = null;
+
+if (process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY) {
+  supabaseAdmin = createClient(
+    process.env.SUPABASE_URL,
+    process.env.SUPABASE_SERVICE_ROLE_KEY,
+    { auth: { autoRefreshToken: false, persistSession: false } }
+  );
+  console.log('⚡ Supabase Admin (Service Role) initialized');
+}
+
+module.exports = { initDb, getDb, run, get, all, runGetId, saveToDisk, isPG, supabaseAdmin };
