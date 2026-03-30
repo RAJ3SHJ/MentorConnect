@@ -28,6 +28,9 @@ initDb().then(() => {
         console.log(`🚀 Server listening on http://localhost:${PORT}`);
     });
 }).catch(err => {
-    console.error('❌ Failed to initialize database:', err);
-    process.exit(1);
+    console.error('❌ Database initialization error:', err.message);
+    console.log('⚠️ Server will attempt to run in degraded mode...');
+    app.listen(PORT, () => {
+        console.log(`🚀 Server listening (DEGRADED MODE) on http://localhost:${PORT}`);
+    });
 });
