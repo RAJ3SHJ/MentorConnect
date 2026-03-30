@@ -1,59 +1,93 @@
-const router = require('express').Router();
-const { run, get, all, runGetId } = require('../db');
-const auth = require('../middleware/auth');
+const { supabaseAdmin } = require('../db');
 
-// GET /api/exams
+// GET /api/exams — fetch all cloud exams with student submission status
 router.get('/', auth, async (req, res) => {
     try {
-        const exams = await all('SELECT * FROM exams ORDER BY created_at DESC');
-        const result = await Promise.all(exams.map(async exam => {
-            const sub = await get(
-                'SELECT id, status, submitted_at FROM exam_submissions WHERE student_id = ? AND exam_id = ?',
-                [req.user.id, exam.id]
-            );
+        if (!supabaseAdmin) throw new Error('Identity provider not ready');
+        const studentId = req.user.id;
+
+        const { data: exams, error } = await supabaseAdmin
+            .from('exams')
+            .select('*')
+            .order('created_at', { ascending: false });
+        if (error) throw error;
+
+        // Fetch submissions for this specific student in parallel
+        const { data: submissions } = await supabaseAdmin
+            .from('exam_submissions')
+            .select('id, status, submitted_at, exam_id')
+            .eq('student_id', studentId);
+
+        const result = exams.map(exam => {
+            const sub = submissions?.find(s => s.exam_id === exam.id);
             return { ...exam, submission: sub || null };
-        }));
+        });
+
         res.json(result);
-    } catch (e) { res.status(500).json({ error: e.message }); }
+    } catch (e) {
+        console.error('Fetch Exams Error:', e.message);
+        res.status(500).json({ error: 'Failed to load assessments' });
+    }
 });
 
-// GET /api/exams/:id
+// GET /api/exams/:id — fetch exam details and questions
 router.get('/:id', auth, async (req, res) => {
     try {
-        const exam = await get('SELECT * FROM exams WHERE id = ?', [req.params.id]);
-        if (!exam) return res.status(404).json({ error: 'Exam not found' });
-        const questions = await all('SELECT * FROM questions WHERE exam_id = ?', [exam.id]);
+        if (!supabaseAdmin) throw new Error('Identity provider not ready');
+
+        const { data: exam, error: examErr } = await supabaseAdmin
+            .from('exams')
+            .select('*')
+            .eq('id', req.params.id)
+            .single();
+        if (examErr) throw examErr;
+
+        const { data: questions, error: qErr } = await supabaseAdmin
+            .from('questions')
+            .select('*')
+            .eq('exam_id', exam.id);
+        if (qErr) throw qErr;
+
         res.json({ ...exam, questions });
-    } catch (e) { res.status(500).json({ error: e.message }); }
+    } catch (e) {
+        console.error('Fetch Exam Details Error:', e.message);
+        res.status(500).json({ error: 'Failed to load exam content' });
+    }
 });
 
-// POST /api/exams/:id/submit
+// POST /api/exams/:id/submit — submit assessment results to the cloud
 router.post('/:id/submit', auth, async (req, res) => {
     const { answers } = req.body;
     try {
-        const exam = await get('SELECT * FROM exams WHERE id = ?', [req.params.id]);
-        if (!exam) return res.status(404).json({ error: 'Exam not found' });
+        if (!supabaseAdmin) throw new Error('Identity provider not ready');
 
-        const answersJson = JSON.stringify(answers || []);
-        const submissionId = await runGetId(
-            'INSERT INTO exam_submissions (student_id, exam_id, answers) VALUES (?, ?, ?)',
-            [req.user.id, exam.id, answersJson]
-        );
+        // Create the submission record
+        const { data: submission, error } = await supabaseAdmin
+            .from('exam_submissions')
+            .insert({
+                student_id: req.user.id,
+                exam_id: req.params.id,
+                answers: answers || []
+            })
+            .select()
+            .single();
+        if (error) throw error;
 
-        // Phase 6: broadcast a single mentor_notification for all mentors to see
-        await runGetId(
-            'INSERT INTO mentor_notifications (student_id, trigger_type, reference_id) VALUES (?, ?, ?)',
-            [req.user.id, 'exam', submissionId]
-        );
+        // Notify mentors via the cloud notification system
+        await supabaseAdmin.from('mentor_notifications').insert({
+            student_id: req.user.id,
+            trigger_type: 'exam',
+            reference_id: submission.id
+        });
 
-        // Legacy notification record
-        await runGetId(
-            'INSERT INTO notifications (type, student_id, reference_id) VALUES (?, ?, ?)',
-            ['exam_submitted', req.user.id, submissionId]
-        );
-
-        res.status(201).json({ message: 'Exam submitted for review', submissionId });
-    } catch (e) { res.status(500).json({ error: e.message }); }
+        res.status(201).json({ 
+            message: 'Assessment submitted for review 🎉', 
+            submissionId: submission.id 
+        });
+    } catch (e) {
+        console.error('Exam Submission Error:', e.message);
+        res.status(500).json({ error: 'Failed to submit your assessment' });
+    }
 });
 
 module.exports = router;
