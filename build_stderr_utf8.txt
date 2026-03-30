@@ -1,0 +1,25 @@
+﻿node.exe : SyntaxError: SyntaxError: C:\Users\rajes\OneDrive\Documents\A
+pps\mentor-app\src\screens\admin\AddMentorScreen.js: Missing semicolon. 
+(251:19)
+At line:1 char:1
++ & "C:\Program Files\nodejs/node.exe" "C:\Program Files\nodejs/node_mo 
+...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (SyntaxError: Sy...colon. ( 
+   251:19):String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+
+[0m [90m 249 |[39m     btnText[33m:[39m { color[33m:[39m 
+[32m'#FFF'[39m[33m,[39m fontWeight[33m:[39m 
+[32m'800'[39m[33m,[39m fontSize[33m:[39m [35m16[39m[33m,[39m 
+textTransform[33m:[39m [32m'uppercase'[39m[33m,[39m 
+letterSpacing[33m:[39m [35m1[39m }[33m,[39m
+ [90m 250 |[39m     cancelLink[33m:[39m { alignItems[33m:[39m 
+[32m'center'[39m[33m,[39m marginTop[33m:[39m 
+[35m24[39m[33m,[39m paddingVertical[33m:[39m [35m10[39m }
+[31m[1m>[22m[39m[90m 251 |[39m })[33m;[39m[32m', fontWeight: 
+'[39m[35m700[39m[32m', fontSize: 16 },[39m
+ [90m     |[39m                    [31m[1m^[22m[39m
+ [90m 252 |[39m })[33m;[39m
+ [90m 253 |[39m[0m

@@ -248,5 +248,4 @@ const s = StyleSheet.create({
     btnGrad: { borderRadius: 16, paddingVertical: 18, alignItems: 'center' },
     btnText: { color: '#FFF', fontWeight: '800', fontSize: 16, textTransform: 'uppercase', letterSpacing: 1 },
     cancelLink: { alignItems: 'center', marginTop: 24, paddingVertical: 10 }
-});', fontWeight: '700', fontSize: 16 },
 });
