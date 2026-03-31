@@ -188,13 +188,16 @@ function saveToDisk() {}
 const { createClient } = require('@supabase/supabase-js');
 let supabaseAdmin = null;
 
-if (process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY) {
+// Defensive initialization: only boot Supabase if a valid URL is present
+if (process.env.SUPABASE_URL && process.env.SUPABASE_URL.startsWith('http') && process.env.SUPABASE_SERVICE_ROLE_KEY) {
   supabaseAdmin = createClient(
     process.env.SUPABASE_URL,
     process.env.SUPABASE_SERVICE_ROLE_KEY,
     { auth: { autoRefreshToken: false, persistSession: false } }
   );
   console.log('⚡ Supabase Admin (Service Role) initialized');
+} else {
+  console.log('⚠️ Supabase Admin NOT initialized: Missing or invalid SUPABASE_URL');
 }
 
 module.exports = { initDb, getDb, run, get, all, runGetId, saveToDisk, isPG, supabaseAdmin };
