@@ -1,7 +1,7 @@
 const router = require('express').Router();
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const { run, get, runGetId } = require('../db');
+const { run, get, runGetId, supabaseAdmin } = require('../db');
 const { JWT_SECRET } = require('../middleware/auth');
 
 // POST /api/auth/register — learners self-register in Supabase Auth
@@ -59,7 +59,7 @@ router.post('/login', async (req, res) => {
     }
 });
 
-const { get, runGetId, supabaseAdmin } = require('../db');
+
 
 // POST /api/auth/quantum-login — authenticate Admin or Mentor using PIN
 router.post('/quantum-login', async (req, res) => {
