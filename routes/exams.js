@@ -1,4 +1,6 @@
+const router = require('express').Router();
 const { supabaseAdmin } = require('../db');
+const auth = require('../middleware/auth');
 
 // GET /api/exams — fetch all cloud exams with student submission status
 router.get('/', auth, async (req, res) => {

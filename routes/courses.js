@@ -1,4 +1,6 @@
+const router = require('express').Router();
 const { supabaseAdmin } = require('../db');
+const auth = require('../middleware/auth');
 
 // GET /api/courses — fetch all cloud courses
 router.get('/', auth, async (req, res) => {
