@@ -39,6 +39,8 @@ jobs:
       - name: 🏗 Build Android APK (Local Bypass)
         # Using --local tells EAS to use GitHub's servers to build, NOT Expo's servers.
         # This bypasses the monthly "Free Tier" limit.
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
         run: npx eas-cli build --platform android --profile preview --local --non-interactive
 
       - name: 📤 Upload APK
