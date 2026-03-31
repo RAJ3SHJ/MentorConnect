@@ -1,5 +1,5 @@
 const router = require('express').Router();
-const { run, get, all, runGetId } = require('../db');
+const { run, get, all, runGetId, supabaseAdmin } = require('../db');
 const auth = require('../middleware/auth');
 
 // ─── STUDENTS ───
@@ -348,7 +348,7 @@ router.post('/exams/bulk', auth, async (req, res) => {
 });
 
 // ─── MENTOR ACCOUNTS ───
-const { supabaseAdmin, run, get, runGetId, all } = require('../db');
+
 
 // POST /api/admin/create-mentor — create a mentor user account using Supabase Auth Admin
 router.post('/create-mentor', auth, async (req, res) => {

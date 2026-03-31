@@ -31,7 +31,7 @@ router.patch('/:id', auth, async (req, res) => {
 
         // Phase 6: Notify mentors when course is completed
         if (status === 'Complete') {
-            const { runGetId: rgi } = require('../db');
+            
             await rgi(
                 'INSERT INTO mentor_notifications (student_id, trigger_type, reference_id) VALUES (?, ?, ?)',
                 [req.user.id, 'course', row.course_id]

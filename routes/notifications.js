@@ -1,5 +1,5 @@
 const router = require('express').Router();
-const { run, all } = require('../db');
+const { run, get, all } = require('../db');
 const auth = require('../middleware/auth');
 
 // GET /api/notifications
@@ -25,7 +25,7 @@ router.patch('/:id/read', auth, async (req, res) => {
 });
 
 // GET /api/notifications/unread-count
-const { get } = require('../db');
+
 router.get('/unread-count', auth, async (req, res) => {
   try {
     const row = await get('SELECT COUNT(*) as count FROM notifications WHERE is_read = 0');
