@@ -188,16 +188,20 @@ function saveToDisk() {}
 const { createClient } = require('@supabase/supabase-js');
 let supabaseAdmin = null;
 
+// Standard Keys for Backend
+const supabaseUrl = process.env.SUPABASE_URL || process.env.EXPO_PUBLIC_SUPABASE_URL;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY;
+
 // Defensive initialization: only boot Supabase if a valid URL is present
-if (process.env.SUPABASE_URL && process.env.SUPABASE_URL.startsWith('http') && process.env.SUPABASE_SERVICE_ROLE_KEY) {
+if (supabaseUrl && supabaseUrl.startsWith('http') && supabaseServiceKey) {
   supabaseAdmin = createClient(
-    process.env.SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY,
+    supabaseUrl,
+    supabaseServiceKey,
     { auth: { autoRefreshToken: false, persistSession: false } }
   );
   console.log('⚡ Supabase Admin (Service Role) initialized');
 } else {
-  console.log('⚠️ Supabase Admin NOT initialized: Missing or invalid SUPABASE_URL');
+  console.log('⚠️ Supabase Admin NOT initialized: Missing or invalid SUPABASE_URL in Render environment');
 }
 
 module.exports = { initDb, getDb, run, get, all, runGetId, saveToDisk, isPG, supabaseAdmin };
