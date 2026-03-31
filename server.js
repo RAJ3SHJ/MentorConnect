@@ -18,7 +18,12 @@ app.use('/api/notifications', require('./routes/notifications'));
 app.use('/api/mentor', require('./routes/mentor'));
 app.use('/api/admin', require('./routes/admin'));
 
-app.get('/', (req, res) => res.json({ status: 'Mentor App API running 🚀' }));
+// Root Health Check for Render "Pulse"
+app.get('/', (req, res) => res.json({ 
+    status: 'online', 
+    version: '1.0.0', 
+    service: 'MentorPath API (Pulse)' 
+}));
 
 const PORT = process.env.PORT || 3001;
 
