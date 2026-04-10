@@ -13,7 +13,6 @@ export default function AuthNavigator() {
         <Stack.Navigator screenOptions={{ headerShown: false }}>
             <Stack.Screen name="Welcome" component={WelcomeScreen} />
             <Stack.Screen name="Login" component={LoginScreen} />
-            <Stack.Screen name="Register" component={RegisterScreen} />
             <Stack.Screen name="AdminLogin" component={AdminLoginScreen} />
             <Stack.Screen name="MentorLogin" component={MentorLoginScreen} />
         </Stack.Navigator>

@@ -6,6 +6,7 @@ import AddMentorScreen from '../screens/admin/AddMentorScreen';
 import AddCourseScreen from '../screens/admin/AddCourseScreen';
 import AddExamScreen from '../screens/admin/AddExamScreen';
 import UploadExcelScreen from '../screens/admin/UploadExcelScreen';
+import AddStudentScreen from '../screens/admin/AddStudentScreen';
 
 const AdminStack = createNativeStackNavigator();
 
@@ -23,6 +24,7 @@ export default function AdminTabs() {
             <AdminStack.Screen name="AddCourse" component={AddCourseScreen} options={{ title: 'Add Course' }} />
             <AdminStack.Screen name="AddExam" component={AddExamScreen} options={{ title: 'Add Exam' }} />
             <AdminStack.Screen name="UploadExcel" component={UploadExcelScreen} options={{ title: 'Bulk Upload' }} />
+            <AdminStack.Screen name="AddStudent" component={AddStudentScreen} options={{ title: 'Add Learner' }} />
         </AdminStack.Navigator>
     );
 }

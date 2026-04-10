@@ -89,6 +89,16 @@ export default function WelcomeScreen({ navigation }) {
                     <View style={s.loginPanel}>
                         <Text style={[s.panelTitle, { color: colors.white }]}>Select Entrance</Text>
                         
+                        <TouchableOpacity style={s.pathCard} onPress={() => navigation.navigate('Login')}>
+                            <View style={[s.pathIcon, { backgroundColor: colors.purple + '20' }]}>
+                                <Text style={{ fontSize: 24 }}>🎓</Text>
+                            </View>
+                            <View style={s.pathInfo}>
+                                <Text style={[s.pathTitle, { color: colors.white }]}>Student Login</Text>
+                                <Text style={[s.pathDesc, { color: colors.muted }]}>Access your learning portal</Text>
+                            </View>
+                        </TouchableOpacity>
+
                         <TouchableOpacity style={s.pathCard} onPress={() => navigation.navigate('MentorLogin')}>
                             <View style={[s.pathIcon, { backgroundColor: colors.blue + '20' }]}>
                                 <Text style={{ fontSize: 24 }}>👨‍🏫</Text>

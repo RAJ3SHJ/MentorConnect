@@ -318,11 +318,16 @@ export default function AdminDashboardScreen({ navigation }) {
                 )}
 
                 {/* Create / Bulk buttons — inline in scroll, NOT absolutely positioned */}
-                {(tab !== 'students' && tab !== 'overview') && (
+                {tab !== 'overview' && (
                     <View style={s.fabRow}>
                         <TouchableOpacity
                             style={{ flex: 1 }}
-                            onPress={() => navigation.navigate(tab === 'mentors' ? 'AddMentor' : tab === 'courses' ? 'AddCourse' : 'AddExam')}
+                            onPress={() => {
+                                if (tab === 'students') navigation.navigate('AddStudent');
+                                else if (tab === 'mentors') navigation.navigate('AddMentor');
+                                else if (tab === 'courses') navigation.navigate('AddCourse');
+                                else if (tab === 'exams') navigation.navigate('AddExam');
+                            }}
                         >
                             <LinearGradient
                                 colors={['#00d2ff', '#3a7bd5']}
