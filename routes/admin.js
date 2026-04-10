@@ -398,6 +398,43 @@ router.post('/create-mentor', auth, async (req, res) => {
     }
 });
 
+// POST /api/admin/create-student — create a learner account using Supabase Auth Admin
+router.post('/create-student', auth, async (req, res) => {
+    const { name, email, password } = req.body;
+    if (!name || !email || !password)
+        return res.status(400).json({ error: 'Name, email and password required' });
+
+    if (!supabaseAdmin) {
+        return res.status(500).json({ error: 'Supabase Admin is not initialized' });
+    }
+
+    try {
+        // 1. Create the user in Supabase Auth using the Service Role
+        const { data, error } = await supabaseAdmin.auth.admin.createUser({
+            email: email.toLowerCase(),
+            password: password,
+            email_confirm: true,
+            user_metadata: { name, role: 'learner' }
+        });
+
+        if (error) throw error;
+
+        // 2. Insert into our local users table
+        await run(
+            'INSERT INTO users (id, name, email, role) VALUES (?, ?, ?, ?)',
+            [data.user.id, name, email.toLowerCase(), 'learner']
+        );
+
+        res.status(201).json({ 
+            message: 'Learner account created successfully 🎉', 
+            id: data.user.id 
+        });
+    } catch (e) {
+        console.error('Learner Provisioning Error:', e.message);
+        res.status(500).json({ error: e.message });
+    }
+});
+
 // GET /api/admin/mentor-accounts — list all mentor users
 router.get('/mentor-accounts', auth, async (req, res) => {
     try {
