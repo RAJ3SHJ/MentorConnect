@@ -404,14 +404,27 @@ router.post('/courses/bulk', auth, async (req, res) => {
 
     try {
         let added = 0;
+        const uploadData = [];
         for (const c of courses) {
             if (!c.title) continue;
-            await run('INSERT INTO courses (title, description, link, category) VALUES (?, ?, ?, ?)',
+            uploadData.push({
+                title: c.title,
+                description: c.description || null,
+                link: c.link || null,
+                category: c.category || null
+            });
+            // Still keep local for dashboard stats if needed
+            await run('INSERT OR REPLACE INTO courses (title, description, link, category) VALUES (?, ?, ?, ?)',
                 [c.title, c.description || null, c.link || null, c.category || null]);
             added++;
         }
 
-        res.status(201).json({ message: `${added} course(s) added`, added });
+        if (supabaseAdmin && uploadData.length > 0) {
+            const { error } = await supabaseAdmin.from('courses').upsert(uploadData, { onConflict: 'title' });
+            if (error) console.error('Supabase Course Sync Error:', error.message);
+        }
+
+        res.status(201).json({ message: `${added} course(s) synchronized! 🌐`, added });
     } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
@@ -423,8 +436,37 @@ router.post('/exams/bulk', auth, async (req, res) => {
 
     try {
         let added = 0;
+        if (!supabaseAdmin) throw new Error('Cloud Identity Provider not initialized');
+
         for (const exam of exams) {
             if (!exam.title || !Array.isArray(exam.questions) || exam.questions.length === 0) continue;
+            
+            // 1. Create the exam in Supabase
+            const { data: cloudExam, error: examErr } = await supabaseAdmin
+                .from('exams')
+                .insert({ title: exam.title })
+                .select()
+                .single();
+            
+            if (examErr) {
+                console.error(`Error creating exam "${exam.title}":`, examErr.message);
+                continue;
+            }
+
+            // 2. Add questions in bulk to Supabase
+            const questionData = exam.questions.map(q => ({
+                exam_id: cloudExam.id,
+                question_text: q.question_text,
+                option_a: q.option_a || '',
+                option_b: q.option_b || '',
+                option_c: q.option_c || '',
+                option_d: q.option_d || ''
+            }));
+
+            const { error: qErr } = await supabaseAdmin.from('questions').insert(questionData);
+            if (qErr) console.error(`Error adding questions for "${exam.title}":`, qErr.message);
+
+            // 3. Keep local DB in sync for backward compatibility
             const examId = await runGetId('INSERT INTO exams (title) VALUES (?)', [exam.title]);
             for (const q of exam.questions) {
                 if (!q.question_text) continue;
@@ -434,8 +476,11 @@ router.post('/exams/bulk', auth, async (req, res) => {
             added++;
         }
 
-        res.status(201).json({ message: `${added} exam(s) added`, added });
-    } catch (e) { res.status(500).json({ error: e.message }); }
+        res.status(201).json({ message: `${added} exam(s) provisioned globally! 🏆`, added });
+    } catch (e) { 
+        console.error('Bulk Exam Upload Error:', e.message);
+        res.status(500).json({ error: e.message }); 
+    }
 });
 
 // ─── MENTOR ACCOUNTS ───

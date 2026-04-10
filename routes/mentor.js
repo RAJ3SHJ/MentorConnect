@@ -93,8 +93,57 @@ router.post('/validate/:submissionId', auth, async (req, res) => {
             WHERE id = ?
         `, [status, remarks || null, req.params.submissionId]);
 
+        // Notify the student of their review result
+        try {
+            const sub = await get('SELECT student_id FROM exam_submissions WHERE id = ?', [req.params.submissionId]);
+            if (sub) {
+                await run('PRAGMA foreign_keys = OFF');
+                await run(
+                    'INSERT INTO notifications (type, student_id, reference_id) VALUES (?, ?, ?)',
+                    ['exam_reviewed', sub.student_id, req.params.submissionId]
+                );
+                await run('PRAGMA foreign_keys = ON');
+            }
+        } catch (_) { /* non-critical — notification failure should not block response */ }
+
         res.json({ message: 'Validation saved' });
     } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// POST /api/mentor/skills-review/:studentId — review a student's skill assessment
+router.post('/skills-review/:studentId', auth, async (req, res) => {
+    const { status, remarks } = req.body;
+    if (!['Approved', 'Needs Improvement'].includes(status))
+        return res.status(400).json({ error: 'status must be Approved or Needs Improvement' });
+
+    try {
+        // Update or insert skills status + mentor remarks
+        await run('PRAGMA foreign_keys = OFF');
+        const existing = await get('SELECT id FROM student_skills WHERE student_id = ?', [req.params.studentId]);
+        if (existing) {
+            await run(
+                `UPDATE student_skills SET status = ?, mentor_remarks = ?, reviewed_at = ${isPG ? 'CURRENT_TIMESTAMP' : "datetime('now')"} WHERE student_id = ?`,
+                [status, remarks || null, req.params.studentId]
+            );
+        } else {
+            return res.status(404).json({ error: 'No skills assessment found for this student' });
+        }
+
+        // Notify the student
+        try {
+            await run(
+                'INSERT INTO notifications (type, student_id, reference_id) VALUES (?, ?, ?)',
+                ['skills_reviewed', req.params.studentId, existing.id]
+            );
+        } catch (_) { /* non-critical */ }
+        await run('PRAGMA foreign_keys = ON');
+
+        res.json({ message: 'Skills assessment reviewed successfully ✅' });
+    } catch (e) {
+        await run('PRAGMA foreign_keys = ON').catch(() => {});
+        console.error('Skills Review Error:', e.message);
+        res.status(500).json({ error: e.message });
+    }
 });
 
 // POST /api/mentor/assign-course
@@ -226,21 +275,35 @@ router.get('/notification-count', auth, async (req, res) => {
 // POST /api/mentor/connect/:studentId — ATOMIC student claim (race-condition-proof)
 router.post('/connect/:studentId', auth, async (req, res) => {
     try {
-        const studentId = parseInt(req.params.studentId);
+        const studentId = req.params.studentId; // Keep as string — supports both integers and UUIDs
         const mentorUserId = req.user.id;
+        const mentorEmail = req.user.email;
+        const mentorName = req.user.name || mentorEmail;
 
-        // Resolve the actual mentor_id from the mentors table (legacy mapping)
-        const mentorProfile = await get('SELECT id FROM mentors WHERE email = ?', [req.user.email]);
+        // Resolve mentor_id from the mentors table — auto-provision if needed
+        let mentorProfile = await get('SELECT id FROM mentors WHERE email = ?', [mentorEmail]);
         if (!mentorProfile) {
-            return res.status(404).json({ error: 'Mentor profile not found for this user' });
+            // Cloud-registered mentor — auto-create a mentors row using their user ID
+            await run('PRAGMA foreign_keys = OFF');
+            await run(
+                'INSERT INTO mentors (id, name, email) VALUES (?, ?, ?)',
+                [mentorUserId, mentorName, mentorEmail]
+            );
+            await run('PRAGMA foreign_keys = ON');
+            mentorProfile = await get('SELECT id FROM mentors WHERE email = ?', [mentorEmail]);
+        }
+        if (!mentorProfile) {
+            return res.status(500).json({ error: 'Could not resolve mentor profile — please contact admin' });
         }
         const mentorId = mentorProfile.id;
 
-        const existing = await get('SELECT id, mentor_user_id FROM mentor_assignments WHERE student_id = ?', [studentId]);
+        // Check if student is already connected to ANY mentor
+        const existing = await get('SELECT id FROM mentor_assignments WHERE student_id = ?', [studentId]);
         if (existing) {
             return res.status(409).json({ error: 'Student already connected to another mentor' });
         }
 
+        await run('PRAGMA foreign_keys = OFF');
         await runGetId(
             'INSERT INTO mentor_assignments (mentor_id, student_id, mentor_user_id) VALUES (?, ?, ?)',
             [mentorId, studentId, mentorUserId]
@@ -252,12 +315,15 @@ router.post('/connect/:studentId', auth, async (req, res) => {
             'UPDATE mentor_notifications SET is_claimed = 1, claimed_by_mentor_id = ? WHERE student_id = ?',
             [mentorUserId, studentId]
         );
+        await run('PRAGMA foreign_keys = ON');
 
         res.json({ message: 'Successfully connected to student', studentId });
     } catch (e) {
+        await run('PRAGMA foreign_keys = ON').catch(() => {});
         if (e.message && e.message.includes('UNIQUE')) {
             return res.status(409).json({ error: 'Student was just claimed by another mentor' });
         }
+        console.error('Connect Error:', e.message);
         res.status(500).json({ error: e.message });
     }
 });

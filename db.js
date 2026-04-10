@@ -169,6 +169,11 @@ async function initDb() {
             await client.query("ALTER TABLE mentor_assignments ALTER COLUMN student_id TYPE VARCHAR(255) USING student_id::text");
             await client.query("ALTER TABLE mentor_assignments ALTER COLUMN mentor_id TYPE VARCHAR(255) USING mentor_id::text");
             await client.query("ALTER TABLE exam_submissions ALTER COLUMN student_id TYPE VARCHAR(255) USING student_id::text");
+            await client.query("ALTER TABLE student_skills ALTER COLUMN student_id TYPE VARCHAR(255) USING student_id::text");
+            await client.query("ALTER TABLE notifications ALTER COLUMN student_id TYPE VARCHAR(255) USING student_id::text");
+            await client.query("ALTER TABLE notifications ALTER COLUMN mentor_id TYPE VARCHAR(255) USING mentor_id::text");
+            await client.query("ALTER TABLE mentor_notifications ALTER COLUMN student_id TYPE VARCHAR(255) USING student_id::text");
+            await client.query("ALTER TABLE mentor_notifications ALTER COLUMN claimed_by_mentor_id TYPE VARCHAR(255) USING claimed_by_mentor_id::text");
             await client.query('COMMIT');
             console.log('✅ Online Database migration successful!');
           } catch (err) {
@@ -186,6 +191,10 @@ async function initDb() {
         await pool.query("ALTER TABLE mentors ADD COLUMN IF NOT EXISTS last_name TEXT");
         await pool.query("ALTER TABLE mentors ADD COLUMN IF NOT EXISTS qualification TEXT");
         await pool.query("ALTER TABLE mentors ADD COLUMN IF NOT EXISTS username TEXT UNIQUE");
+        // Mentor assessment review columns
+        await pool.query("ALTER TABLE student_skills ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'Pending Review'");
+        await pool.query("ALTER TABLE student_skills ADD COLUMN IF NOT EXISTS mentor_remarks TEXT");
+        await pool.query("ALTER TABLE student_skills ADD COLUMN IF NOT EXISTS reviewed_at TIMESTAMP");
       } catch (e) {
         console.error('⚠️ Online Migration Warning:', e.message);
       }
@@ -206,6 +215,9 @@ async function initDb() {
     try { sqlite.prepare("ALTER TABLE mentors ADD COLUMN username TEXT").run(); } catch (e) {}
 
     try { sqlite.prepare("ALTER TABLE users ADD COLUMN mentor_id INTEGER REFERENCES users(id)").run(); } catch (e) {}
+    try { sqlite.prepare("ALTER TABLE student_skills ADD COLUMN status TEXT DEFAULT 'Pending Review'").run(); } catch (e) {}
+    try { sqlite.prepare("ALTER TABLE student_skills ADD COLUMN mentor_remarks TEXT").run(); } catch (e) {}
+    try { sqlite.prepare("ALTER TABLE student_skills ADD COLUMN reviewed_at DATETIME").run(); } catch (e) {}  
   }
 }
 

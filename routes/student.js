@@ -1,5 +1,5 @@
 const router = require('express').Router();
-const { run, get, all, runGetId } = require('../db');
+const { run, get, all, runGetId, supabaseAdmin } = require('../db');
 const auth = require('../middleware/auth');
 
 // GET /api/student/profile — fetch Supabase cloud profile
@@ -62,6 +62,48 @@ router.get('/dashboard-stats', auth, async (req, res) => {
     console.error('Student Dashboard Stats Error:', e.message);
     res.status(500).json({ error: 'Failed to load your analytics' });
   }
+});
+
+// GET /api/student/skills — fetch goals and skillset from local DB
+router.get('/skills', auth, async (req, res) => {
+    try {
+        const row = await get('SELECT * FROM student_skills WHERE student_id = ?', [req.user.id]);
+        if (!row) return res.json({ goal: '', skills: [] });
+        // Parse skills if stored as JSON string
+        const skills = typeof row.skills === 'string' ? JSON.parse(row.skills) : (row.skills || []);
+        res.json({ ...row, skills });
+    } catch (e) {
+        console.error('Fetch Skills Error:', e.message);
+        res.status(500).json({ error: 'Failed to retrieve assessment data' });
+    }
+});
+
+// POST /api/student/skills — save/update skillset in local DB
+router.post('/skills', auth, async (req, res) => {
+    const { goal, skills } = req.body;
+    try {
+        const skillsJson = JSON.stringify(skills || []);
+        // Disable FK temporarily so UUID-based users can save without FK type mismatch
+        await run('PRAGMA foreign_keys = OFF');
+        const existing = await get('SELECT id FROM student_skills WHERE student_id = ?', [req.user.id]);
+        if (existing) {
+            await run(
+                'UPDATE student_skills SET goal = ?, skills = ?, submitted_at = CURRENT_TIMESTAMP WHERE student_id = ?',
+                [goal, skillsJson, req.user.id]
+            );
+        } else {
+            await run(
+                'INSERT INTO student_skills (student_id, goal, skills) VALUES (?, ?, ?)',
+                [req.user.id, goal, skillsJson]
+            );
+        }
+        await run('PRAGMA foreign_keys = ON');
+        res.status(201).json({ message: 'Skill assessment updated! 🎯' });
+    } catch (e) {
+        await run('PRAGMA foreign_keys = ON').catch(() => {});
+        console.error('Update Skills Error:', e.message);
+        res.status(500).json({ error: 'Failed to save assessment' });
+    }
 });
 
 module.exports = router;

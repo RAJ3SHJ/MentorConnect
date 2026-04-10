@@ -35,30 +35,71 @@ router.post('/register', async (req, res) => {
     }
 });
 
-// POST /api/auth/login — centralized entry for all users
+// POST /api/auth/login — centralized entry for all users (Cloud-First)
 router.post('/login', async (req, res) => {
-    const { email, password } = req.body;
-    if (!email || !password)
+    const { email: identifier, password } = req.body;
+    if (!identifier || !password)
         return res.status(400).json({ error: 'Username/Email and password required' });
 
     try {
-        // Find user by email OR username
-        const identifier = email.toLowerCase();
-        const user = await get(
-            'SELECT * FROM users WHERE email = ? OR username = ?', 
-            [identifier, identifier]
+        if (!supabaseAdmin) throw new Error('Identity provider not ready');
+
+        // 1. Prepare Supabase Identifier (handle username vs email)
+        const isEmail = identifier.includes('@');
+        const loginEmail = isEmail ? identifier.toLowerCase() : `${identifier.toLowerCase()}@mentor.local`;
+
+        // 2. Authenticate with Supabase Auth — with 5s timeout to prevent cold-start blocking
+        const supabaseLoginPromise = supabaseAdmin.auth.signInWithPassword({
+            email: loginEmail,
+            password: password
+        });
+        const timeoutPromise = new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Supabase auth timeout')), 5000)
         );
+        const { data: authData, error: authError } = await Promise.race([
+            supabaseLoginPromise,
+            timeoutPromise.then(() => ({ data: null, error: { message: 'timeout' } })).catch(e => ({ data: null, error: { message: e.message } }))
+        ]);
 
-        if (!user || !bcrypt.compareSync(password, user.password_hash))
+        if (authError) {
+            console.error('Supabase Login Failed:', authError.message);
+            // Fallback: Check local for Admin/Mentor PIN-based legacy accounts if needed
+            const localUser = await get("SELECT * FROM users WHERE (email = ? OR username = ?) AND role IN ('admin', 'mentor')", [identifier, identifier]);
+            if (localUser && bcrypt.compareSync(password, localUser.password_hash)) {
+                // Legacy path for local-only accounts
+                const token = jwt.sign({ id: localUser.id, name: localUser.name, role: localUser.role || 'learner' }, JWT_SECRET, { expiresIn: '30d' });
+                return res.json({ token, user: localUser });
+            }
             return res.status(401).json({ error: 'Invalid credentials' });
+        }
 
-        const role = user.role || 'learner';
+        const cloudUser = authData.user;
+        const role = cloudUser.user_metadata?.role || 'learner';
+        const name = cloudUser.user_metadata?.name || identifier;
+        const username = cloudUser.user_metadata?.username || (isEmail ? identifier.split('@')[0] : identifier);
+
+        // 3. Sync to Local Database (Provision on demand)
+        await run(`
+            INSERT INTO users (id, name, email, username, role, password_hash) 
+            VALUES (?, ?, ?, ?, ?, ?)
+            ON CONFLICT(id) DO UPDATE SET 
+                name = excluded.name,
+                username = excluded.username,
+                role = excluded.role
+        `, [cloudUser.id, name, cloudUser.email, username, role, 'CLOUD_AUTH']);
+
+        // 4. Issue the local JWT for session compatibility
         const token = jwt.sign(
-            { id: user.id, name: user.name, email: user.email, role },
+            { id: cloudUser.id, name, email: cloudUser.email, role },
             JWT_SECRET, 
             { expiresIn: '30d' }
         );
-        res.json({ token, user: { id: user.id, name: user.name, email: user.email, role } });
+
+        res.json({ 
+            token, 
+            user: { id: cloudUser.id, name, email: cloudUser.email, role } 
+        });
+
     } catch (e) {
         console.error('Login Endpoint Error:', e.message);
         res.status(500).json({ error: e.message });
