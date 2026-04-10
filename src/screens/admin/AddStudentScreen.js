@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     View, Text, StyleSheet, TextInput, TouchableOpacity,
     ScrollView, KeyboardAvoidingView, Platform, ActivityIndicator
@@ -8,30 +8,44 @@ import { LinearGradient } from 'expo-linear-gradient';
 import api from '../../api/client';
 import { useTheme } from '../../ThemeContext';
 import { useToast } from '../../components/Toast';
-import { RADIUS } from '../../theme';
 
-export default function AddStudentScreen({ navigation }) {
+export default function AddStudentScreen({ navigation, route }) {
     const insets = useSafeAreaInsets();
     const { colors, gradients } = useTheme();
     const toast = useToast();
+    
+    const editStudent = route.params?.editStudent;
+    const isEdit = !!editStudent;
 
-    const [name, setName] = useState('');
-    const [email, setEmail] = useState('');
+    const [firstName, setFirstName] = useState('');
+    const [lastName, setLastName] = useState('');
+    const [qualification, setQualification] = useState('');
+    const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [saving, setSaving] = useState(false);
     const [errors, setErrors] = useState({});
     const [showPassword, setShowPassword] = useState(false);
 
+    useEffect(() => {
+        if (editStudent) {
+            setFirstName(editStudent.first_name || '');
+            setLastName(editStudent.last_name || '');
+            setQualification(editStudent.qualification || '');
+            setUsername(editStudent.username || '');
+        }
+    }, [editStudent]);
+
     const validate = () => {
         const errs = {};
-        if (!name.trim()) errs.name = 'Full Name is required';
-        if (!email.trim()) errs.email = 'Email address is required';
-        else if (!/\S+@\S+\.\S+/.test(email)) errs.email = 'Enter a valid email';
+        if (!firstName.trim()) errs.firstName = 'First Name is required';
+        if (!username.trim()) errs.username = 'Username is required';
         
-        if (!password) errs.password = 'Initial password is required';
-        else if (password.length < 6) errs.password = 'Min 6 characters required';
-        if (password !== confirmPassword) errs.confirmPassword = 'Passwords mismatch';
+        if (!isEdit) {
+            if (!password) errs.password = 'Password is required';
+            else if (password.length < 6) errs.password = 'Min 6 characters';
+            if (password !== confirmPassword) errs.confirmPassword = 'Passwords mismatch';
+        }
         
         setErrors(errs);
         return Object.keys(errs).length === 0;
@@ -41,18 +55,26 @@ export default function AddStudentScreen({ navigation }) {
         if (!validate()) return;
         setSaving(true);
         try {
-            await api.post('/api/admin/create-student', { 
-                name, 
-                email: email.toLowerCase(), 
+            const payload = { 
+                firstName, 
+                lastName, 
+                qualification, 
+                username, 
                 password 
-            });
+            };
+
+            if (isEdit) {
+                await api.put(`/api/admin/students/${editStudent.id}`, payload);
+                toast.show('Learner profile updated successfully ✅', 'success');
+            } else {
+                await api.post('/api/admin/create-student', payload);
+                toast.show(`Identity Provisioned: ${firstName} is active 🎉`, 'success');
+            }
             
-            toast.show(`Identity Provisioned: ${name} is now active 🎉`, 'success');
             setTimeout(() => navigation.goBack(), 1500);
         } catch (e) {
-            const msg = e.response?.data?.error || e.message || 'Provisioning failed';
+            const msg = e.response?.data?.error || e.message || 'Action failed';
             toast.show(msg, 'error');
-            console.error('Provisioning Error:', msg);
         } finally { setSaving(false); }
     };
 
@@ -71,49 +93,79 @@ export default function AddStudentScreen({ navigation }) {
                             <Text style={{ color: colors.muted, fontSize: 18 }}>←</Text>
                         </TouchableOpacity>
                         <View>
-                            <Text style={[s.title, { color: colors.white }]}>Onboard Learner</Text>
-                            <Text style={[s.subtitle, { color: colors.muted }]}>Provision a new student identity</Text>
+                            <Text style={[s.title, { color: colors.white }]}>
+                                {isEdit ? 'Update Learner' : 'Onboard Learner'}
+                            </Text>
+                            <Text style={[s.subtitle, { color: colors.muted }]}>
+                                {isEdit ? 'Refresh student credentials and info' : 'Provision a new student identity'}
+                            </Text>
                         </View>
                     </View>
 
+                    {/* Section 1: Personal Information */}
                     <View style={[s.glassCard, Platform.OS === 'web' && { backdropFilter: 'blur(20px)' }]}>
                         <View style={s.sectionHeader}>
                             <View style={[s.iconBox, { backgroundColor: colors.blue + '15' }]}>
                                 <Text style={{ fontSize: 20 }}>👤</Text>
                             </View>
-                            <Text style={[s.sectionTitle, { color: colors.white }]}>Learner Details</Text>
+                            <Text style={[s.sectionTitle, { color: colors.white }]}>Personal Information</Text>
                         </View>
 
-                        <Text style={s.label}>FULL NAME</Text>
-                        <TextInput
-                            style={[s.input, errors.name && s.inputError]}
-                            placeholder="e.g. John Doe"
-                            placeholderTextColor="rgba(255,255,255,0.2)"
-                            value={name}
-                            onChangeText={setName}
-                        />
+                        <View style={s.row}>
+                            <View style={{ flex: 1, marginRight: 12 }}>
+                                <Text style={s.label}>FIRST NAME</Text>
+                                <TextInput
+                                    style={[s.input, errors.firstName && s.inputError]}
+                                    placeholder="e.g. John"
+                                    placeholderTextColor="rgba(255,255,255,0.2)"
+                                    value={firstName}
+                                    onChangeText={setFirstName}
+                                />
+                            </View>
+                            <View style={{ flex: 1 }}>
+                                <Text style={s.label}>LAST NAME</Text>
+                                <TextInput
+                                    style={s.input}
+                                    placeholder="e.g. Doe"
+                                    placeholderTextColor="rgba(255,255,255,0.2)"
+                                    value={lastName}
+                                    onChangeText={setLastName}
+                                />
+                            </View>
+                        </View>
 
-                        <Text style={[s.label, { marginTop: 20 }]}>EMAIL ADDRESS</Text>
+                        <Text style={[s.label, { marginTop: 20 }]}>QUALIFICATION</Text>
                         <TextInput
-                            style={[s.input, errors.email && s.inputError]}
-                            placeholder="student@example.com"
+                            style={s.input}
+                            placeholder="e.g. B.Tech Computer Science"
                             placeholderTextColor="rgba(255,255,255,0.2)"
-                            value={email}
-                            onChangeText={setEmail}
-                            keyboardType="email-address"
-                            autoCapitalize="none"
+                            value={qualification}
+                            onChangeText={setQualification}
                         />
                     </View>
 
+                    {/* Section 2: Account Credentials */}
                     <View style={[s.glassCard, { marginTop: 20 }]}>
                         <View style={s.sectionHeader}>
-                            <View style={[s.iconBox, { backgroundColor: '#00f26015' }]}>
+                            <View style={[s.iconBox, { backgroundColor: '#FFD70015' }]}>
                                 <Text style={{ fontSize: 20 }}>🔐</Text>
                             </View>
-                            <Text style={[s.sectionTitle, { color: colors.white }]}>Security Credentials</Text>
+                            <Text style={[s.sectionTitle, { color: colors.white }]}>Account Credentials</Text>
                         </View>
 
-                        <Text style={s.label}>INITIAL PASSWORD</Text>
+                        <Text style={s.label}>USERNAME</Text>
+                        <TextInput
+                            style={[s.input, errors.username && s.inputError]}
+                            placeholder="Set login username"
+                            placeholderTextColor="rgba(255,255,255,0.2)"
+                            value={username}
+                            onChangeText={setUsername}
+                            autoCapitalize="none"
+                        />
+
+                        <Text style={[s.label, { marginTop: 20 }]}>
+                            {isEdit ? 'RESET PASSWORD (OPTIONAL)' : 'INITIAL PASSWORD'}
+                        </Text>
                         <View style={{ position: 'relative' }}>
                             <TextInput
                                 style={[s.input, errors.password && s.inputError]}
@@ -128,15 +180,19 @@ export default function AddStudentScreen({ navigation }) {
                             </TouchableOpacity>
                         </View>
 
-                        <Text style={[s.label, { marginTop: 20 }]}>CONFIRM PASSWORD</Text>
-                        <TextInput
-                            style={[s.input, errors.confirmPassword && s.inputError]}
-                            placeholder="Re-type for security"
-                            placeholderTextColor="rgba(255,255,255,0.2)"
-                            value={confirmPassword}
-                            onChangeText={setConfirmPassword}
-                            secureTextEntry={!showPassword}
-                        />
+                        {!isEdit && (
+                            <>
+                                <Text style={[s.label, { marginTop: 20 }]}>CONFIRM PASSWORD</Text>
+                                <TextInput
+                                    style={[s.input, errors.confirmPassword && s.inputError]}
+                                    placeholder="Re-type for security"
+                                    placeholderTextColor="rgba(255,255,255,0.2)"
+                                    value={confirmPassword}
+                                    onChangeText={setConfirmPassword}
+                                    secureTextEntry={!showPassword}
+                                />
+                            </>
+                        )}
                     </View>
 
                     <TouchableOpacity 
@@ -153,7 +209,9 @@ export default function AddStudentScreen({ navigation }) {
                             {saving ? (
                                 <ActivityIndicator color="#fff" />
                             ) : (
-                                <Text style={s.btnText}>🚀 Finalize Provisioning</Text>
+                                <Text style={s.btnText}>
+                                    {isEdit ? '💾 Update Profile' : '🚀 Finalize Provisioning'}
+                                </Text>
                             )}
                         </LinearGradient>
                     </TouchableOpacity>
@@ -196,6 +254,7 @@ const s = StyleSheet.create({
     },
     inputError: { borderColor: '#ff475733', backgroundColor: '#ff475708' },
     eyeBtn: { position: 'absolute', right: 16, top: 14 },
+    row: { flexDirection: 'row', justifyContent: 'space-between' },
     submitBtn: { marginTop: 32 },
     btnGrad: { borderRadius: 16, paddingVertical: 18, alignItems: 'center' },
     btnText: { color: '#FFF', fontWeight: '800', fontSize: 16, textTransform: 'uppercase', letterSpacing: 1 },

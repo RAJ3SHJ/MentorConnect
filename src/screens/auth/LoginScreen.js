@@ -59,11 +59,11 @@ export default function LoginScreen({ navigation }) {
                         <Text style={[s.subtitle, { color: colors.muted }]}>Login to continue learning</Text>
 
                         <View style={[s.card, { backgroundColor: colors.card, borderColor: colors.glassBorder }]}>
-                            <Text style={[s.label, { color: colors.muted }]}>EMAIL</Text>
+                            <Text style={[s.label, { color: colors.muted }]}>USERNAME</Text>
                             <TextInput style={[s.input, { borderColor: errors.email ? colors.danger : colors.glassBorder, color: colors.white }]}
-                                placeholder="you@example.com" placeholderTextColor={colors.muted}
+                                placeholder="Enter your username" placeholderTextColor={colors.muted}
                                 value={email} onChangeText={t => { setEmail(t); if (errors.email) setErrors(e => ({ ...e, email: null })); }}
-                                autoCapitalize="none" keyboardType="email-address" />
+                                autoCapitalize="none" />
                             {errors.email && <Text style={[s.error, { color: colors.danger }]}>⚠ {errors.email}</Text>}
 
                             <Text style={[s.label, { color: colors.muted }]}>PASSWORD</Text>

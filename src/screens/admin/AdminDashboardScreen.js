@@ -241,18 +241,17 @@ export default function AdminDashboardScreen({ navigation }) {
             </View>
             {/* Action buttons — always on their own row, no clipping */}
             <View style={s.entityActions}>
-                {type !== 'students' && (
-                    <TouchableOpacity
-                        style={[s.actionBtn, s.actionBtnBlue]}
-                        onPress={() => {
-                            if (type === 'mentors') navigation.navigate('AddMentor', { editMentor: item });
-                            if (type === 'courses') navigation.navigate('AddCourse', { editCourse: item });
-                            if (type === 'exams') navigation.navigate('AddExam', { editExamId: item.id });
-                        }}
-                    >
-                        <Text style={[s.actionBtnText, { color: C.primary }]}>Edit</Text>
-                    </TouchableOpacity>
-                )}
+                <TouchableOpacity
+                    style={[s.actionBtn, s.actionBtnBlue]}
+                    onPress={() => {
+                        if (type === 'students') navigation.navigate('AddStudent', { editStudent: item });
+                        if (type === 'mentors') navigation.navigate('AddMentor', { editMentor: item });
+                        if (type === 'courses') navigation.navigate('AddCourse', { editCourse: item });
+                        if (type === 'exams') navigation.navigate('AddExam', { editExamId: item.id });
+                    }}
+                >
+                    <Text style={[s.actionBtnText, { color: C.primary }]}>Edit</Text>
+                </TouchableOpacity>
                 <TouchableOpacity
                     style={[s.actionBtn, s.actionBtnRed]}
                     onPress={() => confirmDelete(type, item.id, item[titleKey])}

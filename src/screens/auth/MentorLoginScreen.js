@@ -30,34 +30,16 @@ export default function MentorLoginScreen({ navigation }) {
         if (!validate()) return;
         setLoading(true);
         try {
-            const { data, error } = await supabase.auth.signInWithPassword({
-                email,
-                password,
-            });
-
-            if (error) throw error;
-
-            // Fetch the user profile from our public.mentors table to confirm role/identity
-            const { data: profile, error: profileError } = await supabase
-                .from('mentors')
-                .select('*')
-                .eq('id', data.user.id)
-                .single();
-
-            if (profileError || !profile) {
-                // If they logged in but aren't in the mentors table, they might be a student or admin
-                // For now, we restrict this screen to Mentors
-                await supabase.auth.signOut();
-                toast.show('Access Denied: Mentor profile not found', 'error');
-                return;
-            }
-
-            // Successfully authenticated as a mentor
-            await login(data.session.access_token, { ...data.user, role: 'mentor', ...profile });
-            toast.show(`Welcome back, ${profile.name || 'Mentor'}! 👋`, 'success');
+            const res = await api.post('/api/auth/login', { email, password });
+            const { token, user } = res.data;
+            
+            // Successfully authenticated via centralized backend
+            await login(token, user);
+            toast.show(`Welcome back, ${user.name || 'Mentor'}! 👋`, 'success');
         } catch (err) {
             console.error('Mentor Login Error:', err.message);
-            toast.show(err.message || 'Login failed', 'error');
+            const msg = err.response?.data?.error || err.message || 'Login failed';
+            toast.show(msg, 'error');
         } finally {
             setLoading(false);
         }
@@ -79,12 +61,11 @@ export default function MentorLoginScreen({ navigation }) {
                             <Text style={s.subtitle}>Sign in with your professional credentials</Text>
 
                             <View style={s.inputContainer}>
-                                <Text style={s.label}>USERNAME (EMAIL)</Text>
+                                <Text style={s.label}>USERNAME</Text>
                                 <TextInput
                                     style={[s.input, { borderColor: errors.email ? '#ff4757' : 'rgba(0,210,255,0.2)' }]}
-                                    keyboardType="email-address"
                                     autoCapitalize="none"
-                                    placeholder="mentor@example.com"
+                                    placeholder="Enter your username"
                                     placeholderTextColor="rgba(255,255,255,0.2)"
                                     value={email}
                                     onChangeText={setEmail}

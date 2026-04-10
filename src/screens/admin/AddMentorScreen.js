@@ -8,41 +8,44 @@ import { LinearGradient } from 'expo-linear-gradient';
 import api from '../../api/client';
 import { useTheme } from '../../ThemeContext';
 import { useToast } from '../../components/Toast';
-import { RADIUS } from '../../theme';
 
 export default function AddMentorScreen({ navigation, route }) {
     const insets = useSafeAreaInsets();
-    const editMentor = route.params?.editMentor;
-    const isEdit = !!editMentor;
     const { colors, gradients } = useTheme();
     const toast = useToast();
+    
+    const editMentor = route.params?.editMentor;
+    const isEdit = !!editMentor;
 
-    const [name, setName] = useState('');
-    const [email, setEmail] = useState('');
+    const [firstName, setFirstName] = useState('');
+    const [lastName, setLastName] = useState('');
+    const [qualification, setQualification] = useState('');
+    const [expertise, setExpertise] = useState('');
+    const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
-    const [expertise, setExpertise] = useState('');
     const [saving, setSaving] = useState(false);
     const [errors, setErrors] = useState({});
     const [showPassword, setShowPassword] = useState(false);
 
     useEffect(() => {
         if (editMentor) {
-            setName(editMentor.name || '');
-            setEmail(editMentor.email || '');
+            setFirstName(editMentor.first_name || '');
+            setLastName(editMentor.last_name || '');
+            setQualification(editMentor.qualification || '');
             setExpertise(editMentor.expertise || '');
+            setUsername(editMentor.username || '');
         }
     }, [editMentor]);
 
     const validate = () => {
         const errs = {};
-        if (!name.trim()) errs.name = 'Full Name is required';
-        if (!email.trim()) errs.email = 'Email address is required';
-        else if (!/\S+@\S+\.\S+/.test(email)) errs.email = 'Enter a valid professional email';
+        if (!firstName.trim()) errs.firstName = 'First Name is required';
+        if (!username.trim()) errs.username = 'Username is required';
         
         if (!isEdit) {
             if (!password) errs.password = 'Initial password is required';
-            else if (password.length < 6) errs.password = 'Security policy: Min 6 characters';
+            else if (password.length < 6) errs.password = 'Min 6 characters';
             if (password !== confirmPassword) errs.confirmPassword = 'Passwords mismatch';
         }
         
@@ -54,28 +57,27 @@ export default function AddMentorScreen({ navigation, route }) {
         if (!validate()) return;
         setSaving(true);
         try {
+            const payload = { 
+                firstName, 
+                lastName, 
+                qualification, 
+                expertise,
+                username, 
+                password 
+            };
+
             if (isEdit) {
-                // Update existing profile (id is fixed UUID now)
-                await api.put(`/api/admin/mentors/${editMentor.id}`, { name, email, expertise, password: password || undefined });
+                await api.put(`/api/admin/mentors/${editMentor.id}`, payload);
                 toast.show('Mentor profile synchronized successfully ✅', 'success');
-                setTimeout(() => navigation.goBack(), 1000);
             } else {
-                // HIGH PRIVILEGE PROVISIONING: Call the server to create Auth user and Profile
-                const { data } = await api.post('/api/admin/create-mentor', { 
-                    name, 
-                    email: email.toLowerCase(), 
-                    password, 
-                    expertise 
-                });
-                
-                toast.show(`Identity Provisioned: ${name} is now active 🎉`, 'success');
-                // Auto-clear or go back
-                setTimeout(() => navigation.goBack(), 1500);
+                await api.post('/api/admin/create-mentor', payload);
+                toast.show(`Identity Provisioned: ${firstName} is active 🎉`, 'success');
             }
+            
+            setTimeout(() => navigation.goBack(), 1500);
         } catch (e) {
-            const msg = e.response?.data?.error || e.message || 'Provisioning failed';
+            const msg = e.response?.data?.error || e.message || 'Action failed';
             toast.show(msg, 'error');
-            console.error('Provisioning Error:', msg);
         } finally { setSaving(false); }
     };
 
@@ -98,38 +100,50 @@ export default function AddMentorScreen({ navigation, route }) {
                                 {isEdit ? 'Provisioning Profile' : 'Onboard Mentor'}
                             </Text>
                             <Text style={[s.subtitle, { color: colors.muted }]}>
-                                {isEdit ? `Modifying identity for ${editMentor.name}` : 'Provision a new cloud identity for your team'}
+                                {isEdit ? `Modifying identity for ${firstName}` : 'Provision a new cloud identity for your team'}
                             </Text>
                         </View>
                     </View>
 
-                    {/* Identity Details Card */}
+                    {/* Section 1: Professional Background */}
                     <View style={[s.glassCard, Platform.OS === 'web' && { backdropFilter: 'blur(20px)' }]}>
                         <View style={s.sectionHeader}>
                             <View style={[s.iconBox, { backgroundColor: colors.blue + '15' }]}>
-                                <Text style={{ fontSize: 20 }}>👤</Text>
+                                <Text style={{ fontSize: 20 }}>👨‍🏫</Text>
                             </View>
-                            <Text style={[s.sectionTitle, { color: colors.white }]}>Identity Details</Text>
+                            <Text style={[s.sectionTitle, { color: colors.white }]}>Professional Background</Text>
                         </View>
 
-                        <Text style={s.label}>FULL PROFESSIONAL NAME</Text>
-                        <TextInput
-                            style={[s.input, errors.name && s.inputError]}
-                            placeholder="e.g. Sarah Connor"
-                            placeholderTextColor="rgba(255,255,255,0.2)"
-                            value={name}
-                            onChangeText={setName}
-                        />
+                        <View style={s.row}>
+                            <View style={{ flex: 1, marginRight: 12 }}>
+                                <Text style={s.label}>FIRST NAME</Text>
+                                <TextInput
+                                    style={[s.input, errors.firstName && s.inputError]}
+                                    placeholder="e.g. Sarah"
+                                    placeholderTextColor="rgba(255,255,255,0.2)"
+                                    value={firstName}
+                                    onChangeText={setFirstName}
+                                />
+                            </View>
+                            <View style={{ flex: 1 }}>
+                                <Text style={s.label}>LAST NAME</Text>
+                                <TextInput
+                                    style={s.input}
+                                    placeholder="e.g. Connor"
+                                    placeholderTextColor="rgba(255,255,255,0.2)"
+                                    value={lastName}
+                                    onChangeText={setLastName}
+                                />
+                            </View>
+                        </View>
 
-                        <Text style={[s.label, { marginTop: 20 }]}>PROVISIONED EMAIL (LOGIN)</Text>
+                        <Text style={[s.label, { marginTop: 20 }]}>QUALIFICATION</Text>
                         <TextInput
-                            style={[s.input, errors.email && s.inputError]}
-                            placeholder="mentor@mentorpath.com"
+                            style={s.input}
+                            placeholder="e.g. PhD in Machine Learning"
                             placeholderTextColor="rgba(255,255,255,0.2)"
-                            value={email}
-                            onChangeText={setEmail}
-                            keyboardType="email-address"
-                            autoCapitalize="none"
+                            value={qualification}
+                            onChangeText={setQualification}
                         />
 
                         <Text style={[s.label, { marginTop: 20 }]}>DOMAIN EXPERTISE</Text>
@@ -142,16 +156,28 @@ export default function AddMentorScreen({ navigation, route }) {
                         />
                     </View>
 
-                    {/* Security Credentials Card */}
+                    {/* Section 2: Account Credentials */}
                     <View style={[s.glassCard, { marginTop: 20 }]}>
                         <View style={s.sectionHeader}>
-                            <View style={[s.iconBox, { backgroundColor: '#00f26015' }]}>
+                            <View style={[s.iconBox, { backgroundColor: '#FFD70015' }]}>
                                 <Text style={{ fontSize: 20 }}>🔐</Text>
                             </View>
                             <Text style={[s.sectionTitle, { color: colors.white }]}>Security Credentials</Text>
                         </View>
 
-                        <Text style={s.label}>{isEdit ? 'UPDATE PASSWORD (OPTIONAL)' : 'INITIAL PASSWORD'}</Text>
+                        <Text style={s.label}>USERNAME</Text>
+                        <TextInput
+                            style={[s.input, errors.username && s.inputError]}
+                            placeholder="Set login username"
+                            placeholderTextColor="rgba(255,255,255,0.2)"
+                            value={username}
+                            onChangeText={setUsername}
+                            autoCapitalize="none"
+                        />
+
+                        <Text style={[s.label, { marginTop: 20 }]}>
+                            {isEdit ? 'UPDATE PASSWORD (OPTIONAL)' : 'INITIAL PASSWORD'}
+                        </Text>
                         <View style={{ position: 'relative' }}>
                             <TextInput
                                 style={[s.input, errors.password && s.inputError]}
@@ -181,7 +207,6 @@ export default function AddMentorScreen({ navigation, route }) {
                         )}
                     </View>
 
-                    {/* Action Button */}
                     <TouchableOpacity 
                         onPress={save} 
                         disabled={saving} 
@@ -219,7 +244,6 @@ const s = StyleSheet.create({
     backBtn: { width: 44, height: 44, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.05)', alignItems: 'center', justifyContent: 'center' },
     title: { fontSize: 24, fontWeight: '900', letterSpacing: -0.5 },
     subtitle: { fontSize: 13, marginTop: 2, opacity: 0.6 },
-
     glassCard: {
         padding: 24,
         borderRadius: 24,
@@ -230,7 +254,6 @@ const s = StyleSheet.create({
     sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 24 },
     iconBox: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
     sectionTitle: { fontSize: 16, fontWeight: '800', letterSpacing: 0.5 },
-    
     label: { fontSize: 10, fontWeight: '800', opacity: 0.4, letterSpacing: 1, marginBottom: 8 },
     input: {
         borderRadius: 14,
@@ -243,7 +266,7 @@ const s = StyleSheet.create({
     },
     inputError: { borderColor: '#ff475733', backgroundColor: '#ff475708' },
     eyeBtn: { position: 'absolute', right: 16, top: 14 },
-    
+    row: { flexDirection: 'row', justifyContent: 'space-between' },
     submitBtn: { marginTop: 32 },
     btnGrad: { borderRadius: 16, paddingVertical: 18, alignItems: 'center' },
     btnText: { color: '#FFF', fontWeight: '800', fontSize: 16, textTransform: 'uppercase', letterSpacing: 1 },
