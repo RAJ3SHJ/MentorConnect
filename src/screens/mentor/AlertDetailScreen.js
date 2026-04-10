@@ -1,17 +1,28 @@
 import React, { useEffect, useState } from 'react';
 import {
-    View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator,
+    View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, TextInput, Alert,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import api from '../../api/client';
 import { useTheme } from '../../ThemeContext';
+import { useToast } from '../../components/Toast';
 import { RADIUS } from '../../theme';
 
 export default function AlertDetailScreen({ route, navigation }) {
     const { alert } = route.params;
     const { colors, gradients } = useTheme();
+    const toast = useToast();
+    const insets = useSafeAreaInsets();
     const [detail, setDetail] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [connecting, setConnecting] = useState(false);
+
+    // Skills review state
+    const [skillStatus, setSkillStatus] = useState('');
+    const [skillRemarks, setSkillRemarks] = useState('');
+    const [savingSkills, setSavingSkills] = useState(false);
+    const [skillsReviewed, setSkillsReviewed] = useState(false);
 
     const studentId = alert?.student_id;
 
@@ -22,8 +33,54 @@ export default function AlertDetailScreen({ route, navigation }) {
             alert?.id ? api.patch(`/api/notifications/${alert.id}/read`).catch(() => { }) : Promise.resolve(),
         ]).then(([res]) => {
             setDetail(res.data);
+            // Pre-fill if already reviewed
+            if (res.data.skills?.status && res.data.skills.status !== 'Pending Review') {
+                setSkillStatus(res.data.skills.status);
+                setSkillRemarks(res.data.skills.mentor_remarks || '');
+                setSkillsReviewed(true);
+            }
         }).catch(console.log).finally(() => setLoading(false));
     }, [studentId]);
+
+    const handleConnect = async () => {
+        if (connecting) return;
+        Alert.alert(
+            'Connect with Student',
+            `Connect with ${detail?.student?.name}? They will be added to your roster.`,
+            [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                    text: 'Connect', onPress: async () => {
+                        setConnecting(true);
+                        try {
+                            await api.post(`/api/mentor/connect/${studentId}`);
+                            toast.show(`🔗 Connected with ${detail?.student?.name}!`, 'success');
+                            navigation.goBack();
+                        } catch (e) {
+                            const msg = e.response?.data?.error || 'Connection failed';
+                            toast.show(msg === 'Student already connected to another mentor'
+                                ? '⚡ Student already has a mentor' : msg, 'error');
+                        } finally { setConnecting(false); }
+                    }
+                }
+            ]
+        );
+    };
+
+    const handleSkillsReview = async () => {
+        if (!skillStatus) { toast.show('Please select a result first', 'warning'); return; }
+        setSavingSkills(true);
+        try {
+            await api.post(`/api/mentor/skills-review/${studentId}`, {
+                status: skillStatus,
+                remarks: skillRemarks,
+            });
+            setSkillsReviewed(true);
+            toast.show('Skills assessment reviewed! ✅', 'success');
+        } catch (e) {
+            toast.show(e.response?.data?.error || 'Failed to save review', 'error');
+        } finally { setSavingSkills(false); }
+    };
 
     if (loading) {
         return (
@@ -35,7 +92,7 @@ export default function AlertDetailScreen({ route, navigation }) {
 
     if (!detail) return (
         <LinearGradient colors={gradients.bg} style={s.container}>
-            <View style={s.header}>
+            <View style={[s.header, { paddingTop: insets.top + 12 }]}>
                 <TouchableOpacity onPress={() => navigation.goBack()}>
                     <Text style={[s.back, { color: colors.muted }]}>← Back</Text>
                 </TouchableOpacity>
@@ -52,9 +109,14 @@ export default function AlertDetailScreen({ route, navigation }) {
 
     const { student, skills, submissions } = detail;
 
+    const resultOptions = [
+        { value: 'Approved', emoji: '✅', label: 'Approved', color: colors.success },
+        { value: 'Needs Improvement', emoji: '🔄', label: 'Needs Work', color: colors.danger },
+    ];
+
     return (
         <LinearGradient colors={gradients.bg} style={s.container}>
-            <View style={s.header}>
+            <View style={[s.header, { paddingTop: insets.top + 12 }]}>
                 <TouchableOpacity onPress={() => navigation.goBack()}>
                     <Text style={[s.back, { color: colors.muted }]}>← Back</Text>
                 </TouchableOpacity>
@@ -62,15 +124,27 @@ export default function AlertDetailScreen({ route, navigation }) {
                     <View style={[s.avatar, { backgroundColor: colors.blue + '20' }]}>
                         <Text style={{ fontSize: 24 }}>👤</Text>
                     </View>
-                    <View>
+                    <View style={{ flex: 1 }}>
                         <Text style={[s.title, { color: colors.white }]}>{student.name}</Text>
                         <Text style={{ color: colors.muted, fontSize: 13 }}>{student.email}</Text>
                     </View>
+                    {/* Connect Button in Header */}
+                    <TouchableOpacity
+                        style={[s.connectBtn, { borderColor: colors.blue + '55', opacity: connecting ? 0.6 : 1 }]}
+                        onPress={handleConnect}
+                        disabled={connecting}
+                    >
+                        <LinearGradient colors={['#00d2ff', '#3a7bd5']} style={s.connectBtnInner}>
+                            <Text style={s.connectBtnText}>
+                                {connecting ? '…' : '🔗 Connect'}
+                            </Text>
+                        </LinearGradient>
+                    </TouchableOpacity>
                 </View>
             </View>
 
-            <ScrollView contentContainerStyle={s.scroll}>
-                {/* Skills / Goal */}
+            <ScrollView contentContainerStyle={[s.scroll, { paddingBottom: insets.bottom + 40 }]}>
+                {/* Skills / Goal Card */}
                 <View style={[s.card, { backgroundColor: colors.card, borderColor: colors.glassBorder }]}>
                     <Text style={[s.cardTitle, { color: colors.white }]}>🎯 Skills Assessment</Text>
                     {skills ? (
@@ -79,15 +153,81 @@ export default function AlertDetailScreen({ route, navigation }) {
                             <Text style={[s.value, { color: colors.white }]}>{skills.goal || '—'}</Text>
                             <Text style={[s.label, { color: colors.muted }]}>Skills</Text>
                             <View style={s.tagsWrap}>
-                                {skills.skills.map((sk, i) => (
+                                {(Array.isArray(skills.skills) ? skills.skills : []).map((sk, i) => (
                                     <View key={i} style={[s.tag, { backgroundColor: colors.blue + '12', borderColor: colors.blue + '33' }]}>
                                         <Text style={[s.tagText, { color: colors.blue }]}>{sk}</Text>
                                     </View>
                                 ))}
                             </View>
-                            <Text style={{ color: colors.muted, fontSize: 12, marginTop: 8 }}>
+                            <Text style={{ color: colors.muted, fontSize: 12, marginTop: 4 }}>
                                 Submitted: {new Date(skills.submitted_at).toLocaleDateString()}
                             </Text>
+
+                            {/* ── Inline Skills Review Panel ── */}
+                            <View style={[s.reviewDivider, { backgroundColor: colors.glassBorder }]} />
+                            <Text style={[s.cardTitle, { color: colors.white, marginBottom: 12, marginTop: 8 }]}>
+                                📊 {skillsReviewed ? 'Review Submitted' : 'Review This Assessment'}
+                            </Text>
+
+                            {skillsReviewed && (
+                                <View style={[s.reviewedBanner, { backgroundColor: skillStatus === 'Approved' ? colors.success + '15' : colors.danger + '15', borderColor: skillStatus === 'Approved' ? colors.success + '44' : colors.danger + '44' }]}>
+                                    <Text style={{ color: skillStatus === 'Approved' ? colors.success : colors.danger, fontWeight: '700' }}>
+                                        {skillStatus === 'Approved' ? '✅ Approved' : '⚠️ Needs Improvement'}
+                                    </Text>
+                                    {skillRemarks ? <Text style={{ color: colors.muted, fontSize: 13, marginTop: 4 }}>{skillRemarks}</Text> : null}
+                                    <TouchableOpacity onPress={() => setSkillsReviewed(false)} style={{ marginTop: 8 }}>
+                                        <Text style={{ color: colors.blue, fontSize: 13 }}>✏️ Edit Review</Text>
+                                    </TouchableOpacity>
+                                </View>
+                            )}
+
+                            {!skillsReviewed && (
+                                <>
+                                    <View style={s.optionsRow}>
+                                        {resultOptions.map(opt => {
+                                            const selected = skillStatus === opt.value;
+                                            return (
+                                                <TouchableOpacity
+                                                    key={opt.value}
+                                                    style={[s.optionBtn, {
+                                                        borderColor: selected ? opt.color : colors.glassBorder,
+                                                        backgroundColor: selected ? opt.color + '15' : 'transparent',
+                                                    }]}
+                                                    onPress={() => setSkillStatus(opt.value)}
+                                                >
+                                                    <Text style={{ fontSize: 24, marginBottom: 4 }}>{opt.emoji}</Text>
+                                                    <Text style={[s.optionLabel, { color: selected ? opt.color : colors.muted }]}>{opt.label}</Text>
+                                                </TouchableOpacity>
+                                            );
+                                        })}
+                                    </View>
+
+                                    <TextInput
+                                        style={[s.input, { borderColor: colors.glassBorder, color: colors.white, marginTop: 12 }]}
+                                        placeholder="Add mentor feedback / remarks..."
+                                        placeholderTextColor={colors.muted}
+                                        value={skillRemarks}
+                                        onChangeText={setSkillRemarks}
+                                        multiline
+                                    />
+
+                                    <TouchableOpacity
+                                        onPress={handleSkillsReview}
+                                        disabled={savingSkills || !skillStatus}
+                                        style={{ marginTop: 12 }}
+                                    >
+                                        <LinearGradient
+                                            colors={skillStatus ? gradients.accent : [colors.glass, colors.glass]}
+                                            start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+                                            style={s.submitBtn}
+                                        >
+                                            <Text style={[s.submitBtnText, { color: skillStatus ? '#fff' : colors.muted }]}>
+                                                {savingSkills ? 'Saving...' : '💾 Submit Review'}
+                                            </Text>
+                                        </LinearGradient>
+                                    </TouchableOpacity>
+                                </>
+                            )}
                         </>
                     ) : (
                         <Text style={{ color: colors.muted, fontSize: 14, fontStyle: 'italic' }}>
@@ -129,6 +269,8 @@ export default function AlertDetailScreen({ route, navigation }) {
                                             submissionId: sub.id,
                                             examTitle: sub.exam_title,
                                             studentName: student.name,
+                                            studentId: studentId,
+                                            studentEmail: student.email,
                                             answers: sub.answers,
                                             existingStatus: sub.status,
                                             existingRemarks: sub.mentor_remarks,
@@ -150,11 +292,14 @@ export default function AlertDetailScreen({ route, navigation }) {
 
 const s = StyleSheet.create({
     container: { flex: 1 },
-    header: { paddingHorizontal: 24, paddingTop: 20, paddingBottom: 12 },
+    header: { paddingHorizontal: 24, paddingBottom: 12 },
     back: { fontSize: 15, marginBottom: 16 },
-    profileRow: { flexDirection: 'row', alignItems: 'center', gap: 14 },
+    profileRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
     avatar: { width: 48, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center' },
-    title: { fontSize: 22, fontWeight: '800', letterSpacing: -0.5 },
+    title: { fontSize: 20, fontWeight: '800', letterSpacing: -0.5 },
+    connectBtn: { borderRadius: 12, borderWidth: 1, overflow: 'hidden' },
+    connectBtnInner: { paddingHorizontal: 14, paddingVertical: 8 },
+    connectBtnText: { color: '#fff', fontWeight: '700', fontSize: 13 },
     scroll: { padding: 24, paddingTop: 0 },
     card: { borderRadius: RADIUS, borderWidth: 1, padding: 16, marginBottom: 16 },
     cardTitle: { fontSize: 16, fontWeight: '700', marginBottom: 14 },
@@ -163,6 +308,14 @@ const s = StyleSheet.create({
     tagsWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 8 },
     tag: { borderRadius: 12, paddingHorizontal: 12, paddingVertical: 4, borderWidth: 1 },
     tagText: { fontSize: 12, fontWeight: '600' },
+    reviewDivider: { height: 1, marginVertical: 16 },
+    optionsRow: { flexDirection: 'row', gap: 12, marginBottom: 4 },
+    optionBtn: { flex: 1, borderRadius: 14, borderWidth: 2, padding: 16, alignItems: 'center' },
+    optionLabel: { fontSize: 12, fontWeight: '700' },
+    input: { backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 12, padding: 14, fontSize: 14, borderWidth: 1, height: 90, textAlignVertical: 'top' },
+    submitBtn: { borderRadius: RADIUS, paddingVertical: 13, alignItems: 'center' },
+    submitBtnText: { fontWeight: '700', fontSize: 15 },
+    reviewedBanner: { borderRadius: 12, borderWidth: 1, padding: 14, marginBottom: 4 },
     submissionRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, paddingVertical: 12, borderBottomWidth: 1 },
     examTitle: { fontSize: 14, fontWeight: '700' },
     statusBadge: { borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3, borderWidth: 1 },

@@ -86,7 +86,7 @@ export default function MentorLoginScreen({ navigation }) {
 
                             <TouchableOpacity onPress={handleLogin} disabled={loading} style={s.submitBtn}>
                                 <LinearGradient colors={['#00d2ff', '#3a7bd5']} style={s.gradientBtn} start={{x:0, y:0}} end={{x:1, y:1}}>
-                                    {loading ? <ActivityIndicator color="#fff" /> : <Text style={s.submitText}>Access Command Center ➔</Text>}
+                                    {loading ? <ActivityIndicator color="#fff" /> : <Text style={s.submitText}>Sign In ➔</Text>}
                                 </LinearGradient>
                             </TouchableOpacity>
 

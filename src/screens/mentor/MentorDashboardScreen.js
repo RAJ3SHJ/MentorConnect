@@ -3,6 +3,7 @@ import {
     View, Text, StyleSheet, ScrollView, TouchableOpacity,
     RefreshControl, Modal, TextInput, ActivityIndicator, Platform, Alert
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect } from '@react-navigation/native';
 import api from '../../api/client';
@@ -26,6 +27,7 @@ const C = {
 export default function MentorDashboardScreen({ navigation }) {
     const { user, logout } = useAuth();
     const toast = useToast();
+    const insets = useSafeAreaInsets();
     const [roster, setRoster] = useState([]);
     const [assessments, setAssessments] = useState([]);
     const [refreshing, setRefreshing] = useState(false);
@@ -101,7 +103,7 @@ export default function MentorDashboardScreen({ navigation }) {
 
             <ScrollView
                 style={{ flex: 1 }}
-                contentContainerStyle={s.scroll}
+                contentContainerStyle={[s.scroll, { paddingTop: (insets.top > 0 ? insets.top : 20) + 12, paddingBottom: insets.bottom + 80 }]}
                 refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={C.primary} />}
             >
                 {/* ── Header ── */}

@@ -17,144 +17,156 @@ export default function WelcomeScreen({ navigation }) {
             setShowLogin(true);
             Animated.timing(fadeAnim, {
                 toValue: 1,
-                duration: 600,
+                duration: 500,
                 useNativeDriver: true,
             }).start();
         } else {
             Animated.timing(fadeAnim, {
                 toValue: 0,
-                duration: 400,
+                duration: 300,
                 useNativeDriver: true,
             }).start(() => setShowLogin(false));
         }
     };
 
     return (
-        <LinearGradient colors={gradients.bg} style={s.container}>
-            <View style={[s.orb, { top: -100, right: -50, backgroundColor: colors.blue }]} />
-            <View style={[s.orb, { bottom: -50, left: -100, backgroundColor: colors.purple }]} />
+        <View style={[s.container, { backgroundColor: '#0A0A0B' }]}>
+            {/* Background Orbs */}
+            <View style={[s.orbTop, { backgroundColor: '#1A233A' }]} />
+            <View style={[s.orbBottom, { backgroundColor: '#21102B' }]} />
 
             <ScrollView 
-                contentContainerStyle={[s.scrollContent, { paddingTop: insets.top + 40 }]}
+                contentContainerStyle={[s.scrollContent, { paddingTop: insets.top + (height > 800 ? 60 : 30) }]}
                 showsVerticalScrollIndicator={false}
             >
                 {/* Hero Section */}
                 <View style={s.hero}>
-                    <Text style={[s.badge, { backgroundColor: colors.blue + '20', color: colors.blue }]}>
-                        Executive Pulse Platform
-                    </Text>
-                    <Text style={[s.title, { color: colors.white }]}>Mentor Connect</Text>
-                    <Text style={[s.tagline, { color: colors.muted }]}>
+                    <View style={[s.badgeBox, { backgroundColor: 'rgba(66, 133, 244, 0.15)' }]}>
+                        <Text style={[s.badgeText, { color: '#4285F4' }]}>Executive Pulse Platform</Text>
+                    </View>
+                    
+                    <Text style={s.title}>Mentor Connect</Text>
+                    
+                    <Text style={[s.tagline, { color: 'rgba(255,255,255,0.5)' }]}>
                         The global ecosystem for professional mentorship and industrial skill mastery.
                     </Text>
                 </View>
 
-                {/* Info Section */}
-                <View style={s.infoGrid}>
-                    <View style={s.infoItem}>
-                        <Text style={s.infoIcon}>⚡</Text>
-                        <Text style={[s.infoLabel, { color: colors.white }]}>Skill Mastery</Text>
-                        <Text style={[s.infoText, { color: colors.muted }]}>Structured paths designed by industry veterans.</Text>
+                {/* Features Grid */}
+                <View style={s.featureGrid}>
+                    <View style={s.featureItem}>
+                        <Text style={s.icon}>⚡</Text>
+                        <Text style={s.featureLabel}>Skill Mastery</Text>
+                        <Text style={s.featureDesc}>Structured paths designed by industry veterans.</Text>
                     </View>
-                    <View style={s.infoItem}>
-                        <Text style={s.infoIcon}>🛡️</Text>
-                        <Text style={[s.infoLabel, { color: colors.white }]}>Real-time Guidance</Text>
-                        <Text style={[s.infoText, { color: colors.muted }]}>Instant access to expert reviews and feedback.</Text>
+                    
+                    <View style={s.featureItem}>
+                        <Text style={s.icon}>🛡️</Text>
+                        <Text style={s.featureLabel}>Real-time Guidance</Text>
+                        <Text style={s.featureDesc}>Instant access to expert reviews and feedback.</Text>
                     </View>
                 </View>
 
                 {/* Strategic Mission */}
-                <View style={[s.missionCard, { backgroundColor: colors.card + '50' }]}>
-                    <Text style={[s.missionHeading, { color: colors.white }]}>Our Strategic Mission</Text>
-                    <Text style={[s.missionBody, { color: colors.muted }]}>
-                        Mentor Connect bridges the gap between theoretical knowledge and industrial application by 
-                        synchronizing expert mentors with ambitious learners in a secure, performance-driven environment.
+                <View style={s.missionCard}>
+                    <Text style={s.missionTitle}>Our Strategic Mission</Text>
+                    <Text style={s.missionText}>
+                        Mentor Connect bridges the gap between theoretical knowledge and industrial application by synchronizing expert mentors with ambitious learners in a secure, performance-driven environment.
                     </Text>
                 </View>
 
+                {/* Main Action */}
                 <TouchableOpacity 
-                    style={[s.primaryButton, { backgroundColor: colors.blue }]}
+                    style={[s.primaryBtn, { backgroundColor: '#4285F4' }]} 
+                    activeOpacity={0.8}
                     onPress={toggleLogin}
                 >
-                    <Text style={s.buttonText}>Enter Secure Portal</Text>
+                    <Text style={s.primaryBtnText}>Enter Secure Portal</Text>
                 </TouchableOpacity>
 
                 <View style={{ height: 100 }} />
             </ScrollView>
 
-            {/* Login Overlay */}
+            {/* Portal Selection Overlay */}
             {showLogin && (
-                <Animated.View style={[s.overlay, { opacity: fadeAnim, backgroundColor: colors.bg + 'F2' }]}>
-                    <TouchableOpacity style={s.closeArea} onPress={toggleLogin} />
-                    <View style={s.loginPanel}>
-                        <Text style={[s.panelTitle, { color: colors.white }]}>Select Entrance</Text>
+                <Animated.View style={[s.overlay, { opacity: fadeAnim }]}>
+                    <TouchableOpacity style={StyleSheet.absoluteFill} onPress={toggleLogin} activeOpacity={1} />
+                    <View style={[s.portalPanel, { backgroundColor: '#121214' }]}>
+                        <View style={s.pullBar} />
+                        <Text style={s.portalTitle}>Select Your Gateway</Text>
                         
-                        <TouchableOpacity style={s.pathCard} onPress={() => navigation.navigate('Login')}>
-                            <View style={[s.pathIcon, { backgroundColor: colors.purple + '20' }]}>
+                        <TouchableOpacity style={s.entryCard} onPress={() => navigation.navigate('Login')}>
+                            <View style={[s.entryIcon, { backgroundColor: 'rgba(142, 68, 173, 0.2)' }]}>
                                 <Text style={{ fontSize: 24 }}>🎓</Text>
                             </View>
-                            <View style={s.pathInfo}>
-                                <Text style={[s.pathTitle, { color: colors.white }]}>Student Login</Text>
-                                <Text style={[s.pathDesc, { color: colors.muted }]}>Access your learning portal</Text>
+                            <View style={{ flex: 1 }}>
+                                <Text style={s.entryTitle}>Learner Portal</Text>
+                                <Text style={s.entryDesc}>Pursuit of mastery and skill acquisition</Text>
                             </View>
                         </TouchableOpacity>
 
-                        <TouchableOpacity style={s.pathCard} onPress={() => navigation.navigate('MentorLogin')}>
-                            <View style={[s.pathIcon, { backgroundColor: colors.blue + '20' }]}>
+                        <TouchableOpacity style={s.entryCard} onPress={() => navigation.navigate('MentorLogin')}>
+                            <View style={[s.entryIcon, { backgroundColor: 'rgba(66, 133, 244, 0.2)' }]}>
                                 <Text style={{ fontSize: 24 }}>👨‍🏫</Text>
                             </View>
-                            <View style={s.pathInfo}>
-                                <Text style={[s.pathTitle, { color: colors.white }]}>Mentor Login</Text>
-                                <Text style={[s.pathDesc, { color: colors.muted }]}>Access your mentorship dashboard</Text>
+                            <View style={{ flex: 1 }}>
+                                <Text style={s.entryTitle}>Mentor Dashboard</Text>
+                                <Text style={s.entryDesc}>Industrial guidance and expert review</Text>
                             </View>
                         </TouchableOpacity>
 
-                        <TouchableOpacity style={s.pathCard} onPress={() => navigation.navigate('AdminLogin')}>
-                            <View style={[s.pathIcon, { backgroundColor: '#00f26020' }]}>
-                                <Text style={{ fontSize: 24 }}>🛡️</Text>
+                        <TouchableOpacity style={s.entryCard} onPress={() => navigation.navigate('AdminLogin')}>
+                            <View style={[s.entryIcon, { backgroundColor: 'rgba(46, 213, 115, 0.2)' }]}>
+                                <Text style={{ fontSize: 24 }}>⚖️</Text>
                             </View>
-                            <View style={s.pathInfo}>
-                                <Text style={[s.pathTitle, { color: colors.white }]}>Admin Access</Text>
-                                <Text style={[s.pathDesc, { color: colors.muted }]}>System metrics and provisioning</Text>
+                            <View style={{ flex: 1 }}>
+                                <Text style={s.entryTitle}>Executive Console</Text>
+                                <Text style={s.entryDesc}>Infrastructure and identity management</Text>
                             </View>
                         </TouchableOpacity>
-                        
-                        <TouchableOpacity style={s.cancelButton} onPress={toggleLogin}>
-                            <Text style={{ color: colors.muted }}>Go Back to Info</Text>
+
+                        <TouchableOpacity style={s.cancelBtn} onPress={toggleLogin}>
+                            <Text style={{ color: 'rgba(255,255,255,0.3)' }}>Back to Intel</Text>
                         </TouchableOpacity>
                     </View>
                 </Animated.View>
             )}
-        </LinearGradient>
+        </View>
     );
 }
 
 const s = StyleSheet.create({
     container: { flex: 1 },
-    orb: { position: 'absolute', width: 300, height: 300, borderRadius: 150, opacity: 0.15 },
-    scrollContent: { paddingHorizontal: 24 },
-    hero: { marginBottom: 40 },
-    badge: { alignSelf: 'flex-start', paddingHorizontal: 12, paddingVertical: 4, borderRadius: 12, fontSize: 12, fontWeight: '700', marginBottom: 16, overflow: 'hidden' },
-    title: { fontSize: 40, fontWeight: '800', letterSpacing: -1 },
-    tagline: { fontSize: 18, marginTop: 12, lineHeight: 26 },
-    infoGrid: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 32 },
-    infoItem: { width: '47%' },
-    infoIcon: { fontSize: 24, marginBottom: 12 },
-    infoLabel: { fontSize: 16, fontWeight: '700' },
-    infoText: { fontSize: 13, marginTop: 4, lineHeight: 18 },
-    missionCard: { padding: 24, borderRadius: 24, marginBottom: 40 },
-    missionHeading: { fontSize: 18, fontWeight: '700', marginBottom: 12 },
-    missionBody: { fontSize: 14, lineHeight: 22 },
-    primaryButton: { height: 64, borderRadius: 20, justifyContent: 'center', alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.3, shadowRadius: 20, elevation: 5 },
-    buttonText: { color: '#fff', fontSize: 18, fontWeight: '700' },
-    overlay: { ...StyleSheet.absoluteFillObject, justifyContent: 'flex-end' },
-    closeArea: { flex: 1 },
-    loginPanel: { padding: 32, borderTopLeftRadius: 32, borderTopRightRadius: 32, backgroundColor: '#121826' },
-    panelTitle: { fontSize: 22, fontWeight: '700', marginBottom: 24 },
-    pathCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#1A2233', padding: 16, borderRadius: 20, marginBottom: 16 },
-    pathIcon: { width: 48, height: 48, borderRadius: 14, justifyContent: 'center', alignItems: 'center', marginRight: 16 },
-    pathInfo: { flex: 1 },
-    pathTitle: { fontSize: 16, fontWeight: '700' },
-    pathDesc: { fontSize: 12, marginTop: 2 },
-    cancelButton: { marginTop: 8, padding: 16, alignItems: 'center' }
+    orbTop: { position: 'absolute', top: -50, right: -100, width: 400, height: 400, borderRadius: 200, opacity: 0.15 },
+    orbBottom: { position: 'absolute', bottom: -150, left: -100, width: 450, height: 450, borderRadius: 225, opacity: 0.1 },
+    scrollContent: { paddingHorizontal: 32 },
+    
+    hero: { marginBottom: 48 },
+    badgeBox: { alignSelf: 'flex-start', paddingHorizontal: 14, paddingVertical: 6, borderRadius: 100, marginBottom: 24 },
+    badgeText: { fontSize: 11, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5 },
+    title: { fontSize: 44, fontWeight: '800', color: '#FFFFFF', letterSpacing: -1 },
+    tagline: { fontSize: 18, fontWeight: '400', lineHeight: 28, marginTop: 12 },
+
+    featureGrid: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 40 },
+    featureItem: { width: '46%' },
+    icon: { fontSize: 28, marginBottom: 12 },
+    featureLabel: { color: '#FFFFFF', fontSize: 18, fontWeight: '700', marginBottom: 6 },
+    featureDesc: { color: 'rgba(255,255,255,0.4)', fontSize: 13, lineHeight: 18 },
+
+    missionCard: { backgroundColor: '#161618', padding: 28, borderRadius: 24, marginBottom: 48 },
+    missionTitle: { color: '#FFFFFF', fontSize: 18, fontWeight: '700', marginBottom: 12 },
+    missionText: { color: 'rgba(255,255,255,0.45)', fontSize: 14, lineHeight: 22 },
+
+    primaryBtn: { height: 60, borderRadius: 16, justifyContent: 'center', alignItems: 'center' },
+    primaryBtnText: { color: '#FFFFFF', fontSize: 18, fontWeight: '700' },
+
+    overlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.85)', justifyContent: 'flex-end' },
+    portalPanel: { padding: 32, borderTopLeftRadius: 32, borderTopRightRadius: 32 },
+    pullBar: { width: 40, height: 4, backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 2, alignSelf: 'center', marginBottom: 20 },
+    portalTitle: { color: '#FFFFFF', fontSize: 22, fontWeight: '700', marginBottom: 28, textAlign: 'center' },
+    entryCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.03)', padding: 16, borderRadius: 20, marginBottom: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
+    entryIcon: { width: 50, height: 50, borderRadius: 14, justifyContent: 'center', alignItems: 'center', marginRight: 16 },
+    entryTitle: { color: '#FFFFFF', fontSize: 16, fontWeight: '700' },
+    entryDesc: { color: 'rgba(255,255,255,0.4)', fontSize: 12, marginTop: 2 },
+    cancelBtn: { padding: 16, alignItems: 'center', marginTop: 8 }
 });

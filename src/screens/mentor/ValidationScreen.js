@@ -9,13 +9,14 @@ import { useToast } from '../../components/Toast';
 import { RADIUS } from '../../theme';
 
 export default function ValidationScreen({ route, navigation }) {
-    const { submissionId, examTitle, studentName, answers, existingStatus, existingRemarks } = route.params;
+    const { submissionId, examTitle, studentName, studentId, studentEmail, answers, existingStatus, existingRemarks } = route.params;
     const { colors, gradients } = useTheme();
     const toast = useToast();
     const [status, setStatus] = useState(existingStatus === 'Pending Review' ? '' : (existingStatus || ''));
     const [remarks, setRemarks] = useState(existingRemarks || '');
     const [feedback, setFeedback] = useState('');
     const [saving, setSaving] = useState(false);
+    const [connecting, setConnecting] = useState(false);
     const [submission, setSubmission] = useState(null);
     const [loading, setLoading] = useState(true);
 
@@ -43,6 +44,19 @@ export default function ValidationScreen({ route, navigation }) {
         } finally { setSaving(false); }
     };
 
+    const handleConnect = async () => {
+        if (!studentId || connecting) return;
+        setConnecting(true);
+        try {
+            await api.post(`/api/mentor/connect/${studentId}`);
+            toast.show(`🔗 Connected with ${studentName}!`, 'success');
+        } catch (e) {
+            const msg = e.response?.data?.error || 'Connection failed';
+            toast.show(msg === 'Student already connected to another mentor'
+                ? '⚡ Already connected to a mentor' : msg, 'error');
+        } finally { setConnecting(false); }
+    };
+
     const resultOptions = [
         { value: 'Approved', emoji: '✅', label: 'Approved', color: colors.success },
         { value: 'Needs Improvement', emoji: '🔄', label: 'Needs Work', color: colors.danger },
@@ -63,10 +77,25 @@ export default function ValidationScreen({ route, navigation }) {
                 <TouchableOpacity onPress={() => navigation.goBack()}>
                     <Text style={[s.back, { color: colors.muted }]}>← Back</Text>
                 </TouchableOpacity>
-                <Text style={[s.title, { color: colors.white }]}>Review Assessment</Text>
-                <Text style={{ color: colors.muted, fontSize: 14, marginTop: 4 }}>
-                    {studentName} — {examTitle}
-                </Text>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <View style={{ flex: 1 }}>
+                        <Text style={[s.title, { color: colors.white }]}>Review Assessment</Text>
+                        <Text style={{ color: colors.muted, fontSize: 14, marginTop: 4 }}>
+                            {studentName} — {examTitle}
+                        </Text>
+                    </View>
+                    {studentId && (
+                        <TouchableOpacity
+                            onPress={handleConnect}
+                            disabled={connecting}
+                            style={[s.connectBtn, { opacity: connecting ? 0.6 : 1 }]}
+                        >
+                            <Text style={s.connectBtnText}>
+                                {connecting ? '…' : '🔗 Connect'}
+                            </Text>
+                        </TouchableOpacity>
+                    )}
+                </View>
             </View>
 
             <ScrollView contentContainerStyle={s.scroll}>
@@ -176,6 +205,8 @@ const s = StyleSheet.create({
     container: { flex: 1 },
     header: { paddingHorizontal: 24, paddingTop: 20, paddingBottom: 12 },
     back: { fontSize: 15, marginBottom: 12 },
+    connectBtn: { backgroundColor: 'rgba(0,210,255,0.1)', borderRadius: 12, borderWidth: 1, borderColor: 'rgba(0,210,255,0.3)', paddingHorizontal: 14, paddingVertical: 8, marginTop: 4 },
+    connectBtnText: { color: '#00d2ff', fontWeight: '700', fontSize: 13 },
     title: { fontSize: 22, fontWeight: '800', letterSpacing: -0.5 },
     scroll: { padding: 24, paddingTop: 8, paddingBottom: 40 },
     card: { borderRadius: RADIUS, borderWidth: 1, padding: 16, marginBottom: 16 },

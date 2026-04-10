@@ -107,7 +107,7 @@ function FeedbackDrawer({ visible, notification, onClose, onSubmitted }) {
 }
 
 // ── Main Notification Feed ──
-export default function NotificationFeedScreen() {
+export default function NotificationFeedScreen({ navigation }) {
     const insets = useSafeAreaInsets();
     const { user } = useAuth();
     const toast = useToast();
@@ -183,7 +183,12 @@ export default function NotificationFeedScreen() {
                         <Text style={s.emptySub}>No new student alerts. Check back after students submit exams or complete courses.</Text>
                     </View>
                 ) : notifications.map(n => (
-                    <View key={n.id} style={[s.card, Platform.OS === 'web' && { backdropFilter: 'blur(20px)' }]}>
+                    <TouchableOpacity
+                        key={n.id}
+                        style={[s.card, Platform.OS === 'web' && { backdropFilter: 'blur(20px)' }]}
+                        onPress={() => navigation.navigate('AlertDetail', { alert: n })}
+                        activeOpacity={0.85}
+                    >
                         <LinearGradient colors={['rgba(255,255,255,0.03)', 'transparent']} style={StyleSheet.absoluteFillObject} />
 
                         <View style={s.cardHeader}>
@@ -196,21 +201,34 @@ export default function NotificationFeedScreen() {
                         </View>
 
                         <View style={s.cardBody}>
-                            <Text style={s.refTitle}>{n.reference_title || 'Unknown'}</Text>
+                            <Text style={s.refTitle}>{n.reference_title || 'Assessment Submitted'}</Text>
                             <Text style={s.timestamp}>
                                 {new Date(n.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
                             </Text>
                         </View>
 
                         <View style={s.cardActions}>
+                            {/* Skills alert → open AlertDetail for inline review */}
+                            {n.trigger_type === 'skills' && (
+                                <TouchableOpacity
+                                    style={s.feedbackBtn}
+                                    onPress={() => navigation.navigate('AlertDetail', { alert: n })}
+                                >
+                                    <Text style={s.feedbackBtnText}>🎯 Review Skills</Text>
+                                </TouchableOpacity>
+                            )}
+                            {/* Exam alert → open FeedbackDrawer OR go to ValidationScreen */}
                             {n.trigger_type === 'exam' && (
-                                <TouchableOpacity style={s.feedbackBtn} onPress={() => setFeedbackTarget(n)}>
+                                <TouchableOpacity
+                                    style={[s.feedbackBtn, { borderColor: 'rgba(138,43,226,0.3)' }]}
+                                    onPress={() => setFeedbackTarget(n)}
+                                >
                                     <Text style={s.feedbackBtnText}>📊 Give Feedback</Text>
                                 </TouchableOpacity>
                             )}
                             <TouchableOpacity
                                 style={[s.connectBtn, connecting === n.student_id && { opacity: 0.6 }]}
-                                onPress={() => handleConnect(n)}
+                                onPress={(e) => { e.stopPropagation?.(); handleConnect(n); }}
                                 disabled={!!connecting}
                             >
                                 <LinearGradient colors={['#00d2ff', '#3a7bd5']} style={s.connectInner}>
@@ -220,7 +238,7 @@ export default function NotificationFeedScreen() {
                                 </LinearGradient>
                             </TouchableOpacity>
                         </View>
-                    </View>
+                    </TouchableOpacity>
                 ))}
             </ScrollView>
 
