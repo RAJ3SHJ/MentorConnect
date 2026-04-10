@@ -25,8 +25,10 @@
       }
     },
     "web": {
-      "bundler": "metro",
-      "baseUrl": "/MentorConnect/"
+      "bundler": "metro"
+    },
+    "experiments": {
+      "baseUrl": "/MentorConnect"
     },
     "extra": {
       "eas": {
