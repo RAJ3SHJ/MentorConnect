@@ -35,26 +35,32 @@ router.post('/register', async (req, res) => {
     }
 });
 
-// POST /api/auth/login — centralized entry for legacy users (Students are moving to Supabase)
+// POST /api/auth/login — centralized entry for all users
 router.post('/login', async (req, res) => {
     const { email, password } = req.body;
     if (!email || !password)
-        return res.status(400).json({ error: 'Email and password required' });
+        return res.status(400).json({ error: 'Username/Email and password required' });
 
     try {
-        // NOTE: Leaners are encouraged to use direct Supabase login on frontend like Mentors do.
-        // This endpoint remains as a fallback or for specific administrative login needs.
-        const user = await get('SELECT * FROM users WHERE email = ?', [email.toLowerCase()]);
-        if (!user || (user.password_hash && !bcrypt.compareSync(password, user.password_hash)))
-            return res.status(401).json({ error: 'Invalid email or password' });
+        // Find user by email OR username
+        const identifier = email.toLowerCase();
+        const user = await get(
+            'SELECT * FROM users WHERE email = ? OR username = ?', 
+            [identifier, identifier]
+        );
+
+        if (!user || !bcrypt.compareSync(password, user.password_hash))
+            return res.status(401).json({ error: 'Invalid credentials' });
 
         const role = user.role || 'learner';
         const token = jwt.sign(
-            { id: user.id || user.email, name: user.name, email: user.email, role },
-            LEGACY_JWT_SECRET, { expiresIn: '7d' }
+            { id: user.id, name: user.name, email: user.email, role },
+            JWT_SECRET, 
+            { expiresIn: '30d' }
         );
-        res.json({ token, user: { id: user.id || user.email, name: user.name, email: user.email, role } });
+        res.json({ token, user: { id: user.id, name: user.name, email: user.email, role } });
     } catch (e) {
+        console.error('Login Endpoint Error:', e.message);
         res.status(500).json({ error: e.message });
     }
 });

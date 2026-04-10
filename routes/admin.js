@@ -7,8 +7,60 @@ const auth = require('../middleware/auth');
 // GET /api/admin/students — list all learners
 router.get('/students', auth, async (req, res) => {
     try {
-        const students = await all("SELECT id, name, email, created_at FROM users WHERE role = 'learner' ORDER BY created_at DESC");
+        const students = await all(`
+            SELECT id, name, first_name, last_name, qualification, username, email, created_at 
+            FROM users 
+            WHERE role = 'learner' 
+            ORDER BY created_at DESC
+        `);
         res.json(students);
+    } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// PUT /api/admin/students/:id — update a learner profile
+router.post('/students/:id', auth, async (req, res) => {
+    // Note: I'm using POST for update if I want to be safe, but let's use PUT as planned
+});
+
+router.put('/students/:id', auth, async (req, res) => {
+    const { firstName, lastName, qualification, username, password } = req.body;
+    try {
+        const existing = await get('SELECT id, email FROM users WHERE id = ?', [req.params.id]);
+        if (!existing) return res.status(404).json({ error: 'Student not found' });
+
+        const name = `${firstName} ${lastName}`.trim();
+        const internalEmail = username ? `${username.toLowerCase()}@mentor.local` : existing.email;
+        const bcrypt = require('bcryptjs');
+
+        // 1. Sync with Supabase Auth if needed
+        if (supabaseAdmin) {
+            const updateObj = {};
+            if (password) updateObj.password = password;
+            if (username) updateObj.email = internalEmail;
+            
+            if (Object.keys(updateObj).length > 0) {
+                const { error: authError } = await supabaseAdmin.auth.admin.updateUserById(req.params.id, updateObj);
+                if (authError) throw authError;
+            }
+        }
+
+        // 2. Update local DB
+        if (password) {
+            const hash = bcrypt.hashSync(password, 10);
+            await run(`
+                UPDATE users 
+                SET name = ?, first_name = ?, last_name = ?, qualification = ?, username = ?, email = ?, password_hash = ? 
+                WHERE id = ?
+            `, [name, firstName, lastName, qualification, username, internalEmail, hash, req.params.id]);
+        } else {
+            await run(`
+                UPDATE users 
+                SET name = ?, first_name = ?, last_name = ?, qualification = ?, username = ?, email = ? 
+                WHERE id = ?
+            `, [name, firstName, lastName, qualification, username, internalEmail, req.params.id]);
+        }
+
+        res.json({ message: 'Student profile synchronized and updated ✅' });
     } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
@@ -18,6 +70,15 @@ router.delete('/students/:id', auth, async (req, res) => {
         const existing = await get('SELECT id FROM users WHERE id = ?', [req.params.id]);
         if (!existing) return res.status(404).json({ error: 'Student not found' });
 
+        // 1. Purge from Supabase Auth to free up username/email
+        if (supabaseAdmin) {
+            const { error: authError } = await supabaseAdmin.auth.admin.deleteUser(req.params.id);
+            if (authError && authError.status !== 404) {
+               console.error('Supabase Delete Error:', authError);
+            }
+        }
+
+        // 2. Clean up local data
         await run('DELETE FROM roadmap WHERE student_id = ?', [req.params.id]);
         await run('DELETE FROM mentor_assignments WHERE student_id = ?', [req.params.id]);
         await run('DELETE FROM student_skills WHERE student_id = ?', [req.params.id]);
@@ -25,7 +86,7 @@ router.delete('/students/:id', auth, async (req, res) => {
         await run('DELETE FROM notifications WHERE student_id = ?', [req.params.id]);
         await run('DELETE FROM users WHERE id = ?', [req.params.id]);
         
-        res.json({ message: 'Student deleted' });
+        res.json({ message: 'Student and identity purged successfully 🗑️' });
     } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
@@ -77,54 +138,84 @@ router.post('/mentors', auth, async (req, res) => {
 
 // PUT /api/admin/mentors/:id — update a mentor
 router.put('/mentors/:id', auth, async (req, res) => {
-    const { name, email, expertise, password } = req.body;
-    if (!name || !email) return res.status(400).json({ error: 'Name and email required' });
-
+    const { firstName, lastName, qualification, username, password, expertise } = req.body;
     try {
-        const existing = await get('SELECT id FROM mentors WHERE id = ?', [req.params.id]);
+        const existing = await get('SELECT id, email FROM users WHERE id = ?', [req.params.id]);
         if (!existing) return res.status(404).json({ error: 'Mentor not found' });
 
-        await run('UPDATE mentors SET name = ?, email = ?, expertise = ? WHERE id = ?',
-            [name, email.toLowerCase(), expertise || null, req.params.id]);
-
-        // Update or Insert into users table
-        const existingUser = await get('SELECT id FROM users WHERE email = ?', [email.toLowerCase()]);
+        const name = `${firstName} ${lastName}`.trim();
+        const internalEmail = username ? `${username.toLowerCase()}@mentor.local` : existing.email;
         const bcrypt = require('bcryptjs');
-        if (existingUser) {
-            if (password) {
-                const hash = bcrypt.hashSync(password, 10);
-                await run('UPDATE users SET name = ?, password_hash = ?, role = ? WHERE id = ?', [name, hash, 'mentor', existingUser.id]);
-            } else {
-                await run('UPDATE users SET name = ?, role = ? WHERE id = ?', [name, 'mentor', existingUser.id]);
+
+        // 1. Sync with Supabase Auth
+        if (supabaseAdmin) {
+            const updateObj = {};
+            if (password) updateObj.password = password;
+            if (username) updateObj.email = internalEmail;
+            
+            if (Object.keys(updateObj).length > 0) {
+                const { error: authError } = await supabaseAdmin.auth.admin.updateUserById(req.params.id, updateObj);
+                if (authError) throw authError;
             }
-        } else if (password) {
-            // Hydrate legacy mentor
-            const hash = bcrypt.hashSync(password, 10);
-            await runGetId(
-                'INSERT INTO users (name, email, password_hash, role) VALUES (?, ?, ?, ?)',
-                [name, email.toLowerCase(), hash, 'mentor']
-            );
         }
-        res.json({ message: 'Mentor updated with credentials sync' });
+
+        // 2. Sync with Supabase 'mentors' table
+        const { error: profileError } = await supabaseAdmin
+            .from('mentors')
+            .update({
+                name,
+                email: internalEmail,
+                expertise: expertise || null
+            })
+            .eq('id', req.params.id);
+
+        if (profileError) throw profileError;
+
+        // 3. Update local users table
+        if (password) {
+            const hash = bcrypt.hashSync(password, 10);
+            await run(`
+                UPDATE users 
+                SET name = ?, first_name = ?, last_name = ?, qualification = ?, username = ?, email = ?, password_hash = ? 
+                WHERE id = ?
+            `, [name, firstName, lastName, qualification, username, internalEmail, hash, req.params.id]);
+        } else {
+            await run(`
+                UPDATE users 
+                SET name = ?, first_name = ?, last_name = ?, qualification = ?, username = ?, email = ? 
+                WHERE id = ?
+            `, [name, firstName, lastName, qualification, username, internalEmail, req.params.id]);
+        }
+
+        res.json({ message: 'Mentor profile synchronized and updated ✅' });
     } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 // DELETE /api/admin/mentors/:id — delete a mentor
 router.delete('/mentors/:id', auth, async (req, res) => {
     try {
-        const existing = await get('SELECT id, email FROM mentors WHERE id = ?', [req.params.id]);
+        const existing = await get('SELECT id FROM users WHERE id = ?', [req.params.id]);
         if (!existing) return res.status(404).json({ error: 'Mentor not found' });
 
-        // Remove assignments first
-        await run('DELETE FROM mentor_assignments WHERE mentor_id = ?', [req.params.id]);
-        await run('DELETE FROM mentors WHERE id = ?', [req.params.id]);
-        
-        // Purge Auth Profile
-        if (existing.email) {
-            await run('DELETE FROM users WHERE email = ? AND role = ?', [existing.email.toLowerCase(), 'mentor']);
+        // 1. Purge from Supabase Auth
+        if (supabaseAdmin) {
+            const { error: authError } = await supabaseAdmin.auth.admin.deleteUser(req.params.id);
+            if (authError && authError.status !== 404) {
+               console.error('Supabase Mentor Delete Error:', authError);
+            }
         }
 
-        res.json({ message: 'Mentor deleted' });
+        // 2. Remove assignments first
+        await run('DELETE FROM mentor_assignments WHERE mentor_id = ?', [req.params.id]);
+        
+        // 3. Remove profile from public.mentors
+        const { error: profileError } = await supabaseAdmin.from('mentors').delete().eq('id', req.params.id);
+        if (profileError) console.error('Supabase Profile Delete Error:', profileError);
+
+        // 4. Purge from local users
+        await run('DELETE FROM users WHERE id = ?', [req.params.id]);
+
+        res.json({ message: 'Mentor and identity purged successfully 🗑️' });
     } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
@@ -352,81 +443,115 @@ router.post('/exams/bulk', auth, async (req, res) => {
 
 // POST /api/admin/create-mentor — create a mentor user account using Supabase Auth Admin
 router.post('/create-mentor', auth, async (req, res) => {
-    const { name, email, password, expertise } = req.body;
-    if (!name || !email || !password)
-        return res.status(400).json({ error: 'Name, email and password required' });
+    const { firstName, lastName, qualification, username, password, expertise } = req.body;
+    if (!firstName || !username || !password)
+        return res.status(400).json({ error: 'First Name, Username and Password required' });
 
     if (!supabaseAdmin) {
         return res.status(500).json({ error: 'Supabase Admin is not initialized' });
     }
 
     try {
-        // 1. Create the user in Supabase Auth using the Service Role
+        const name = `${firstName} ${lastName}`.trim();
+        const internalEmail = `${username.toLowerCase()}@mentor.local`;
+        const bcrypt = require('bcryptjs');
+        const hash = bcrypt.hashSync(password, 10);
+
+        // 1. Create the user in Supabase Auth
         const { data, error } = await supabaseAdmin.auth.admin.createUser({
-            email: email.toLowerCase(),
+            email: internalEmail,
             password: password,
             email_confirm: true,
-            user_metadata: { name, role: 'mentor' }
+            user_metadata: { name, role: 'mentor', username }
         });
 
-        if (error) throw error;
-
-        // 2. Insert into our public.mentors table with the new UID
-        const { error: profileError } = await supabaseAdmin
-            .from('mentors')
-            .insert([{
-                id: data.user.id,
-                name: name,
-                email: email.toLowerCase(),
-                expertise: expertise || null
-            }]);
-
-        if (profileError) {
-            // Cleanup: delete the auth user if profile creation fails? 
-            // For now, we'll just log it.
-            console.error('Profile Creation Error:', profileError);
-            return res.status(500).json({ error: 'Auth user created but profile failed: ' + profileError.message });
+        if (error) {
+            if (error.status === 422 || error.message.includes('already registered')) {
+                return res.status(409).json({ error: `Username "${username}" is already taken. Please choose another.` });
+            }
+            throw error;
         }
 
+        // 2. Sync with Supabase 'mentors' table (Profile)
+        // Note: We only send columns that typically exist in the default schema to avoid errors.
+        // Detailed fields are stored in our local DB for the dashboard.
+        const { error: profileError } = await supabaseAdmin
+            .from('mentors')
+            .upsert([{
+                id: data.user.id,
+                name: name,
+                email: internalEmail,
+                expertise: expertise || null
+                // first_name, last_name, qualification, username omitted here to avoid Supabase schema cache errors
+            }]);
+
+        if (profileError) throw profileError;
+
+        // 3. Sync with local users table
+        await run(
+            `INSERT INTO users (id, name, first_name, last_name, qualification, username, email, password_hash, role) 
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [data.user.id, name, firstName, lastName, qualification, username, internalEmail, hash, 'mentor']
+        );
+
         res.status(201).json({ 
-            message: 'Mentor account created successfully 🎉', 
+            message: `Mentor account provisioned for ${firstName}! 🎉`, 
             id: data.user.id 
         });
     } catch (e) {
-        console.error('Provisioning Error:', e.message);
+        console.error('Mentor Provisioning Error:', e.message);
         res.status(500).json({ error: e.message });
     }
 });
 
 // POST /api/admin/create-student — create a learner account using Supabase Auth Admin
 router.post('/create-student', auth, async (req, res) => {
-    const { name, email, password } = req.body;
-    if (!name || !email || !password)
-        return res.status(400).json({ error: 'Name, email and password required' });
+    const { firstName, lastName, qualification, username, password } = req.body;
+    if (!firstName || !username || !password)
+        return res.status(400).json({ error: 'First Name, Username and Password required' });
 
     if (!supabaseAdmin) {
         return res.status(500).json({ error: 'Supabase Admin is not initialized' });
     }
 
     try {
-        // 1. Create the user in Supabase Auth using the Service Role
+        const name = `${firstName} ${lastName}`.trim();
+        const internalEmail = `${username.toLowerCase()}@mentor.local`;
+        const bcrypt = require('bcryptjs');
+        const hash = bcrypt.hashSync(password, 10);
+
+        // 1. Create the user in Supabase Auth
         const { data, error } = await supabaseAdmin.auth.admin.createUser({
-            email: email.toLowerCase(),
+            email: internalEmail,
             password: password,
             email_confirm: true,
-            user_metadata: { name, role: 'learner' }
+            user_metadata: { name, role: 'learner', username }
         });
 
-        if (error) throw error;
+        if (error) {
+            if (error.status === 422 || error.message.includes('already registered')) {
+                return res.status(409).json({ error: `Username "${username}" is already taken. Please choose another.` });
+            }
+            throw error;
+        }
 
-        // 2. Insert into our local users table
+        // 2. Sync with local users table
         await run(
-            'INSERT INTO users (id, name, email, role) VALUES (?, ?, ?, ?)',
-            [data.user.id, name, email.toLowerCase(), 'learner']
+            `INSERT INTO users (id, name, first_name, last_name, qualification, username, email, password_hash, role) 
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [data.user.id, name, firstName, lastName, qualification, username, internalEmail, hash, 'learner']
         );
 
+        // 3. Notify system of new onboarding
+        try {
+            await run(
+                'INSERT INTO notifications (type, student_id, is_read) VALUES (?, ?, ?)',
+                ['NEW_ONBOARDING', data.user.id, 0]
+            );
+        } catch (nErr) { console.error('Notification log failure:', nErr.message); }
+
         res.status(201).json({ 
-            message: 'Learner account created successfully 🎉', 
+            message: `Learner "${username}" provisioned successfully! 🎉`, 
             id: data.user.id 
         });
     } catch (e) {

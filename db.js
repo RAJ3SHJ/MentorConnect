@@ -32,8 +32,12 @@ function fixSql(sql) {
 async function initDb() {
   const schema = `
     CREATE TABLE IF NOT EXISTS users (
-      id ${isPG ? 'SERIAL' : 'INTEGER'} PRIMARY KEY ${isPG ? '' : 'AUTOINCREMENT'},
+      id ${isPG ? 'VARCHAR(255)' : 'TEXT'} PRIMARY KEY,
       name TEXT NOT NULL,
+      first_name TEXT,
+      last_name TEXT,
+      qualification TEXT,
+      username TEXT UNIQUE,
       email TEXT UNIQUE NOT NULL,
       password_hash TEXT NOT NULL,
       role TEXT DEFAULT 'learner',
@@ -41,8 +45,12 @@ async function initDb() {
     );
 
     CREATE TABLE IF NOT EXISTS mentors (
-      id ${isPG ? 'SERIAL' : 'INTEGER'} PRIMARY KEY ${isPG ? '' : 'AUTOINCREMENT'},
+      id ${isPG ? 'VARCHAR(255)' : 'TEXT'} PRIMARY KEY,
       name TEXT NOT NULL,
+      first_name TEXT,
+      last_name TEXT,
+      qualification TEXT,
+      username TEXT UNIQUE,
       email TEXT NOT NULL,
       expertise TEXT,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -141,10 +149,62 @@ async function initDb() {
 
   if (isPG) {
     await pool.query(schema);
-    // Pg doesn't support ALTER TABLE with multiple IF NOT EXISTS easily here, keep it simple
-    try { await pool.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS mentor_id INTEGER REFERENCES users(id)"); } catch (e) {}
+
+    const syncPostgresSchema = async () => {
+      console.log('🌐 Checking Online (Postgres) Database Schema...');
+      try {
+        const res = await pool.query(`
+          SELECT data_type FROM information_schema.columns 
+          WHERE table_name = 'users' AND column_name = 'id'
+        `);
+        
+        if (res.rows.length > 0 && res.rows[0].data_type === 'integer') {
+          console.log('🔄 Old Integer IDs detected. Migrating Online DB to UUID-compatible Schema...');
+          const client = await pool.connect();
+          try {
+            await client.query('BEGIN');
+            await client.query("ALTER TABLE users ALTER COLUMN id TYPE VARCHAR(255) USING id::text");
+            await client.query("ALTER TABLE mentors ALTER COLUMN id TYPE VARCHAR(255) USING id::text");
+            await client.query("ALTER TABLE roadmap ALTER COLUMN student_id TYPE VARCHAR(255) USING student_id::text");
+            await client.query("ALTER TABLE mentor_assignments ALTER COLUMN student_id TYPE VARCHAR(255) USING student_id::text");
+            await client.query("ALTER TABLE mentor_assignments ALTER COLUMN mentor_id TYPE VARCHAR(255) USING mentor_id::text");
+            await client.query("ALTER TABLE exam_submissions ALTER COLUMN student_id TYPE VARCHAR(255) USING student_id::text");
+            await client.query('COMMIT');
+            console.log('✅ Online Database migration successful!');
+          } catch (err) {
+            await client.query('ROLLBACK');
+            throw err;
+          } finally { client.release(); }
+        }
+        
+        // Ensure new columns exist
+        await pool.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS first_name TEXT");
+        await pool.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS last_name TEXT");
+        await pool.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS qualification TEXT");
+        await pool.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS username TEXT UNIQUE");
+        await pool.query("ALTER TABLE mentors ADD COLUMN IF NOT EXISTS first_name TEXT");
+        await pool.query("ALTER TABLE mentors ADD COLUMN IF NOT EXISTS last_name TEXT");
+        await pool.query("ALTER TABLE mentors ADD COLUMN IF NOT EXISTS qualification TEXT");
+        await pool.query("ALTER TABLE mentors ADD COLUMN IF NOT EXISTS username TEXT UNIQUE");
+      } catch (e) {
+        console.error('⚠️ Online Migration Warning:', e.message);
+      }
+    };
+    await syncPostgresSchema();
   } else {
     sqlite.exec(schema);
+    // Add columns for existing users
+    try { sqlite.prepare("ALTER TABLE users ADD COLUMN first_name TEXT").run(); } catch (e) {}
+    try { sqlite.prepare("ALTER TABLE users ADD COLUMN last_name TEXT").run(); } catch (e) {}
+    try { sqlite.prepare("ALTER TABLE users ADD COLUMN qualification TEXT").run(); } catch (e) {}
+    try { sqlite.prepare("ALTER TABLE users ADD COLUMN username TEXT").run(); } catch (e) {}
+    
+    // Add columns for existing mentors
+    try { sqlite.prepare("ALTER TABLE mentors ADD COLUMN first_name TEXT").run(); } catch (e) {}
+    try { sqlite.prepare("ALTER TABLE mentors ADD COLUMN last_name TEXT").run(); } catch (e) {}
+    try { sqlite.prepare("ALTER TABLE mentors ADD COLUMN qualification TEXT").run(); } catch (e) {}
+    try { sqlite.prepare("ALTER TABLE mentors ADD COLUMN username TEXT").run(); } catch (e) {}
+
     try { sqlite.prepare("ALTER TABLE users ADD COLUMN mentor_id INTEGER REFERENCES users(id)").run(); } catch (e) {}
   }
 }
