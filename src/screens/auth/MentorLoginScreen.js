@@ -13,14 +13,14 @@ export default function MentorLoginScreen({ navigation }) {
     const { login } = useAuth();
     const { colors, gradients } = useTheme();
     const toast = useToast();
-    const [email, setEmail] = useState('');
+    const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
     const [errors, setErrors] = useState({});
 
     const validate = () => {
         const e = {};
-        if (!email.trim()) e.email = 'Email is required';
+        if (!username.trim()) e.username = 'Username is required';
         if (!password) e.password = 'Password is required';
         setErrors(e);
         return Object.keys(e).length === 0;
@@ -30,7 +30,7 @@ export default function MentorLoginScreen({ navigation }) {
         if (!validate()) return;
         setLoading(true);
         try {
-            const res = await api.post('/api/auth/login', { email, password });
+            const res = await api.post('/api/auth/login', { email: username, password });
             const { token, user } = res.data;
             
             // Successfully authenticated via centralized backend
@@ -63,14 +63,14 @@ export default function MentorLoginScreen({ navigation }) {
                             <View style={s.inputContainer}>
                                 <Text style={s.label}>USERNAME</Text>
                                 <TextInput
-                                    style={[s.input, { borderColor: errors.email ? '#ff4757' : 'rgba(0,210,255,0.2)' }]}
+                                    style={[s.input, { borderColor: errors.username ? '#ff4757' : 'rgba(0,210,255,0.2)' }]}
                                     autoCapitalize="none"
                                     placeholder="Enter your username"
                                     placeholderTextColor="rgba(255,255,255,0.2)"
-                                    value={email}
-                                    onChangeText={setEmail}
+                                    value={username}
+                                    onChangeText={setUsername}
                                 />
-                                {errors.email && <Text style={s.errorText}>⚠ {errors.email}</Text>}
+                                {errors.username && <Text style={s.errorText}>⚠ {errors.username}</Text>}
 
                                 <Text style={[s.label, { marginTop: 20 }]}>PASSWORD</Text>
                                 <TextInput

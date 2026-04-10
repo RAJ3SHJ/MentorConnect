@@ -13,15 +13,14 @@ export default function LoginScreen({ navigation }) {
     const { login } = useAuth();
     const { colors, gradients } = useTheme();
     const toast = useToast();
-    const [email, setEmail] = useState('');
+    const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
     const [errors, setErrors] = useState({});
 
     const validate = () => {
         const e = {};
-        if (!email.trim()) e.email = 'Email is required';
-        else if (!/\S+@\S+\.\S+/.test(email)) e.email = 'Invalid email format';
+        if (!username.trim()) e.username = 'Username is required';
         if (!password) e.password = 'Password is required';
         setErrors(e);
         return Object.keys(e).length === 0;
@@ -31,7 +30,8 @@ export default function LoginScreen({ navigation }) {
         if (!validate()) return;
         setLoading(true);
         try {
-            const res = await api.post('/api/auth/login', { email, password });
+            // Backend /api/auth/login handles both email and username under the 'email' key for compatibility
+            const res = await api.post('/api/auth/login', { email: username, password });
             toast.show('Welcome back! 👋', 'success');
             login(res.data.token, res.data.user);
         } catch (e) {
@@ -60,11 +60,11 @@ export default function LoginScreen({ navigation }) {
 
                         <View style={[s.card, { backgroundColor: colors.card, borderColor: colors.glassBorder }]}>
                             <Text style={[s.label, { color: colors.muted }]}>USERNAME</Text>
-                            <TextInput style={[s.input, { borderColor: errors.email ? colors.danger : colors.glassBorder, color: colors.white }]}
+                            <TextInput style={[s.input, { borderColor: errors.username ? colors.danger : colors.glassBorder, color: colors.white }]}
                                 placeholder="Enter your username" placeholderTextColor={colors.muted}
-                                value={email} onChangeText={t => { setEmail(t); if (errors.email) setErrors(e => ({ ...e, email: null })); }}
+                                value={username} onChangeText={t => { setUsername(t); if (errors.username) setErrors(e => ({ ...e, username: null })); }}
                                 autoCapitalize="none" />
-                            {errors.email && <Text style={[s.error, { color: colors.danger }]}>⚠ {errors.email}</Text>}
+                            {errors.username && <Text style={[s.error, { color: colors.danger }]}>⚠ {errors.username}</Text>}
 
                             <Text style={[s.label, { color: colors.muted }]}>PASSWORD</Text>
                             <TextInput style={[s.input, { borderColor: errors.password ? colors.danger : colors.glassBorder, color: colors.white }]}
