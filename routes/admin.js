@@ -90,6 +90,41 @@ router.delete('/students/:id', auth, async (req, res) => {
     } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// POST /api/admin/hard-reset-development
+router.post('/hard-reset-development', auth, async (req, res) => {
+    try {
+        if (!supabaseAdmin) throw new Error('Supabase Admin not initialized');
+        
+        // 1. Wipe all Auth Users
+        const { data: users, error } = await supabaseAdmin.auth.admin.listUsers();
+        if (!error && users?.users?.length > 0) {
+            for (const user of users.users) {
+                await supabaseAdmin.auth.admin.deleteUser(user.id);
+            }
+        }
+        
+        // 2. Wipe public Postgres DB
+        const pg = require('../db').getDb(); // get the underlying pool
+        const tables = [
+            'mentor_assignments', 'roadmap', 'student_skills', 
+            'exam_submissions', 'notifications', 'mentor_notifications',
+            'questions', 'exams', 'courses', 'users', 'mentors'
+        ];
+        
+        for (const table of tables) {
+            await run(`DROP TABLE IF EXISTS ${table} CASCADE`);
+        }
+        
+        // 3. Recreate the schema perfectly
+        const { initDb } = require('../db');
+        await initDb();
+
+        res.json({ message: 'Hard DB Reset Complete! Database is perfectly clean.' });
+    } catch (e) { 
+        res.status(500).json({ error: e.message }); 
+    }
+});
+
 // ─── MENTORS ───
 
 // GET /api/admin/mentors — list all mentors from Supabase
