@@ -117,9 +117,8 @@ router.post('/validate/:submissionId', auth, async (req, res) => {
 
 // POST /api/mentor/unified-review/:studentId
 router.post('/unified-review/:studentId', auth, async (req, res) => {
-    const { status, remarks } = req.body;
-    if (!['Approved', 'Needs Improvement'].includes(status))
-        return res.status(400).json({ error: 'status must be Approved or Needs Improvement' });
+    const { skillRemarks, examRemarks } = req.body;
+    const status = 'Approved'; 
 
     try {
         const mentorUserId = req.user.id;
@@ -136,7 +135,7 @@ router.post('/unified-review/:studentId', auth, async (req, res) => {
         if (skillsRow) {
             await run(
                 `UPDATE student_skills SET status = ?, mentor_remarks = ?, reviewed_at = ${isPG ? 'CURRENT_TIMESTAMP' : "datetime('now')"} WHERE student_id = ?`,
-                [status, remarks || null, studentId]
+                [status, skillRemarks || null, studentId]
             );
             
             // Notify for skills
@@ -156,7 +155,7 @@ router.post('/unified-review/:studentId', auth, async (req, res) => {
             for (const exam of pendingExams) {
                 await run(
                     `UPDATE exam_submissions SET status = ?, mentor_remarks = ?, reviewed_at = ${isPG ? 'CURRENT_TIMESTAMP' : "datetime('now')"} WHERE id = ?`,
-                    [status, remarks || null, exam.id]
+                    [status, examRemarks || null, exam.id]
                 );
 
                 // Notify for each exam
@@ -170,7 +169,7 @@ router.post('/unified-review/:studentId', auth, async (req, res) => {
         // 3. Mark all notifications for this student as claimed
         await run(
             'UPDATE mentor_notifications SET is_claimed = 1, claimed_by_mentor_id = ? WHERE student_id = ?',
-            [req.user.id, req.params.studentId]
+            [mentorUserId, studentId]
         ).catch(() => {});
 
         res.json({ 
