@@ -115,7 +115,7 @@ export default function AddStudentScreen({ navigation, route }) {
                             <View style={{ flex: 1, marginRight: 12 }}>
                                 <Text style={s.label}>FIRST NAME</Text>
                                 <TextInput
-                                    style={[s.input, errors.firstName && s.inputError]}
+                                    style={[s.input, errors.firstName && s.inputError, { color: '#FFFFFF' }]}
                                     placeholder="e.g. John"
                                     placeholderTextColor="rgba(255,255,255,0.2)"
                                     value={firstName}
@@ -125,7 +125,7 @@ export default function AddStudentScreen({ navigation, route }) {
                             <View style={{ flex: 1 }}>
                                 <Text style={s.label}>LAST NAME</Text>
                                 <TextInput
-                                    style={s.input}
+                                    style={[s.input, { color: '#FFFFFF' }]}
                                     placeholder="e.g. Doe"
                                     placeholderTextColor="rgba(255,255,255,0.2)"
                                     value={lastName}
@@ -136,7 +136,7 @@ export default function AddStudentScreen({ navigation, route }) {
 
                         <Text style={[s.label, { marginTop: 20 }]}>QUALIFICATION</Text>
                         <TextInput
-                            style={s.input}
+                            style={[s.input, { color: '#FFFFFF' }]}
                             placeholder="e.g. B.Tech Computer Science"
                             placeholderTextColor="rgba(255,255,255,0.2)"
                             value={qualification}
@@ -155,7 +155,7 @@ export default function AddStudentScreen({ navigation, route }) {
 
                         <Text style={s.label}>USERNAME</Text>
                         <TextInput
-                            style={[s.input, errors.username && s.inputError]}
+                            style={[s.input, errors.username && s.inputError, { color: '#FFFFFF' }]}
                             placeholder="Set login username"
                             placeholderTextColor="rgba(255,255,255,0.2)"
                             value={username}
@@ -168,7 +168,7 @@ export default function AddStudentScreen({ navigation, route }) {
                         </Text>
                         <View style={{ position: 'relative' }}>
                             <TextInput
-                                style={[s.input, errors.password && s.inputError]}
+                                style={[s.input, errors.password && s.inputError, { color: '#FFFFFF' }]}
                                 placeholder="Min 6 characters"
                                 placeholderTextColor="rgba(255,255,255,0.2)"
                                 value={password}
@@ -184,7 +184,7 @@ export default function AddStudentScreen({ navigation, route }) {
                             <>
                                 <Text style={[s.label, { marginTop: 20 }]}>CONFIRM PASSWORD</Text>
                                 <TextInput
-                                    style={[s.input, errors.confirmPassword && s.inputError]}
+                                    style={[s.input, errors.confirmPassword && s.inputError, { color: '#FFFFFF' }]}
                                     placeholder="Re-type for security"
                                     placeholderTextColor="rgba(255,255,255,0.2)"
                                     value={confirmPassword}
