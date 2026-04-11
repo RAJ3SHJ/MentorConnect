@@ -34,6 +34,7 @@ function NotificationNavigator() {
     return (
         <NotifStack.Navigator screenOptions={{ headerShown: false }}>
             <NotifStack.Screen name="NotificationFeed" component={NotificationFeedScreen} />
+            <NotifStack.Screen name="AlertDetail" component={AlertDetailScreen} />
         </NotifStack.Navigator>
     );
 }

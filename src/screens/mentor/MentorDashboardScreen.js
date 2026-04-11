@@ -35,8 +35,6 @@ export default function MentorDashboardScreen({ navigation }) {
     const [gradingItem, setGradingItem] = useState(null);
     const [gradingRemarks, setGradingRemarks] = useState('');
 
-    const [courseModalVisible, setCourseModalVisible] = useState(false);
-    const [courseForm, setCourseForm] = useState({ title: '', category: '', link: '' });
     const [saving, setSaving] = useState(false);
 
     const fetchData = async () => {
@@ -85,17 +83,7 @@ export default function MentorDashboardScreen({ navigation }) {
         finally { setSaving(false); }
     };
 
-    const handleCreateCourse = async () => {
-        if (!courseForm.title) return alert("Course Name is required");
-        setSaving(true);
-        try {
-            await api.post('/api/mentor/courses', courseForm);
-            setCourseModalVisible(false);
-            setCourseForm({ title: '', category: '', link: '' });
-            alert("Course successfully deployed!");
-        } catch (e) { alert("Failed to create course"); }
-        finally { setSaving(false); }
-    };
+
 
     return (
         <View style={s.root}>
@@ -150,9 +138,9 @@ export default function MentorDashboardScreen({ navigation }) {
                                 </View>
                                 <TouchableOpacity
                                     style={s.rosterBtn}
-                                    onPress={() => navigation.navigate('LinkStudent')}
+                                    onPress={() => navigation.navigate('AssignCourses', { student })}
                                 >
-                                    <Text style={s.rosterBtnText}>Assign Objectives</Text>
+                                    <Text style={s.rosterBtnText}>🗺️ Create Roadmap</Text>
                                 </TouchableOpacity>
                             </View>
                         ))
@@ -189,13 +177,13 @@ export default function MentorDashboardScreen({ navigation }) {
                 </View>
 
                 {/* ── Create Course — inline button instead of floating FAB ── */}
-                <TouchableOpacity style={s.createCourseBtn} onPress={() => setCourseModalVisible(true)}>
+                <TouchableOpacity style={s.createCourseBtn} onPress={() => navigation.navigate('AssignCourses')}>
                     <LinearGradient
-                        colors={['#8a2be2', '#4a00e0']}
+                        colors={['#00d2ff', '#3a7bd5']}
                         start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
                         style={s.createCourseBtnInner}
                     >
-                        <Text style={s.createCourseBtnText}>+ Create New Course</Text>
+                        <Text style={s.createCourseBtnText}>🗺️ Create Roadmap</Text>
                     </LinearGradient>
                 </TouchableOpacity>
             </ScrollView>
@@ -247,35 +235,7 @@ export default function MentorDashboardScreen({ navigation }) {
                 </View>
             </Modal>
 
-            {/* ── Course Modal ── */}
-            <Modal visible={courseModalVisible} animationType="fade" transparent>
-                <View style={s.modalCenter}>
-                    <View style={[s.courseCard, Platform.OS === 'web' && { backdropFilter: 'blur(30px)' }]}>
-                        <Text style={s.drawerTitle}>Course Lab</Text>
-                        <Text style={{ color: C.muted, marginBottom: 24 }}>Define a new track and deploy resources.</Text>
-                        {[
-                            ['Course Name', 'title'],
-                            ['Category (e.g. Database)', 'category'],
-                            ['Resource Link (PDF/Video URL)', 'link'],
-                        ].map(([ph, field]) => (
-                            <TextInput
-                                key={field}
-                                style={s.labInput}
-                                placeholder={ph}
-                                placeholderTextColor="rgba(255,255,255,0.2)"
-                                value={courseForm[field]}
-                                onChangeText={t => setCourseForm({ ...courseForm, [field]: t })}
-                            />
-                        ))}
-                        <TouchableOpacity style={s.gradeBtn} onPress={handleCreateCourse}>
-                            {saving ? <ActivityIndicator color={C.primary} /> : <Text style={s.gradeBtnText}>Deploy Course 🚀</Text>}
-                        </TouchableOpacity>
-                        <TouchableOpacity style={{ marginTop: 16, alignItems: 'center' }} onPress={() => setCourseModalVisible(false)}>
-                            <Text style={{ color: C.muted }}>Cancel</Text>
-                        </TouchableOpacity>
-                    </View>
-                </View>
-            </Modal>
+
         </View>
     );
 }

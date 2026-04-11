@@ -1,24 +1,36 @@
 import React, { useState, useEffect } from 'react';
 import {
-    View, Text, StyleSheet, FlatList, TouchableOpacity, Alert, ActivityIndicator,
+    View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, ActivityIndicator,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import api from '../../api/client';
-import { COLORS, RADIUS, GRADIENTS } from '../../theme';
+import { useTheme } from '../../ThemeContext';
 
-export default function AssignCoursesScreen({ navigation }) {
+export default function AssignCoursesScreen({ navigation, route }) {
+    const { colors, gradients } = useTheme();
+    const insets = useSafeAreaInsets();
     const [students, setStudents] = useState([]);
     const [courses, setCourses] = useState([]);
-    const [selectedStudent, setSelectedStudent] = useState(null);
+    const [selectedStudent, setSelectedStudent] = useState(route.params?.student || null);
     const [selectedCourseIds, setSelectedCourseIds] = useState([]);
     const [saving, setSaving] = useState(false);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        Promise.all([api.get('/api/mentor/students'), api.get('/api/courses')])
+        Promise.all([
+            api.get('/api/mentor/my-students'), // Show ONLY connected learners
+            api.get('/api/courses')
+        ])
             .then(([sRes, cRes]) => {
-                setStudents(sRes.data);
-                setCourses(cRes.data);
+                const fetchedStudents = sRes.data || [];
+                setStudents(fetchedStudents);
+                setCourses(cRes.data || []);
+                
+                // If a student was passed in but isn't found in the current roster (unlikely), reset
+                if (route.params?.student && !fetchedStudents.find(s => s.id === route.params.student.id)) {
+                    // This case is unlikely but good for defensive coding
+                }
             })
             .catch(console.log)
             .finally(() => setLoading(false));
@@ -32,122 +44,162 @@ export default function AssignCoursesScreen({ navigation }) {
 
     const save = async () => {
         if (!selectedStudent || selectedCourseIds.length === 0)
-            return Alert.alert('Error', 'Select a learner and at least one course');
+            return Alert.alert('Selection Required', 'Please select courses and then choose a connected learner.');
+        
         setSaving(true);
         try {
-            await api.post('/api/mentor/assign-course', { student_id: selectedStudent.id, course_ids: selectedCourseIds });
-            Alert.alert('✅ Assigned', `${selectedCourseIds.length} course(s) added to ${selectedStudent.name}'s roadmap`);
-            setSelectedStudent(null);
-            setSelectedCourseIds([]);
+            await api.post('/api/mentor/assign-course', { 
+                student_id: selectedStudent.id, 
+                course_ids: selectedCourseIds 
+            });
+            Alert.alert('✅ Roadmap Updated', `The selected courses have been assigned to ${selectedStudent.name}.`);
+            navigation.goBack();
         } catch (e) {
-            Alert.alert('Error', e.response?.data?.error || 'Failed');
+            Alert.alert('Error', e.response?.data?.error || 'Failed to update roadmap');
         } finally { setSaving(false); }
     };
 
     if (loading) {
         return (
-            <LinearGradient colors={GRADIENTS.bg} style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
-                <ActivityIndicator color={COLORS.blue} size="large" />
+            <LinearGradient colors={gradients.bg} style={[s.container, { justifyContent: 'center', alignItems: 'center' }]}>
+                <ActivityIndicator color={colors.blue} size="large" />
             </LinearGradient>
         );
     }
 
     return (
-        <LinearGradient colors={GRADIENTS.bg} style={styles.container}>
-            <View style={styles.header}>
+        <LinearGradient colors={gradients.bg} style={s.container}>
+            <View style={[s.header, { paddingTop: insets.top + 12 }]}>
                 <TouchableOpacity onPress={() => navigation.goBack()}>
-                    <Text style={styles.back}>← Back</Text>
+                    <Text style={[s.back, { color: colors.muted }]}>← Back</Text>
                 </TouchableOpacity>
-                <Text style={styles.title}>Assign Courses 📋</Text>
+                <Text style={[s.title, { color: colors.white }]}>Create Learner Roadmap 🗺️</Text>
+                <Text style={{ color: colors.muted, fontSize: 13, marginTop: 4 }}>
+                    Design a personalized learning track for your students.
+                </Text>
             </View>
 
-            <FlatList
-                ListHeaderComponent={
-                    <View>
-                        <Text style={styles.sectionLabel}>1. Select Learner</Text>
-                        {students.map(s => (
+            <ScrollView contentContainerStyle={{ padding: 24, paddingBottom: insets.bottom + 40 }}>
+                {/* Step 1: Courses Library */}
+                <Text style={s.sectionLabel}>1. Select Courses from Library</Text>
+                <View style={s.courseList}>
+                    {courses.length === 0 ? (
+                        <View style={s.emptyBox}>
+                            <Text style={{ color: colors.muted }}>No courses available in library.</Text>
+                        </View>
+                    ) : courses.map(c => {
+                        const isSelected = selectedCourseIds.includes(c.id);
+                        return (
                             <TouchableOpacity
-                                key={s.id}
-                                style={[styles.item, selectedStudent?.id === s.id && styles.itemSelected]}
-                                onPress={() => setSelectedStudent(s)}
+                                key={c.id}
+                                style={[s.courseCard, { 
+                                    backgroundColor: colors.card,
+                                    borderColor: isSelected ? colors.blue : colors.glassBorder 
+                                }]}
+                                onPress={() => toggleCourse(c.id)}
+                                activeOpacity={0.7}
                             >
-                                <View style={styles.avatar}><Text style={styles.avatarText}>{s.name[0]}</Text></View>
-                                <Text style={styles.itemName}>{s.name}</Text>
-                                {selectedStudent?.id === s.id && <Text style={{ color: COLORS.blue, fontSize: 20 }}>✓</Text>}
+                                <View style={[s.checkbox, { borderColor: isSelected ? colors.blue : colors.muted, backgroundColor: isSelected ? colors.blue : 'transparent' }]}>
+                                    {isSelected && <Text style={{ color: '#000', fontWeight: '800', fontSize: 10 }}>✓</Text>}
+                                </View>
+                                <View style={{ flex: 1 }}>
+                                    <Text style={[s.courseTitle, { color: colors.white }]}>{c.title}</Text>
+                                    <Text style={{ color: colors.muted, fontSize: 11 }}>{c.category || 'General'}</Text>
+                                </View>
                             </TouchableOpacity>
-                        ))}
+                        );
+                    })}
+                </View>
 
-                        <Text style={[styles.sectionLabel, { marginTop: 20 }]}>
-                            2. Select Courses ({selectedCourseIds.length} selected)
-                        </Text>
-                        {courses.length === 0 ? (
-                            <Text style={styles.muted}>No courses available. Ask admin to add some.</Text>
-                        ) : courses.map(c => {
-                            const selected = selectedCourseIds.includes(c.id);
+                {/* Step 2: Target Learner */}
+                <Text style={[s.sectionLabel, { marginTop: 32 }]}>2. Assign to My Connected Learner</Text>
+                <View style={s.studentGrid}>
+                    {students.length === 0 ? (
+                        <View style={s.emptyBox}>
+                            <Text style={{ color: colors.muted, textAlign: 'center' }}>
+                                You have no connected learners yet. Connect with a student from the Alerts tab first.
+                            </Text>
+                        </View>
+                    ) : (
+                        students.map(std => {
+                            const isStdSelected = selectedStudent?.id === std.id;
                             return (
                                 <TouchableOpacity
-                                    key={c.id}
-                                    style={[styles.item, selected && styles.itemSelected]}
-                                    onPress={() => toggleCourse(c.id)}
+                                    key={std.id}
+                                    style={[s.studentTab, { 
+                                        backgroundColor: colors.card,
+                                        borderColor: isStdSelected ? colors.blue : colors.glassBorder
+                                    }]}
+                                    onPress={() => setSelectedStudent(std)}
                                 >
-                                    <View style={[styles.checkbox, selected && styles.checkboxSelected]}>
-                                        {selected && <Text style={{ color: '#000', fontWeight: '800', fontSize: 12 }}>✓</Text>}
+                                    <View style={[s.avatar, { backgroundColor: colors.blue + '15' }]}>
+                                        <Text style={{ color: colors.blue, fontWeight: '800' }}>{std.name[0]}</Text>
                                     </View>
-                                    <View style={{ flex: 1 }}>
-                                        <Text style={styles.itemName}>{c.title}</Text>
-                                        {c.category && <Text style={styles.itemSub}>{c.category}</Text>}
-                                    </View>
+                                    <Text style={[s.studentName, { color: isStdSelected ? colors.blue : colors.white }]} numberOfLines={1}>
+                                        {std.name.split(' ')[0]}
+                                    </Text>
                                 </TouchableOpacity>
                             );
-                        })}
+                        })
+                    )}
+                </View>
 
-                        <TouchableOpacity onPress={save} disabled={saving} activeOpacity={0.85} style={{ marginTop: 24 }}>
-                            <LinearGradient
-                                colors={selectedStudent && selectedCourseIds.length > 0 ? [...GRADIENTS.accent] : ['#333', '#333']}
-                                start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
-                                style={styles.saveBtn}
-                            >
-                                <Text style={[styles.saveBtnText, { color: selectedStudent && selectedCourseIds.length > 0 ? '#000' : COLORS.muted }]}>
-                                    {saving ? 'Assigning...' : `📋 Assign ${selectedCourseIds.length} Course(s)`}
-                                </Text>
-                            </LinearGradient>
-                        </TouchableOpacity>
-                    </View>
-                }
-                data={[]}
-                renderItem={null}
-                contentContainerStyle={{ padding: 24, paddingBottom: 40 }}
-            />
+                {/* Footer Action */}
+                <TouchableOpacity 
+                    onPress={save} 
+                    disabled={saving || !selectedStudent || selectedCourseIds.length === 0}
+                    style={{ marginTop: 40 }}
+                >
+                    <LinearGradient
+                        colors={(!selectedStudent || selectedCourseIds.length === 0) ? [colors.glass, colors.glass] : gradients.accent}
+                        start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+                        style={s.saveBtn}
+                    >
+                        {saving ? (
+                            <ActivityIndicator color="#fff" />
+                        ) : (
+                            <Text style={[s.saveBtnText, { color: (!selectedStudent || selectedCourseIds.length === 0) ? colors.muted : '#fff' }]}>
+                                🚀 Deploy Roadmap
+                            </Text>
+                        )}
+                    </LinearGradient>
+                </TouchableOpacity>
+            </ScrollView>
         </LinearGradient>
     );
 }
 
-const styles = StyleSheet.create({
+const s = StyleSheet.create({
     container: { flex: 1 },
-    header: { paddingHorizontal: 24, paddingTop: 20, paddingBottom: 8 },
-    back: { color: COLORS.muted, fontSize: 15, marginBottom: 12 },
-    title: { color: COLORS.white, fontSize: 24, fontWeight: '800' },
-    sectionLabel: { color: COLORS.muted, fontSize: 13, fontWeight: '700', textTransform: 'uppercase', marginBottom: 10 },
-    item: {
-        backgroundColor: COLORS.card, borderRadius: RADIUS,
-        borderWidth: 1, borderColor: COLORS.cardBorder,
-        padding: 14, marginBottom: 10, flexDirection: 'row', alignItems: 'center', gap: 12,
+    header: { paddingHorizontal: 24, paddingBottom: 16 },
+    back: { fontSize: 14, marginBottom: 16 },
+    title: { fontSize: 24, fontWeight: '800', letterSpacing: -0.5 },
+    sectionLabel: { fontSize: 12, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 16, color: 'rgba(255,255,255,0.4)' },
+    courseList: { gap: 10 },
+    courseCard: { 
+        flexDirection: 'row', alignItems: 'center', gap: 14, 
+        padding: 14, borderRadius: 16, borderWidth: 1 
     },
-    itemSelected: { borderColor: COLORS.blue, backgroundColor: 'rgba(0,212,255,0.06)' },
-    avatar: {
-        width: 38, height: 38, borderRadius: 19,
-        backgroundColor: 'rgba(0,212,255,0.12)', alignItems: 'center', justifyContent: 'center',
+    checkbox: { 
+        width: 20, height: 20, borderRadius: 6, borderWidth: 2, 
+        alignItems: 'center', justifyContent: 'center' 
     },
-    avatarText: { color: COLORS.blue, fontWeight: '800', fontSize: 15 },
-    checkbox: {
-        width: 22, height: 22, borderRadius: 6,
-        borderWidth: 2, borderColor: COLORS.muted,
-        alignItems: 'center', justifyContent: 'center',
+    courseTitle: { fontWeight: '700', fontSize: 15 },
+    studentGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+    studentTab: { 
+        width: '31%', paddingVertical: 16, alignItems: 'center', 
+        borderRadius: 16, borderWidth: 1, gap: 8 
     },
-    checkboxSelected: { backgroundColor: COLORS.blue, borderColor: COLORS.blue },
-    itemName: { color: COLORS.white, fontWeight: '700', fontSize: 14, flex: 1 },
-    itemSub: { color: COLORS.muted, fontSize: 12, marginTop: 2 },
-    muted: { color: COLORS.muted, fontSize: 14, fontStyle: 'italic', marginBottom: 12 },
-    saveBtn: { borderRadius: RADIUS, paddingVertical: 14, alignItems: 'center', marginBottom: 24 },
-    saveBtnText: { fontWeight: '700', fontSize: 16 },
+    avatar: { 
+        width: 36, height: 36, borderRadius: 18, 
+        alignItems: 'center', justifyContent: 'center' 
+    },
+    studentName: { fontSize: 12, fontWeight: '700' },
+    emptyBox: { 
+        padding: 24, borderRadius: 16, borderWidth: 1, 
+        borderStyle: 'dashed', borderColor: 'rgba(255,255,255,0.1)', 
+        alignItems: 'center', justifyContent: 'center' 
+    },
+    saveBtn: { borderRadius: 16, paddingVertical: 16, alignItems: 'center' },
+    saveBtnText: { fontWeight: '800', fontSize: 16, textTransform: 'uppercase', letterSpacing: 1 },
 });
