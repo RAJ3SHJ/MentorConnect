@@ -180,23 +180,31 @@ async function initDb() {
             await client.query('ROLLBACK');
             throw err;
           } finally { client.release(); }
-        }
-        
-        // Ensure new columns exist
-        await pool.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS first_name TEXT");
-        await pool.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS last_name TEXT");
-        await pool.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS qualification TEXT");
-        await pool.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS username TEXT UNIQUE");
-        await pool.query("ALTER TABLE mentors ADD COLUMN IF NOT EXISTS first_name TEXT");
-        await pool.query("ALTER TABLE mentors ADD COLUMN IF NOT EXISTS last_name TEXT");
-        await pool.query("ALTER TABLE mentors ADD COLUMN IF NOT EXISTS qualification TEXT");
-        await pool.query("ALTER TABLE mentors ADD COLUMN IF NOT EXISTS username TEXT UNIQUE");
-        // Mentor assessment review columns
-        await pool.query("ALTER TABLE student_skills ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'Pending Review'");
-        await pool.query("ALTER TABLE student_skills ADD COLUMN IF NOT EXISTS mentor_remarks TEXT");
-        await pool.query("ALTER TABLE student_skills ADD COLUMN IF NOT EXISTS reviewed_at TIMESTAMP");
       } catch (e) {
-        console.error('⚠️ Online Migration Warning:', e.message);
+        console.error('⚠️ Online Migration Warning (ID Casts):', e.message);
+      }
+
+      // ─── ENSURE NEW COLUMNS EXIST INDEPENDENTLY ───
+      const safeAlters = [
+        "ALTER TABLE users ADD COLUMN IF NOT EXISTS first_name TEXT",
+        "ALTER TABLE users ADD COLUMN IF NOT EXISTS last_name TEXT",
+        "ALTER TABLE users ADD COLUMN IF NOT EXISTS qualification TEXT",
+        "ALTER TABLE users ADD COLUMN IF NOT EXISTS username TEXT UNIQUE",
+        "ALTER TABLE mentors ADD COLUMN IF NOT EXISTS first_name TEXT",
+        "ALTER TABLE mentors ADD COLUMN IF NOT EXISTS last_name TEXT",
+        "ALTER TABLE mentors ADD COLUMN IF NOT EXISTS qualification TEXT",
+        "ALTER TABLE mentors ADD COLUMN IF NOT EXISTS username TEXT UNIQUE",
+        "ALTER TABLE student_skills ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'Pending Review'",
+        "ALTER TABLE student_skills ADD COLUMN IF NOT EXISTS mentor_remarks TEXT",
+        "ALTER TABLE student_skills ADD COLUMN IF NOT EXISTS reviewed_at TIMESTAMP"
+      ];
+
+      for (const query of safeAlters) {
+        try {
+          await pool.query(query);
+        } catch (alterErr) {
+          console.error(`⚠️ Failed to add column via: ${query}`, alterErr.message);
+        }
       }
     };
     await syncPostgresSchema();
