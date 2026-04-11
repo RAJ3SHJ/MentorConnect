@@ -84,24 +84,29 @@ router.post('/skills', auth, async (req, res) => {
     try {
         const skillsJson = JSON.stringify(skills || []);
         
-        // Execute the insertion correctly based on database type (Postgres natively handles UUID FKs now)
+        // Execute the insertion correctly based on database type
         const existing = await get('SELECT id FROM student_skills WHERE student_id = ?', [req.user.id]);
+        let referenceId;
+        
         if (existing) {
             await run(
-                'UPDATE student_skills SET goal = ?, skills = ?, submitted_at = CURRENT_TIMESTAMP WHERE student_id = ?',
+                'UPDATE student_skills SET goal = ?, skills = ?, status = \'Pending Review\', submitted_at = CURRENT_TIMESTAMP WHERE student_id = ?',
                 [goal, skillsJson, req.user.id]
             );
+            referenceId = existing.id;
         } else {
-            const res = await runGetId(
+            referenceId = await runGetId(
                 'INSERT INTO student_skills (student_id, goal, skills) VALUES (?, ?, ?)',
                 [req.user.id, goal, skillsJson]
             );
-            // Notify mentor
-            await run(
-                'INSERT INTO mentor_notifications (student_id, trigger_type, reference_id) VALUES (?, ?, ?)',
-                [req.user.id, 'skills', res]
-            ).catch(() => {});
         }
+
+        // Notify mentor correctly for both cases (re-trigger notification)
+        await run(
+            'INSERT INTO mentor_notifications (student_id, trigger_type, reference_id, is_claimed) VALUES (?, ?, ?, 0)',
+            [req.user.id, 'skills', referenceId]
+        ).catch(() => {});
+
         res.status(201).json({ message: 'Skill assessment updated! 🎯' });
     } catch (e) {
         console.error('Update Skills Error:', e.message);
