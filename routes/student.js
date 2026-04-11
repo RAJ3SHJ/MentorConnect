@@ -92,10 +92,15 @@ router.post('/skills', auth, async (req, res) => {
                 [goal, skillsJson, req.user.id]
             );
         } else {
-            await run(
+            const res = await runGetId(
                 'INSERT INTO student_skills (student_id, goal, skills) VALUES (?, ?, ?)',
                 [req.user.id, goal, skillsJson]
             );
+            // Notify mentor
+            await run(
+                'INSERT INTO mentor_notifications (student_id, trigger_type, reference_id) VALUES (?, ?, ?)',
+                [req.user.id, 'skills', res]
+            ).catch(() => {});
         }
         res.status(201).json({ message: 'Skill assessment updated! 🎯' });
     } catch (e) {

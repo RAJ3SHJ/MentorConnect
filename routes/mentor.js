@@ -269,11 +269,12 @@ router.get('/notifications', auth, async (req, res) => {
                    es.status AS submission_status
             FROM mentor_notifications mn
             JOIN users u ON u.id = mn.student_id
+            LEFT JOIN mentor_assignments ma ON ma.student_id = u.id
             LEFT JOIN exam_submissions es ON es.id = mn.reference_id AND mn.trigger_type = 'exam'
             LEFT JOIN exams e ON e.id = es.exam_id
             LEFT JOIN courses c ON c.id = mn.reference_id AND mn.trigger_type = 'course'
             LEFT JOIN student_skills ss ON ss.id = mn.reference_id AND mn.trigger_type = 'skills'
-            WHERE mn.is_claimed = 0
+            WHERE mn.is_claimed = 0 AND ma.id IS NULL
             ORDER BY mn.created_at DESC
         `);
         res.json(notifications);
