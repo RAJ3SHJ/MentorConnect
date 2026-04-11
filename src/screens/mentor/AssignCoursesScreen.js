@@ -114,14 +114,16 @@ export default function AssignCoursesScreen({ navigation, route }) {
                 {/* Step 2: Target Learner */}
                 <Text style={[s.sectionLabel, { marginTop: 32 }]}>2. Assign to My Connected Learner</Text>
                 <View style={s.studentGrid}>
-                    {students.length === 0 ? (
+                    {students.filter(std => !std.has_roadmap).length === 0 ? (
                         <View style={s.emptyBox}>
                             <Text style={{ color: colors.muted, textAlign: 'center' }}>
-                                You have no connected learners yet. Connect with a student from the Alerts tab first.
+                                {students.length > 0 
+                                    ? "All your connected learners already have roadmaps assigned." 
+                                    : "You have no connected learners yet. Connect with a student from the Alerts tab first."}
                             </Text>
                         </View>
                     ) : (
-                        students.map(std => {
+                        students.filter(std => !std.has_roadmap).map(std => {
                             const isStdSelected = selectedStudent?.id === std.id;
                             return (
                                 <TouchableOpacity

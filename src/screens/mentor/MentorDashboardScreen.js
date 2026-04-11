@@ -136,12 +136,18 @@ export default function MentorDashboardScreen({ navigation }) {
                                 <View style={s.progressTrack}>
                                     <View style={[s.progressFill, { width: `${Math.floor(Math.random() * 60) + 20}%` }]} />
                                 </View>
-                                <TouchableOpacity
-                                    style={s.rosterBtn}
-                                    onPress={() => navigation.navigate('AssignCourses', { student })}
-                                >
-                                    <Text style={s.rosterBtnText}>🗺️ Create Roadmap</Text>
-                                </TouchableOpacity>
+                                {student.has_roadmap ? (
+                                    <View style={[s.rosterBtn, { backgroundColor: 'rgba(255,255,255,0.05)', borderColor: 'transparent' }]}>
+                                        <Text style={[s.rosterBtnText, { color: C.muted }]}>✅ Roadmap Set</Text>
+                                    </View>
+                                ) : (
+                                    <TouchableOpacity
+                                        style={s.rosterBtn}
+                                        onPress={() => navigation.navigate('AssignCourses', { student })}
+                                    >
+                                        <Text style={s.rosterBtnText}>🗺️ Create Roadmap</Text>
+                                    </TouchableOpacity>
+                                )}
                             </View>
                         ))
                     )}
