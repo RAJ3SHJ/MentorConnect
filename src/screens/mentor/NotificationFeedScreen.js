@@ -89,60 +89,88 @@ export default function NotificationFeedScreen({ navigation }) {
         );
     };
 
+    const groupedNotifications = notifications.reduce((acc, n) => {
+        if (!acc[n.student_id]) {
+            acc[n.student_id] = {
+                student_id: n.student_id,
+                student_name: n.student_name,
+                student_email: n.student_email,
+                alerts: []
+            };
+        }
+        acc[n.student_id].alerts.push(n);
+        return acc;
+    }, {});
+    const groupedList = Object.values(groupedNotifications);
+
     return (
         <View style={s.container}>
             <LinearGradient colors={['#040a18', '#0B132B']} style={StyleSheet.absoluteFillObject} />
             <View style={[s.glowOrb, { backgroundColor: '#8a2be2', top: -80, right: -80 }]} />
 
-            <ScrollView contentContainerStyle={[s.scroll, { paddingTop: insets.top > 0 ? insets.top : 20, paddingBottom: insets.bottom + 100 }]} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#00d2ff" />}>
+            <ScrollView 
+                contentContainerStyle={[s.scroll, { paddingTop: insets.top > 0 ? insets.top : 20, paddingBottom: insets.bottom + 100 }]} 
+                refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#00d2ff" />}
+            >
                 <Text style={s.heading}>🔔 Student Alerts</Text>
-                <Text style={s.sub}>{notifications.length} student{notifications.length !== 1 ? 's' : ''} awaiting review</Text>
+                <Text style={s.sub}>{groupedList.length} student{groupedList.length !== 1 ? 's' : ''} awaiting review</Text>
 
-                {notifications.length === 0 ? (
+                {groupedList.length === 0 ? (
                     <View style={s.emptyState}>
                         <Text style={{ fontSize: 48, marginBottom: 16 }}>🎉</Text>
                         <Text style={s.emptyTitle}>All caught up!</Text>
                         <Text style={s.emptySub}>No new student alerts. Check back after students submit exams or complete courses.</Text>
                     </View>
-                ) : notifications.map(n => (
-                    <TouchableOpacity
-                        key={n.id}
+                ) : groupedList.map(student => (
+                    <View
+                        key={student.student_id}
                         style={[s.card, Platform.OS === 'web' && { backdropFilter: 'blur(20px)' }]}
-                        onPress={() => navigation.navigate('AlertDetail', { alert: n })}
-                        activeOpacity={0.85}
                     >
                         <LinearGradient colors={['rgba(255,255,255,0.03)', 'transparent']} style={StyleSheet.absoluteFillObject} />
 
+                        {/* Student Header */}
                         <View style={s.cardHeader}>
                             <View style={s.avatar}><Text style={{ fontSize: 24 }}>🎓</Text></View>
                             <View style={{ flex: 1 }}>
-                                <Text style={s.studentName}>{n.student_name}</Text>
-                                <Text style={s.studentEmail}>{n.student_email}</Text>
+                                <Text style={s.studentName}>{student.student_name}</Text>
+                                <Text style={s.studentEmail}>{student.student_email}</Text>
                             </View>
-                            <TriggerBadge type={n.trigger_type} />
                         </View>
 
+                        {/* Grouped Alerts List */}
                         <View style={s.cardBody}>
-                            <Text style={s.refTitle}>{n.reference_title || 'Assessment Submitted'}</Text>
-                            <Text style={s.timestamp}>
-                                {new Date(n.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
-                            </Text>
+                            {student.alerts.map((alert, idx) => (
+                                <TouchableOpacity 
+                                    key={alert.id}
+                                    style={[s.alertRow, idx > 0 && { marginTop: 16, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.05)', paddingTop: 12 }]}
+                                    onPress={() => navigation.navigate('AlertDetail', { alert })}
+                                >
+                                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                                        <TriggerBadge type={alert.trigger_type} />
+                                        <Text style={s.timestamp}>
+                                            {new Date(alert.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                                        </Text>
+                                    </View>
+                                    <Text style={s.refTitle}>{alert.reference_title || 'Assessment Submitted'}</Text>
+                                </TouchableOpacity>
+                            ))}
                         </View>
 
+                        {/* Unified Connect Action */}
                         <View style={s.cardActions}>
                             <TouchableOpacity
-                                style={[s.connectBtn, connecting === n.student_id && { opacity: 0.6 }]}
-                                onPress={(e) => { e.stopPropagation?.(); handleConnect(n); }}
+                                style={[s.connectBtn, connecting === student.student_id && { opacity: 0.6 }]}
+                                onPress={() => handleConnect(student.alerts[0])}
                                 disabled={!!connecting}
                             >
                                 <LinearGradient colors={['#00d2ff', '#3a7bd5']} style={s.connectInner}>
                                     <Text style={s.connectText}>
-                                        {connecting === n.student_id ? 'Connecting…' : '🔗 Connect'}
+                                        {connecting === student.student_id ? 'Connecting…' : '🔗 Connect'}
                                     </Text>
                                 </LinearGradient>
                             </TouchableOpacity>
                         </View>
-                    </TouchableOpacity>
+                    </View>
                 ))}
             </ScrollView>
         </View>
@@ -169,6 +197,7 @@ const s = StyleSheet.create({
     badgeText: { fontSize: 10, fontWeight: '800', letterSpacing: 0.5 },
 
     cardBody: { borderTopWidth: 1, borderColor: 'rgba(255,255,255,0.05)', paddingTop: 16, marginBottom: 20 },
+    alertRow: { borderRadius: 12 },
     refTitle: { fontSize: 16, color: '#fff', fontWeight: '600', marginBottom: 4 },
     timestamp: { fontSize: 12, color: 'rgba(255,255,255,0.3)' },
 
