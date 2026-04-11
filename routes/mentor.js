@@ -97,12 +97,10 @@ router.post('/validate/:submissionId', auth, async (req, res) => {
         try {
             const sub = await get('SELECT student_id FROM exam_submissions WHERE id = ?', [req.params.submissionId]);
             if (sub) {
-                await run('PRAGMA foreign_keys = OFF');
                 await run(
                     'INSERT INTO notifications (type, student_id, reference_id) VALUES (?, ?, ?)',
                     ['exam_reviewed', sub.student_id, req.params.submissionId]
                 );
-                await run('PRAGMA foreign_keys = ON');
             }
         } catch (_) { /* non-critical — notification failure should not block response */ }
 
@@ -118,7 +116,6 @@ router.post('/skills-review/:studentId', auth, async (req, res) => {
 
     try {
         // Update or insert skills status + mentor remarks
-        await run('PRAGMA foreign_keys = OFF');
         const existing = await get('SELECT id FROM student_skills WHERE student_id = ?', [req.params.studentId]);
         if (existing) {
             await run(
@@ -136,11 +133,9 @@ router.post('/skills-review/:studentId', auth, async (req, res) => {
                 ['skills_reviewed', req.params.studentId, existing.id]
             );
         } catch (_) { /* non-critical */ }
-        await run('PRAGMA foreign_keys = ON');
 
         res.json({ message: 'Skills assessment reviewed successfully ✅' });
     } catch (e) {
-        await run('PRAGMA foreign_keys = ON').catch(() => {});
         console.error('Skills Review Error:', e.message);
         res.status(500).json({ error: e.message });
     }
@@ -284,12 +279,10 @@ router.post('/connect/:studentId', auth, async (req, res) => {
         let mentorProfile = await get('SELECT id FROM mentors WHERE email = ?', [mentorEmail]);
         if (!mentorProfile) {
             // Cloud-registered mentor — auto-create a mentors row using their user ID
-            await run('PRAGMA foreign_keys = OFF');
             await run(
                 'INSERT INTO mentors (id, name, email) VALUES (?, ?, ?)',
                 [mentorUserId, mentorName, mentorEmail]
             );
-            await run('PRAGMA foreign_keys = ON');
             mentorProfile = await get('SELECT id FROM mentors WHERE email = ?', [mentorEmail]);
         }
         if (!mentorProfile) {
@@ -303,7 +296,6 @@ router.post('/connect/:studentId', auth, async (req, res) => {
             return res.status(409).json({ error: 'Student already connected to another mentor' });
         }
 
-        await run('PRAGMA foreign_keys = OFF');
         await runGetId(
             'INSERT INTO mentor_assignments (mentor_id, student_id, mentor_user_id) VALUES (?, ?, ?)',
             [mentorId, studentId, mentorUserId]
@@ -315,11 +307,9 @@ router.post('/connect/:studentId', auth, async (req, res) => {
             'UPDATE mentor_notifications SET is_claimed = 1, claimed_by_mentor_id = ? WHERE student_id = ?',
             [mentorUserId, studentId]
         );
-        await run('PRAGMA foreign_keys = ON');
 
         res.json({ message: 'Successfully connected to student', studentId });
     } catch (e) {
-        await run('PRAGMA foreign_keys = ON').catch(() => {});
         if (e.message && e.message.includes('UNIQUE')) {
             return res.status(409).json({ error: 'Student was just claimed by another mentor' });
         }
