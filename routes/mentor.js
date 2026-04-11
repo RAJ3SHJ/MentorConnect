@@ -59,23 +59,30 @@ router.get('/submissions/:studentId', auth, async (req, res) => {
 // GET /api/mentor/student-detail/:studentId
 router.get('/student-detail/:studentId', auth, async (req, res) => {
     try {
-        const user = await get('SELECT id, name, email FROM users WHERE id = ?', [req.params.studentId]);
-        if (!user) return res.status(404).json({ error: 'Student not found' });
+        const studentId = req.params.studentId;
+        const mentorUserId = req.user.id; // Supabase UID from JWT
 
-        const skills = await get('SELECT * FROM student_skills WHERE student_id = ?', [req.params.studentId]);
-        const submissions = await all(`
-            SELECT es.id, es.student_id, es.exam_id, es.answers, es.status,
-                   es.mentor_remarks, es.submitted_at, es.reviewed_at, e.title AS exam_title
-            FROM exam_submissions es
-            JOIN exams e ON e.id = es.exam_id
-            WHERE es.student_id = ?
-            ORDER BY es.submitted_at DESC
-        `, [req.params.studentId]);
+        const [user, skills, submissions, assignment] = await Promise.all([
+            get('SELECT id, name, email FROM users WHERE id = ?', [studentId]),
+            get('SELECT * FROM student_skills WHERE student_id = ?', [studentId]),
+            all(`
+                SELECT es.id, es.student_id, es.exam_id, es.answers, es.status,
+                       es.mentor_remarks, es.submitted_at, es.reviewed_at, e.title AS exam_title
+                FROM exam_submissions es
+                JOIN exams e ON e.id = es.exam_id
+                WHERE es.student_id = ?
+                ORDER BY es.submitted_at DESC
+            `, [studentId]),
+            get('SELECT id FROM mentor_assignments WHERE student_id = ? AND mentor_user_id = ?', [studentId, mentorUserId])
+        ]);
+
+        if (!user) return res.status(404).json({ error: 'Student not found' });
 
         res.json({
             student: user,
             skills: skills ? { ...skills, skills: JSON.parse(skills.skills || '[]') } : null,
             submissions: submissions.map(s => ({ ...s, answers: JSON.parse(s.answers || '[]') })),
+            isConnected: !!assignment
         });
     } catch (e) { res.status(500).json({ error: e.message }); }
 });
@@ -108,32 +115,41 @@ router.post('/validate/:submissionId', auth, async (req, res) => {
     } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-// POST /api/mentor/unified-review/:studentId — unified review for skills and exams
+// POST /api/mentor/unified-review/:studentId
 router.post('/unified-review/:studentId', auth, async (req, res) => {
     const { status, remarks } = req.body;
     if (!['Approved', 'Needs Improvement'].includes(status))
         return res.status(400).json({ error: 'status must be Approved or Needs Improvement' });
 
     try {
+        const mentorUserId = req.user.id;
+        const studentId = req.params.studentId;
+
+        // Verify connection exists
+        const assignment = await get('SELECT id FROM mentor_assignments WHERE student_id = ? AND mentor_user_id = ?', [studentId, mentorUserId]);
+        if (!assignment) {
+            return res.status(403).json({ error: 'You must connect with this student before submitting a review.' });
+        }
+
         // 1. Update Student Skills
-        const skillsRow = await get('SELECT id FROM student_skills WHERE student_id = ?', [req.params.studentId]);
+        const skillsRow = await get('SELECT id FROM student_skills WHERE student_id = ?', [studentId]);
         if (skillsRow) {
             await run(
                 `UPDATE student_skills SET status = ?, mentor_remarks = ?, reviewed_at = ${isPG ? 'CURRENT_TIMESTAMP' : "datetime('now')"} WHERE student_id = ?`,
-                [status, remarks || null, req.params.studentId]
+                [status, remarks || null, studentId]
             );
             
             // Notify for skills
             await run(
                 'INSERT INTO notifications (type, student_id, reference_id) VALUES (?, ?, ?)',
-                ['skills_reviewed', req.params.studentId, skillsRow.id]
+                ['skills_reviewed', studentId, skillsRow.id]
             ).catch(() => {});
         }
 
         // 2. Update all Pending Exams
         const pendingExams = await all(
             "SELECT id FROM exam_submissions WHERE student_id = ? AND (status = 'Submitted' OR status = 'Pending Review')",
-            [req.params.studentId]
+            [studentId]
         );
 
         if (pendingExams && pendingExams.length > 0) {
@@ -146,7 +162,7 @@ router.post('/unified-review/:studentId', auth, async (req, res) => {
                 // Notify for each exam
                 await run(
                     'INSERT INTO notifications (type, student_id, reference_id) VALUES (?, ?, ?)',
-                    ['exam_reviewed', req.params.studentId, exam.id]
+                    ['exam_reviewed', studentId, exam.id]
                 ).catch(() => {});
             }
         }
