@@ -18,11 +18,11 @@ export default function AlertDetailScreen({ route, navigation }) {
     const [loading, setLoading] = useState(true);
     const [connecting, setConnecting] = useState(false);
 
-    // Skills review state
-    const [skillStatus, setSkillStatus] = useState('');
-    const [skillRemarks, setSkillRemarks] = useState('');
-    const [savingSkills, setSavingSkills] = useState(false);
-    const [skillsReviewed, setSkillsReviewed] = useState(false);
+    // Review state
+    const [skillsFeedback, setSkillsFeedback] = useState('');
+    const [examsFeedback, setExamsFeedback] = useState('');
+    const [saving, setSaving] = useState(false);
+    const [reviewed, setReviewed] = useState(false);
 
     const studentId = alert?.student_id;
 
@@ -35,9 +35,12 @@ export default function AlertDetailScreen({ route, navigation }) {
             setDetail(res.data);
             // Pre-fill if already reviewed
             if (res.data.skills?.status && res.data.skills.status !== 'Pending Review') {
-                setSkillStatus(res.data.skills.status);
-                setSkillRemarks(res.data.skills.mentor_remarks || '');
-                setSkillsReviewed(true);
+                setSkillsFeedback(res.data.skills.mentor_remarks || '');
+                setReviewed(true);
+            }
+            // Also pre-fill exams feedback from the first submission if available
+            if (res.data.submissions?.length > 0 && res.data.submissions[0].mentor_remarks) {
+                setExamsFeedback(res.data.submissions[0].mentor_remarks);
             }
         }).catch(console.log).finally(() => setLoading(false));
     }, [studentId]);
@@ -70,21 +73,26 @@ export default function AlertDetailScreen({ route, navigation }) {
     };
 
     const handleUnifiedReview = async () => {
-        if (!skillStatus) { toast.show('Please select a result first', 'warning'); return; }
-        setSavingSkills(true);
+        // Validation: At least one feedback should be provided if assessments exist
+        if (!skillsFeedback && !examsFeedback) {
+            toast.show('Please provide feedback for at least one assessment', 'warning');
+            return;
+        }
+
+        setSaving(true);
         try {
             await api.post(`/api/mentor/unified-review/${studentId}`, {
-                status: skillStatus,
-                remarks: skillRemarks,
+                skillRemarks: skillsFeedback,
+                examRemarks: examsFeedback,
             });
-            setSkillsReviewed(true);
+            setReviewed(true);
             toast.show('Unified review submitted! ✅', 'success');
-            // Refresh detail to show updated exam statuses
+            // Refresh detail to show updated statuses
             const res = await api.get(`/api/mentor/student-detail/${studentId}`);
             setDetail(res.data);
         } catch (e) {
             toast.show(e.response?.data?.error || 'Failed to save review', 'error');
-        } finally { setSavingSkills(false); }
+        } finally { setSaving(false); }
     };
 
     if (loading) {
@@ -186,67 +194,68 @@ export default function AlertDetailScreen({ route, navigation }) {
                                     <Text style={[s.lockedTitle, { color: colors.white }]}>Reviews Locked</Text>
                                     <Text style={[s.lockedSub, { color: colors.muted }]}>
                                         Click the "Connect" button in the header to unlock assessment reviews for this student.
-                                    </Text>
                                 </View>
                             ) : (
                                 <>
                                     <Text style={[s.cardTitle, { color: colors.white, marginBottom: 12, marginTop: 8 }]}>
-                                        📊 {skillsReviewed ? 'Review Submitted' : 'Submit Master Review (Skills & Exams)'}
+                                        📊 {reviewed ? 'Review Submitted' : 'Submit Master Review (Skills & Exams)'}
                                     </Text>
 
-                                    {skillsReviewed && (
-                                        <View style={[s.reviewedBanner, { backgroundColor: skillStatus === 'Approved' ? colors.success + '15' : colors.danger + '15', borderColor: skillStatus === 'Approved' ? colors.success + '44' : colors.danger + '44' }]}>
-                                            <Text style={{ color: skillStatus === 'Approved' ? colors.success : colors.danger, fontWeight: '700' }}>
-                                                {skillStatus === 'Approved' ? '✅ Approved' : '⚠️ Needs Improvement'}
-                                            </Text>
-                                            {skillRemarks ? <Text style={{ color: colors.muted, fontSize: 13, marginTop: 4 }}>{skillRemarks}</Text> : null}
-                                            <TouchableOpacity onPress={() => setSkillsReviewed(false)} style={{ marginTop: 8 }}>
-                                                <Text style={{ color: colors.blue, fontSize: 13 }}>✏️ Edit Review</Text>
+                                    {reviewed && (
+                                        <View style={[s.reviewedBanner, { backgroundColor: colors.success + '10', borderColor: colors.success + '33' }]}>
+                                            <Text style={{ color: colors.success, fontWeight: '700', marginBottom: 8 }}>✅ Review Processed</Text>
+                                            {skillsFeedback ? (
+                                                <View style={{ marginBottom: 8 }}>
+                                                    <Text style={{ color: colors.muted, fontSize: 11, fontWeight: '700' }}>SKILLS FEEDBACK:</Text>
+                                                    <Text style={{ color: colors.white, fontSize: 13, marginTop: 2 }}>{skillsFeedback}</Text>
+                                                </View>
+                                            ) : null}
+                                            {examsFeedback ? (
+                                                <View>
+                                                    <Text style={{ color: colors.muted, fontSize: 11, fontWeight: '700' }}>EXAM FEEDBACK:</Text>
+                                                    <Text style={{ color: colors.white, fontSize: 13, marginTop: 2 }}>{examsFeedback}</Text>
+                                                </View>
+                                            ) : null}
+                                            <TouchableOpacity onPress={() => setReviewed(false)} style={{ marginTop: 12 }}>
+                                                <Text style={{ color: colors.blue, fontSize: 13, fontWeight: '600' }}>✏️ Edit Feedback</Text>
                                             </TouchableOpacity>
                                         </View>
                                     )}
-                                    {!skillsReviewed && (
-                                        <>
-                                            <View style={s.optionsRow}>
-                                                {resultOptions.map(opt => {
-                                                    const selected = skillStatus === opt.value;
-                                                    return (
-                                                        <TouchableOpacity
-                                                            key={opt.value}
-                                                            style={[s.optionBtn, {
-                                                                borderColor: selected ? opt.color : colors.glassBorder,
-                                                                backgroundColor: selected ? opt.color + '15' : 'transparent',
-                                                            }]}
-                                                            onPress={() => setSkillStatus(opt.value)}
-                                                        >
-                                                            <Text style={{ fontSize: 24, marginBottom: 4 }}>{opt.emoji}</Text>
-                                                            <Text style={[s.optionLabel, { color: selected ? opt.color : colors.muted }]}>{opt.label}</Text>
-                                                        </TouchableOpacity>
-                                                    );
-                                                })}
-                                            </View>
 
+                                    {!reviewed && (
+                                        <>
+                                            <Text style={{ color: colors.muted, fontSize: 12, fontWeight: '700', marginTop: 8 }}>SKILL ASSESSMENT FEEDBACK</Text>
                                             <TextInput
-                                                style={[s.input, { borderColor: colors.glassBorder, color: colors.white, marginTop: 12 }]}
-                                                placeholder="Add mentor feedback / remarks..."
+                                                style={[s.input, { borderColor: colors.glassBorder, color: colors.white, marginTop: 8, height: 80 }]}
+                                                placeholder="Provide feedback on learner's skills & goals..."
                                                 placeholderTextColor={colors.muted}
-                                                value={skillRemarks}
-                                                onChangeText={setSkillRemarks}
+                                                value={skillsFeedback}
+                                                onChangeText={setSkillsFeedback}
+                                                multiline
+                                            />
+
+                                            <Text style={{ color: colors.muted, fontSize: 12, fontWeight: '700', marginTop: 16 }}>EXAM ASSESSMENT FEEDBACK</Text>
+                                            <TextInput
+                                                style={[s.input, { borderColor: colors.glassBorder, color: colors.white, marginTop: 8, height: 80 }]}
+                                                placeholder="Provide feedback on exam performance..."
+                                                placeholderTextColor={colors.muted}
+                                                value={examsFeedback}
+                                                onChangeText={setExamsFeedback}
                                                 multiline
                                             />
 
                                             <TouchableOpacity
                                                 onPress={handleUnifiedReview}
-                                                disabled={savingSkills || !skillStatus}
-                                                style={{ marginTop: 12 }}
+                                                disabled={saving}
+                                                style={{ marginTop: 20 }}
                                             >
                                                 <LinearGradient
-                                                    colors={skillStatus ? gradients.accent : [colors.glass, colors.glass]}
+                                                    colors={gradients.accent}
                                                     start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
                                                     style={s.submitBtn}
                                                 >
-                                                    <Text style={[s.submitBtnText, { color: skillStatus ? '#fff' : colors.muted }]}>
-                                                        {savingSkills ? 'Saving...' : '💾 Submit Master Review'}
+                                                    <Text style={s.submitBtnText}>
+                                                        {saving ? 'Processing...' : '💾 Submit Master Review'}
                                                     </Text>
                                                 </LinearGradient>
                                             </TouchableOpacity>
