@@ -58,10 +58,10 @@ async function initDb() {
 
     CREATE TABLE IF NOT EXISTS mentor_assignments (
       id ${isPG ? 'SERIAL' : 'INTEGER'} PRIMARY KEY ${isPG ? '' : 'AUTOINCREMENT'},
-      mentor_id INTEGER REFERENCES users(id),
-      student_id INTEGER REFERENCES users(id),
+      mentor_id ${isPG ? 'VARCHAR(255)' : 'INTEGER'} REFERENCES users(id),
+      student_id ${isPG ? 'VARCHAR(255)' : 'INTEGER'} REFERENCES users(id),
       assigned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      mentor_user_id INTEGER REFERENCES users(id),
+      mentor_user_id ${isPG ? 'VARCHAR(255)' : 'INTEGER'} REFERENCES users(id),
       UNIQUE(student_id)
     );
 
@@ -78,7 +78,7 @@ async function initDb() {
 
     CREATE TABLE IF NOT EXISTS roadmap (
       id ${isPG ? 'SERIAL' : 'INTEGER'} PRIMARY KEY ${isPG ? '' : 'AUTOINCREMENT'},
-      student_id INTEGER REFERENCES users(id),
+      student_id ${isPG ? 'VARCHAR(255)' : 'INTEGER'} REFERENCES users(id),
       course_id INTEGER REFERENCES courses(id),
       status TEXT DEFAULT 'Yet to Start',
       assigned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -87,7 +87,7 @@ async function initDb() {
 
     CREATE TABLE IF NOT EXISTS student_skills (
       id ${isPG ? 'SERIAL' : 'INTEGER'} PRIMARY KEY ${isPG ? '' : 'AUTOINCREMENT'},
-      student_id INTEGER REFERENCES users(id) UNIQUE,
+      student_id ${isPG ? 'VARCHAR(255)' : 'INTEGER'} REFERENCES users(id) UNIQUE,
       goal TEXT,
       skills TEXT,
       submitted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -111,7 +111,7 @@ async function initDb() {
 
     CREATE TABLE IF NOT EXISTS exam_submissions (
       id ${isPG ? 'SERIAL' : 'INTEGER'} PRIMARY KEY ${isPG ? '' : 'AUTOINCREMENT'},
-      student_id INTEGER REFERENCES users(id),
+      student_id ${isPG ? 'VARCHAR(255)' : 'INTEGER'} REFERENCES users(id),
       exam_id INTEGER REFERENCES exams(id),
       answers TEXT,
       status TEXT DEFAULT 'Pending Review',
@@ -125,8 +125,8 @@ async function initDb() {
     CREATE TABLE IF NOT EXISTS notifications (
       id ${isPG ? 'SERIAL' : 'INTEGER'} PRIMARY KEY ${isPG ? '' : 'AUTOINCREMENT'},
       type TEXT NOT NULL,
-      student_id INTEGER REFERENCES users(id),
-      mentor_id INTEGER,
+      student_id ${isPG ? 'VARCHAR(255)' : 'INTEGER'} REFERENCES users(id),
+      mentor_id ${isPG ? 'VARCHAR(255)' : 'INTEGER'},
       reference_id INTEGER,
       is_read INTEGER DEFAULT 0,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -134,11 +134,11 @@ async function initDb() {
 
     CREATE TABLE IF NOT EXISTS mentor_notifications (
       id ${isPG ? 'SERIAL' : 'INTEGER'} PRIMARY KEY ${isPG ? '' : 'AUTOINCREMENT'},
-      student_id INTEGER REFERENCES users(id),
+      student_id ${isPG ? 'VARCHAR(255)' : 'INTEGER'} REFERENCES users(id),
       trigger_type TEXT NOT NULL,
       reference_id INTEGER,
       is_claimed INTEGER DEFAULT 0,
-      claimed_by_mentor_id INTEGER,
+      claimed_by_mentor_id ${isPG ? 'VARCHAR(255)' : 'INTEGER'},
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
 
@@ -159,23 +159,21 @@ async function initDb() {
         `);
         
         if (res.rows.length > 0 && res.rows[0].data_type === 'integer') {
-          console.log('🔄 Old Integer IDs detected. Migrating Online DB to UUID-compatible Schema...');
+          console.log('🔄 Old Integer IDs detected. Purging legacy tables to perform clean UUID schema install...');
           const client = await pool.connect();
           try {
             await client.query('BEGIN');
-            await client.query("ALTER TABLE users ALTER COLUMN id TYPE VARCHAR(255) USING id::text");
-            await client.query("ALTER TABLE mentors ALTER COLUMN id TYPE VARCHAR(255) USING id::text");
-            await client.query("ALTER TABLE roadmap ALTER COLUMN student_id TYPE VARCHAR(255) USING student_id::text");
-            await client.query("ALTER TABLE mentor_assignments ALTER COLUMN student_id TYPE VARCHAR(255) USING student_id::text");
-            await client.query("ALTER TABLE mentor_assignments ALTER COLUMN mentor_id TYPE VARCHAR(255) USING mentor_id::text");
-            await client.query("ALTER TABLE exam_submissions ALTER COLUMN student_id TYPE VARCHAR(255) USING student_id::text");
-            await client.query("ALTER TABLE student_skills ALTER COLUMN student_id TYPE VARCHAR(255) USING student_id::text");
-            await client.query("ALTER TABLE notifications ALTER COLUMN student_id TYPE VARCHAR(255) USING student_id::text");
-            await client.query("ALTER TABLE notifications ALTER COLUMN mentor_id TYPE VARCHAR(255) USING mentor_id::text");
-            await client.query("ALTER TABLE mentor_notifications ALTER COLUMN student_id TYPE VARCHAR(255) USING student_id::text");
-            await client.query("ALTER TABLE mentor_notifications ALTER COLUMN claimed_by_mentor_id TYPE VARCHAR(255) USING claimed_by_mentor_id::text");
+            const tables = [
+                'mentor_assignments', 'roadmap', 'student_skills', 
+                'exam_submissions', 'notifications', 'mentor_notifications',
+                'questions', 'exams', 'courses', 'users', 'mentors'
+            ];
+            for (const table of tables) {
+                await client.query(`DROP TABLE IF EXISTS ${table} CASCADE`);
+            }
             await client.query('COMMIT');
-            console.log('✅ Online Database migration successful!');
+            console.log('✅ Legacy schemas purged. Re-initializing UUID schemas...');
+            await pool.query(schema);
           } catch (err) {
             await client.query('ROLLBACK');
             throw err;
