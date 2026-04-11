@@ -194,6 +194,7 @@ export default function AlertDetailScreen({ route, navigation }) {
                                     <Text style={[s.lockedTitle, { color: colors.white }]}>Reviews Locked</Text>
                                     <Text style={[s.lockedSub, { color: colors.muted }]}>
                                         Click the "Connect" button in the header to unlock assessment reviews for this student.
+                                    </Text>
                                 </View>
                             ) : (
                                 <>
