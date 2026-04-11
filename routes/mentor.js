@@ -108,35 +108,56 @@ router.post('/validate/:submissionId', auth, async (req, res) => {
     } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-// POST /api/mentor/skills-review/:studentId — review a student's skill assessment
-router.post('/skills-review/:studentId', auth, async (req, res) => {
+// POST /api/mentor/unified-review/:studentId — unified review for skills and exams
+router.post('/unified-review/:studentId', auth, async (req, res) => {
     const { status, remarks } = req.body;
     if (!['Approved', 'Needs Improvement'].includes(status))
         return res.status(400).json({ error: 'status must be Approved or Needs Improvement' });
 
     try {
-        // Update or insert skills status + mentor remarks
-        const existing = await get('SELECT id FROM student_skills WHERE student_id = ?', [req.params.studentId]);
-        if (existing) {
+        // 1. Update Student Skills
+        const skillsRow = await get('SELECT id FROM student_skills WHERE student_id = ?', [req.params.studentId]);
+        if (skillsRow) {
             await run(
                 `UPDATE student_skills SET status = ?, mentor_remarks = ?, reviewed_at = ${isPG ? 'CURRENT_TIMESTAMP' : "datetime('now')"} WHERE student_id = ?`,
                 [status, remarks || null, req.params.studentId]
             );
-        } else {
-            return res.status(404).json({ error: 'No skills assessment found for this student' });
-        }
-
-        // Notify the student
-        try {
+            
+            // Notify for skills
             await run(
                 'INSERT INTO notifications (type, student_id, reference_id) VALUES (?, ?, ?)',
-                ['skills_reviewed', req.params.studentId, existing.id]
-            );
-        } catch (_) { /* non-critical */ }
+                ['skills_reviewed', req.params.studentId, skillsRow.id]
+            ).catch(() => {});
+        }
 
-        res.json({ message: 'Skills assessment reviewed successfully ✅' });
+        // 2. Update all Pending Exams
+        const pendingExams = await all(
+            "SELECT id FROM exam_submissions WHERE student_id = ? AND (status = 'Submitted' OR status = 'Pending Review')",
+            [req.params.studentId]
+        );
+
+        if (pendingExams && pendingExams.length > 0) {
+            for (const exam of pendingExams) {
+                await run(
+                    `UPDATE exam_submissions SET status = ?, mentor_remarks = ?, reviewed_at = ${isPG ? 'CURRENT_TIMESTAMP' : "datetime('now')"} WHERE id = ?`,
+                    [status, remarks || null, exam.id]
+                );
+
+                // Notify for each exam
+                await run(
+                    'INSERT INTO notifications (type, student_id, reference_id) VALUES (?, ?, ?)',
+                    ['exam_reviewed', req.params.studentId, exam.id]
+                ).catch(() => {});
+            }
+        }
+
+        res.json({ 
+            message: 'Unified review submitted successfully ✅',
+            skillsUpdated: !!skillsRow,
+            examsUpdated: pendingExams?.length || 0
+        });
     } catch (e) {
-        console.error('Skills Review Error:', e.message);
+        console.error('Unified Review Error:', e.message);
         res.status(500).json({ error: e.message });
     }
 });
