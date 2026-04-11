@@ -55,7 +55,9 @@ export default function AlertDetailScreen({ route, navigation }) {
                         try {
                             await api.post(`/api/mentor/connect/${studentId}`);
                             toast.show(`🔗 Connected with ${detail?.student?.name}!`, 'success');
-                            navigation.goBack();
+                            // Refresh detail to unlock review panel
+                            const res = await api.get(`/api/mentor/student-detail/${studentId}`);
+                            setDetail(res.data);
                         } catch (e) {
                             const msg = e.response?.data?.error || 'Connection failed';
                             toast.show(msg === 'Student already connected to another mentor'
@@ -131,18 +133,25 @@ export default function AlertDetailScreen({ route, navigation }) {
                         <Text style={[s.title, { color: colors.white }]}>{student.name}</Text>
                         <Text style={{ color: colors.muted, fontSize: 13 }}>{student.email}</Text>
                     </View>
-                    {/* Connect Button in Header */}
-                    <TouchableOpacity
-                        style={[s.connectBtn, { borderColor: colors.blue + '55', opacity: connecting ? 0.6 : 1 }]}
-                        onPress={handleConnect}
-                        disabled={connecting}
-                    >
-                        <LinearGradient colors={['#00d2ff', '#3a7bd5']} style={s.connectBtnInner}>
-                            <Text style={s.connectBtnText}>
-                                {connecting ? '…' : '🔗 Connect'}
-                            </Text>
-                        </LinearGradient>
-                    </TouchableOpacity>
+                    {/* Connect Button in Header - Hide if already connected */}
+                    {!detail.isConnected && (
+                        <TouchableOpacity
+                            style={[s.connectBtn, { borderColor: colors.blue + '55', opacity: connecting ? 0.6 : 1 }]}
+                            onPress={handleConnect}
+                            disabled={connecting}
+                        >
+                            <LinearGradient colors={['#00d2ff', '#3a7bd5']} style={s.connectBtnInner}>
+                                <Text style={s.connectBtnText}>
+                                    {connecting ? '…' : '🔗 Connect'}
+                                </Text>
+                            </LinearGradient>
+                        </TouchableOpacity>
+                    )}
+                    {detail.isConnected && (
+                        <View style={[s.connectedTag, { backgroundColor: colors.success + '15' }]}>
+                            <Text style={{ color: colors.success, fontSize: 12, fontWeight: '700' }}>✅ Connected</Text>
+                        </View>
+                    )}
                 </View>
             </View>
 
@@ -168,21 +177,34 @@ export default function AlertDetailScreen({ route, navigation }) {
 
                             {/* ── Inline Skills Review Panel ── */}
                             <View style={[s.reviewDivider, { backgroundColor: colors.glassBorder }]} />
-                            <Text style={[s.cardTitle, { color: colors.white, marginBottom: 12, marginTop: 8 }]}>
-                                📊 {skillsReviewed ? 'Review Submitted' : 'Submit Master Review (Skills & Exams)'}
-                            </Text>
-
-                            {skillsReviewed && (
-                                <View style={[s.reviewedBanner, { backgroundColor: skillStatus === 'Approved' ? colors.success + '15' : colors.danger + '15', borderColor: skillStatus === 'Approved' ? colors.success + '44' : colors.danger + '44' }]}>
-                                    <Text style={{ color: skillStatus === 'Approved' ? colors.success : colors.danger, fontWeight: '700' }}>
-                                        {skillStatus === 'Approved' ? '✅ Approved' : '⚠️ Needs Improvement'}
+                            
+                            {!detail.isConnected ? (
+                                <View style={[s.lockedPanel, { backgroundColor: colors.card, borderColor: colors.glassBorder }]}>
+                                    <View style={[s.lockIcon, { backgroundColor: colors.gold + '15' }]}>
+                                        <Text style={{ fontSize: 24 }}>🔒</Text>
+                                    </View>
+                                    <Text style={[s.lockedTitle, { color: colors.white }]}>Reviews Locked</Text>
+                                    <Text style={[s.lockedSub, { color: colors.muted }]}>
+                                        Click the "Connect" button in the header to unlock assessment reviews for this student.
                                     </Text>
-                                    {skillRemarks ? <Text style={{ color: colors.muted, fontSize: 13, marginTop: 4 }}>{skillRemarks}</Text> : null}
-                                    <TouchableOpacity onPress={() => setSkillsReviewed(false)} style={{ marginTop: 8 }}>
-                                        <Text style={{ color: colors.blue, fontSize: 13 }}>✏️ Edit Review</Text>
-                                    </TouchableOpacity>
                                 </View>
-                            )}
+                            ) : (
+                                <>
+                                    <Text style={[s.cardTitle, { color: colors.white, marginBottom: 12, marginTop: 8 }]}>
+                                        📊 {skillsReviewed ? 'Review Submitted' : 'Submit Master Review (Skills & Exams)'}
+                                    </Text>
+
+                                    {skillsReviewed && (
+                                        <View style={[s.reviewedBanner, { backgroundColor: skillStatus === 'Approved' ? colors.success + '15' : colors.danger + '15', borderColor: skillStatus === 'Approved' ? colors.success + '44' : colors.danger + '44' }]}>
+                                            <Text style={{ color: skillStatus === 'Approved' ? colors.success : colors.danger, fontWeight: '700' }}>
+                                                {skillStatus === 'Approved' ? '✅ Approved' : '⚠️ Needs Improvement'}
+                                            </Text>
+                                            {skillRemarks ? <Text style={{ color: colors.muted, fontSize: 13, marginTop: 4 }}>{skillRemarks}</Text> : null}
+                                            <TouchableOpacity onPress={() => setSkillsReviewed(false)} style={{ marginTop: 8 }}>
+                                                <Text style={{ color: colors.blue, fontSize: 13 }}>✏️ Edit Review</Text>
+                                            </TouchableOpacity>
+                                        </View>
+                                    )}
 
                             {!skillsReviewed && (
                                 <>
@@ -266,6 +288,22 @@ export default function AlertDetailScreen({ route, navigation }) {
                                     <View style={[s.statusBadge, { backgroundColor: statusColor + '18', borderColor: statusColor + '44' }]}>
                                         <Text style={[s.statusText, { color: statusColor }]}>{sub.status}</Text>
                                     </View>
+                                    {/* Exam Assessment - Review button */}
+                                    <TouchableOpacity 
+                                        style={[s.miniReviewBtn, { borderColor: colors.blue + '44' }]}
+                                        onPress={() => navigation.navigate('Validation', {
+                                            submissionId: sub.id,
+                                            examTitle: sub.exam_title,
+                                            studentName: student.name,
+                                            studentId: student.id,
+                                            studentEmail: student.email,
+                                            answers: sub.answers,
+                                            existingStatus: sub.status,
+                                            existingRemarks: sub.mentor_remarks
+                                        })}
+                                    >
+                                        <Text style={[s.miniReviewText, { color: colors.blue }]}>🔍 Review Answers</Text>
+                                    </TouchableOpacity>
                                 </View>
                             </View>
                         );
@@ -308,4 +346,11 @@ const s = StyleSheet.create({
     statusText: { fontSize: 11, fontWeight: '700' },
     reviewBtn: { borderRadius: 8, paddingHorizontal: 10, paddingVertical: 5, borderWidth: 1, backgroundColor: 'rgba(66,133,244,0.06)' },
     reviewBtnText: { fontSize: 12, fontWeight: '700' },
+    connectedTag: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12 },
+    lockedPanel: { borderRadius: RADIUS, borderWidth: 1, padding: 24, alignItems: 'center', marginTop: 10, backgroundColor: 'rgba(255,255,255,0.02)' },
+    lockIcon: { width: 64, height: 64, borderRadius: 32, alignItems: 'center', justifyContent: 'center', marginBottom: 16 },
+    lockedTitle: { fontSize: 18, fontWeight: '800', marginBottom: 8 },
+    lockedSub: { fontSize: 14, textAlign: 'center', lineHeight: 22, opacity: 0.7 },
+    miniReviewBtn: { borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6, borderWidth: 1, backgroundColor: 'rgba(0,210,255,0.05)', marginTop: 8 },
+    miniReviewText: { fontSize: 11, fontWeight: '700', textTransform: 'uppercase' },
 });
