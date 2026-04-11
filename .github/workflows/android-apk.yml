@@ -38,12 +38,16 @@ jobs:
       - name: 🏗 Build Android APK (Local Bypass)
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-          EXPO_PUBLIC_API_URL: https://mentor-app-backend-w6bk.onrender.com
         run: |
           if [ -z "${{ secrets.EXPO_TOKEN }}" ]; then
             echo "❌ ERROR: EXPO_TOKEN is not set in GitHub Secrets."
             exit 1
           fi
+          # Dynamically create the .env file for the production build
+          echo "EXPO_PUBLIC_API_URL=https://mentor-app-backend-w6bk.onrender.com" > .env
+          echo "EXPO_PUBLIC_SUPABASE_URL=https://fxmqluspbkjjajdnnxel.supabase.co" >> .env
+          echo "EXPO_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ4bXFsdXNwYmtqamFqZG5ueGVsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3NzkxMTQsImV4cCI6MjA5MDM1NTExNH0.mCeIB_KxKQqhHg35fVMem5xlq8y6X07xiX9GK31NrfM" >> .env
+          
           npx eas-cli build --platform android --profile preview --local --non-interactive --output ./mentor-app-release.apk
 
       - name: 📤 Upload APK
