@@ -62,22 +62,17 @@ router.get('/:id', auth, async (req, res) => {
 router.post('/:id/submit', auth, async (req, res) => {
     const { answers } = req.body;
     try {
-        // Disable FK checks: exam_id comes from Supabase (may not exist locally), student_id may be UUID
-        await run('PRAGMA foreign_keys = OFF');
         const submissionId = await runGetId(
             'INSERT INTO exam_submissions (student_id, exam_id, answers) VALUES (?, ?, ?)',
             [req.user.id, req.params.id, JSON.stringify(answers || [])]
         );
-        await run('PRAGMA foreign_keys = ON');
 
         // Also notify mentor via local notifications table
         try {
-            await run('PRAGMA foreign_keys = OFF');
             await run(
                 'INSERT INTO mentor_notifications (student_id, trigger_type, reference_id) VALUES (?, ?, ?)',
                 [req.user.id, 'exam', submissionId]
             );
-            await run('PRAGMA foreign_keys = ON');
         } catch (_) { /* non-critical */ }
 
         res.status(201).json({ 
@@ -85,7 +80,6 @@ router.post('/:id/submit', auth, async (req, res) => {
             submissionId 
         });
     } catch (e) {
-        await run('PRAGMA foreign_keys = ON').catch(() => {});
         console.error('Exam Submission Error:', e.message);
         res.status(500).json({ error: 'Failed to submit your assessment' });
     }
