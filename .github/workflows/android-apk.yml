@@ -36,10 +36,9 @@ jobs:
         run: npm install
 
       - name: 🏗 Build Android APK (Local Bypass)
-        # Using --local tells EAS to use GitHub's servers to build, NOT Expo's servers.
-        # This bypasses the monthly "Free Tier" limit and queue.
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+          EXPO_PUBLIC_API_URL: https://mentor-app-backend-w6bk.onrender.com
         run: |
           if [ -z "${{ secrets.EXPO_TOKEN }}" ]; then
             echo "❌ ERROR: EXPO_TOKEN is not set in GitHub Secrets."

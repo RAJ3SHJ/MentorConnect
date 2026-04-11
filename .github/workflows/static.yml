@@ -41,7 +41,7 @@ jobs:
       - name: Build Expo Web
         run: npx expo export --platform web
         env:
-          EXPO_PUBLIC_API_URL: https://mentor-app-backend.onrender.com
+          EXPO_PUBLIC_API_URL: https://mentor-app-backend-w6bk.onrender.com
           NODE_OPTIONS: "--max-old-space-size=4096"
       - name: Setup Pages
         uses: actions/configure-pages@v5
