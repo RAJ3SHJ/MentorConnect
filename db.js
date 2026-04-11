@@ -180,6 +180,7 @@ async function initDb() {
             await client.query('ROLLBACK');
             throw err;
           } finally { client.release(); }
+        }
       } catch (e) {
         console.error('⚠️ Online Migration Warning (ID Casts):', e.message);
       }
