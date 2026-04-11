@@ -200,12 +200,13 @@ router.get('/my-students', auth, async (req, res) => {
     try {
         const mentorId = req.user.id; // This is the Supabase UUID from the JWT
 
-        // Fetch students assigned to this specific mentor UID
+        // Fetch students assigned to this specific mentor UID, with a check if they already have roadmap courses
         const students = await all(`
-            SELECT u.id, u.name, u.email, u.created_at, ma.assigned_at
+            SELECT u.id, u.name, u.email, u.created_at, ma.assigned_at,
+                   EXISTS(SELECT 1 FROM roadmap r WHERE r.student_id = u.id) as has_roadmap
             FROM mentor_assignments ma
             JOIN users u ON u.id = ma.student_id
-            WHERE ma.mentor_id = ?
+            WHERE ma.mentor_user_id = ?
             ORDER BY ma.assigned_at DESC
         `, [mentorId]);
 
@@ -291,7 +292,7 @@ router.get('/notifications', auth, async (req, res) => {
 router.get('/notification-count', auth, async (req, res) => {
     try {
         const row = await get(`
-            SELECT COUNT(*) as count 
+            SELECT COUNT(DISTINCT mn.student_id) as count 
             FROM mentor_notifications mn
             LEFT JOIN mentor_assignments ma ON ma.student_id = mn.student_id
             WHERE mn.is_claimed = 0 AND (ma.id IS NULL OR ma.mentor_user_id = ?)
