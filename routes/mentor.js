@@ -151,6 +151,12 @@ router.post('/unified-review/:studentId', auth, async (req, res) => {
             }
         }
 
+        // 3. Mark all notifications for this student as claimed
+        await run(
+            'UPDATE mentor_notifications SET is_claimed = 1, claimed_by_mentor_id = ? WHERE student_id = ?',
+            [req.user.id, req.params.studentId]
+        ).catch(() => {});
+
         res.json({ 
             message: 'Unified review submitted successfully ✅',
             skillsUpdated: !!skillsRow,
@@ -256,7 +262,7 @@ router.post('/courses', auth, async (req, res) => {
 
 // ─── PHASE 6: NOTIFICATION & CONNECT SYSTEM ───
 
-// GET /api/mentor/notifications — get all unclaimed notifications for this mentor
+// GET /api/mentor/notifications — get unclaimed or personal notifications
 router.get('/notifications', auth, async (req, res) => {
     try {
         const notifications = await all(`
@@ -274,17 +280,22 @@ router.get('/notifications', auth, async (req, res) => {
             LEFT JOIN exams e ON e.id = es.exam_id
             LEFT JOIN courses c ON c.id = mn.reference_id AND mn.trigger_type = 'course'
             LEFT JOIN student_skills ss ON ss.id = mn.reference_id AND mn.trigger_type = 'skills'
-            WHERE mn.is_claimed = 0 AND ma.id IS NULL
+            WHERE mn.is_claimed = 0 AND (ma.id IS NULL OR ma.mentor_user_id = ?)
             ORDER BY mn.created_at DESC
-        `);
+        `, [req.user.id]);
         res.json(notifications);
     } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-// GET /api/mentor/notification-count — badge count of unclaimed notifications
+// GET /api/mentor/notification-count — badge count of unclaimed or personal notifications
 router.get('/notification-count', auth, async (req, res) => {
     try {
-        const row = await get('SELECT COUNT(*) as count FROM mentor_notifications WHERE is_claimed = 0');
+        const row = await get(`
+            SELECT COUNT(*) as count 
+            FROM mentor_notifications mn
+            LEFT JOIN mentor_assignments ma ON ma.student_id = mn.student_id
+            WHERE mn.is_claimed = 0 AND (ma.id IS NULL OR ma.mentor_user_id = ?)
+        `, [req.user.id]);
         res.json({ count: row ? row.count : 0 });
     } catch (e) { res.status(500).json({ error: e.message }); }
 });
