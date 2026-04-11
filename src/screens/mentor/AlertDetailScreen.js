@@ -205,52 +205,53 @@ export default function AlertDetailScreen({ route, navigation }) {
                                             </TouchableOpacity>
                                         </View>
                                     )}
+                                    {!skillsReviewed && (
+                                        <>
+                                            <View style={s.optionsRow}>
+                                                {resultOptions.map(opt => {
+                                                    const selected = skillStatus === opt.value;
+                                                    return (
+                                                        <TouchableOpacity
+                                                            key={opt.value}
+                                                            style={[s.optionBtn, {
+                                                                borderColor: selected ? opt.color : colors.glassBorder,
+                                                                backgroundColor: selected ? opt.color + '15' : 'transparent',
+                                                            }]}
+                                                            onPress={() => setSkillStatus(opt.value)}
+                                                        >
+                                                            <Text style={{ fontSize: 24, marginBottom: 4 }}>{opt.emoji}</Text>
+                                                            <Text style={[s.optionLabel, { color: selected ? opt.color : colors.muted }]}>{opt.label}</Text>
+                                                        </TouchableOpacity>
+                                                    );
+                                                })}
+                                            </View>
 
-                            {!skillsReviewed && (
-                                <>
-                                    <View style={s.optionsRow}>
-                                        {resultOptions.map(opt => {
-                                            const selected = skillStatus === opt.value;
-                                            return (
-                                                <TouchableOpacity
-                                                    key={opt.value}
-                                                    style={[s.optionBtn, {
-                                                        borderColor: selected ? opt.color : colors.glassBorder,
-                                                        backgroundColor: selected ? opt.color + '15' : 'transparent',
-                                                    }]}
-                                                    onPress={() => setSkillStatus(opt.value)}
+                                            <TextInput
+                                                style={[s.input, { borderColor: colors.glassBorder, color: colors.white, marginTop: 12 }]}
+                                                placeholder="Add mentor feedback / remarks..."
+                                                placeholderTextColor={colors.muted}
+                                                value={skillRemarks}
+                                                onChangeText={setSkillRemarks}
+                                                multiline
+                                            />
+
+                                            <TouchableOpacity
+                                                onPress={handleUnifiedReview}
+                                                disabled={savingSkills || !skillStatus}
+                                                style={{ marginTop: 12 }}
+                                            >
+                                                <LinearGradient
+                                                    colors={skillStatus ? gradients.accent : [colors.glass, colors.glass]}
+                                                    start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+                                                    style={s.submitBtn}
                                                 >
-                                                    <Text style={{ fontSize: 24, marginBottom: 4 }}>{opt.emoji}</Text>
-                                                    <Text style={[s.optionLabel, { color: selected ? opt.color : colors.muted }]}>{opt.label}</Text>
-                                                </TouchableOpacity>
-                                            );
-                                        })}
-                                    </View>
-
-                                    <TextInput
-                                        style={[s.input, { borderColor: colors.glassBorder, color: colors.white, marginTop: 12 }]}
-                                        placeholder="Add mentor feedback / remarks..."
-                                        placeholderTextColor={colors.muted}
-                                        value={skillRemarks}
-                                        onChangeText={setSkillRemarks}
-                                        multiline
-                                    />
-
-                                    <TouchableOpacity
-                                        onPress={handleUnifiedReview}
-                                        disabled={savingSkills || !skillStatus}
-                                        style={{ marginTop: 12 }}
-                                    >
-                                        <LinearGradient
-                                            colors={skillStatus ? gradients.accent : [colors.glass, colors.glass]}
-                                            start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
-                                            style={s.submitBtn}
-                                        >
-                                            <Text style={[s.submitBtnText, { color: skillStatus ? '#fff' : colors.muted }]}>
-                                                {savingSkills ? 'Saving...' : '💾 Submit Master Review'}
-                                            </Text>
-                                        </LinearGradient>
-                                    </TouchableOpacity>
+                                                    <Text style={[s.submitBtnText, { color: skillStatus ? '#fff' : colors.muted }]}>
+                                                        {savingSkills ? 'Saving...' : '💾 Submit Master Review'}
+                                                    </Text>
+                                                </LinearGradient>
+                                            </TouchableOpacity>
+                                        </>
+                                    )}
                                 </>
                             )}
                         </>
