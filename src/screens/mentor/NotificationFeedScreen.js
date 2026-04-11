@@ -27,84 +27,7 @@ function StarRating({ value, onChange }) {
 }
 
 // ── Feedback Drawer Modal ──
-function FeedbackDrawer({ visible, notification, onClose, onSubmitted }) {
-    const [rating, setRating] = useState(0);
-    const [verdict, setVerdict] = useState(null); // 'Approved' | 'Needs Improvement'
-    const [comment, setComment] = useState('');
-    const [saving, setSaving] = useState(false);
-    const toast = useToast();
 
-    const submit = async () => {
-        if (!verdict) { toast.show('Please select a verdict', 'error'); return; }
-        if (!rating) { toast.show('Please give a star rating', 'error'); return; }
-        setSaving(true);
-        try {
-            await api.post(`/api/mentor/feedback/${notification.reference_id}`, { rating, verdict, comment });
-            toast.show('Feedback submitted! ✅', 'success');
-            onSubmitted();
-            onClose();
-            setRating(0); setVerdict(null); setComment('');
-        } catch (e) {
-            toast.show(e.response?.data?.error || 'Failed to submit', 'error');
-        } finally { setSaving(false); }
-    };
-
-    return (
-        <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-            <View style={fd.overlay}>
-                <View style={fd.drawer}>
-                    <LinearGradient colors={['#0d1f35', '#06111f']} style={StyleSheet.absoluteFillObject} />
-                    <View style={{ borderBottomWidth: 1, borderColor: 'rgba(0,210,255,0.15)', paddingBottom: 16, marginBottom: 20 }}>
-                        <Text style={fd.title}>📊 Exam Feedback</Text>
-                        <Text style={fd.sub}>{notification?.student_name} · {notification?.reference_title}</Text>
-                    </View>
-
-                    <Text style={fd.label}>STAR RATING</Text>
-                    <StarRating value={rating} onChange={setRating} />
-
-                    <Text style={fd.label}>VERDICT</Text>
-                    <View style={{ flexDirection: 'row', gap: 12, marginBottom: 20 }}>
-                        {['Approved', 'Needs Improvement'].map(v => (
-                            <TouchableOpacity key={v}
-                                style={[fd.verdictBtn,
-                                    verdict === v && { borderColor: v === 'Approved' ? '#00f260' : '#ff4757', backgroundColor: v === 'Approved' ? 'rgba(0,242,96,0.1)' : 'rgba(255,71,87,0.1)' }
-                                ]}
-                                onPress={() => setVerdict(v)}>
-                                <Text style={[fd.verdictText, verdict === v && { color: v === 'Approved' ? '#00f260' : '#ff4757', fontWeight: '800' }]}>
-                                    {v === 'Approved' ? '✅ Approved' : '⚠️ Needs Improvement'}
-                                </Text>
-                            </TouchableOpacity>
-                        ))}
-                    </View>
-
-                    <Text style={fd.label}>COMMENTS (optional)</Text>
-                    <TextInput
-                        style={fd.textArea}
-                        placeholder="Write your feedback for the student..."
-                        placeholderTextColor="rgba(255,255,255,0.2)"
-                        value={comment}
-                        onChangeText={setComment}
-                        multiline
-                        numberOfLines={4}
-                    />
-
-                    <View style={{ flexDirection: 'row', gap: 12, marginTop: 24 }}>
-                        <TouchableOpacity style={fd.cancelBtn} onPress={onClose}>
-                            <Text style={{ color: 'rgba(255,255,255,0.5)', fontWeight: '600' }}>Cancel</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity style={fd.submitBtn} onPress={submit} disabled={saving}>
-                            <LinearGradient colors={['#00d2ff', '#3a7bd5']} style={fd.submitInner}>
-                                <Text style={{ color: '#fff', fontWeight: '800', fontSize: 14 }}>
-                                    {saving ? 'Submitting…' : 'Submit Feedback ➔'}
-                                </Text>
-                            </LinearGradient>
-                        </TouchableOpacity>
-                    </View>
-                </View>
-            </View>
-        </Modal>
-    );
-}
 
 // ── Main Notification Feed ──
 export default function NotificationFeedScreen({ navigation }) {
@@ -113,7 +36,6 @@ export default function NotificationFeedScreen({ navigation }) {
     const toast = useToast();
     const [notifications, setNotifications] = useState([]);
     const [refreshing, setRefreshing] = useState(false);
-    const [feedbackTarget, setFeedbackTarget] = useState(null);
     const [connecting, setConnecting] = useState(null);
 
     const fetchNotifications = async () => {
@@ -208,24 +130,6 @@ export default function NotificationFeedScreen({ navigation }) {
                         </View>
 
                         <View style={s.cardActions}>
-                            {/* Skills alert → open AlertDetail for inline review */}
-                            {n.trigger_type === 'skills' && (
-                                <TouchableOpacity
-                                    style={s.feedbackBtn}
-                                    onPress={() => navigation.navigate('AlertDetail', { alert: n })}
-                                >
-                                    <Text style={s.feedbackBtnText}>🎯 Review Skills</Text>
-                                </TouchableOpacity>
-                            )}
-                            {/* Exam alert → open FeedbackDrawer OR go to ValidationScreen */}
-                            {n.trigger_type === 'exam' && (
-                                <TouchableOpacity
-                                    style={[s.feedbackBtn, { borderColor: 'rgba(138,43,226,0.3)' }]}
-                                    onPress={() => setFeedbackTarget(n)}
-                                >
-                                    <Text style={s.feedbackBtnText}>📊 Give Feedback</Text>
-                                </TouchableOpacity>
-                            )}
                             <TouchableOpacity
                                 style={[s.connectBtn, connecting === n.student_id && { opacity: 0.6 }]}
                                 onPress={(e) => { e.stopPropagation?.(); handleConnect(n); }}
@@ -241,13 +145,6 @@ export default function NotificationFeedScreen({ navigation }) {
                     </TouchableOpacity>
                 ))}
             </ScrollView>
-
-            <FeedbackDrawer
-                visible={!!feedbackTarget}
-                notification={feedbackTarget}
-                onClose={() => setFeedbackTarget(null)}
-                onSubmitted={fetchNotifications}
-            />
         </View>
     );
 }

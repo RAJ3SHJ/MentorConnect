@@ -67,16 +67,19 @@ export default function AlertDetailScreen({ route, navigation }) {
         );
     };
 
-    const handleSkillsReview = async () => {
+    const handleUnifiedReview = async () => {
         if (!skillStatus) { toast.show('Please select a result first', 'warning'); return; }
         setSavingSkills(true);
         try {
-            await api.post(`/api/mentor/skills-review/${studentId}`, {
+            await api.post(`/api/mentor/unified-review/${studentId}`, {
                 status: skillStatus,
                 remarks: skillRemarks,
             });
             setSkillsReviewed(true);
-            toast.show('Skills assessment reviewed! ✅', 'success');
+            toast.show('Unified review submitted! ✅', 'success');
+            // Refresh detail to show updated exam statuses
+            const res = await api.get(`/api/mentor/student-detail/${studentId}`);
+            setDetail(res.data);
         } catch (e) {
             toast.show(e.response?.data?.error || 'Failed to save review', 'error');
         } finally { setSavingSkills(false); }
@@ -166,7 +169,7 @@ export default function AlertDetailScreen({ route, navigation }) {
                             {/* ── Inline Skills Review Panel ── */}
                             <View style={[s.reviewDivider, { backgroundColor: colors.glassBorder }]} />
                             <Text style={[s.cardTitle, { color: colors.white, marginBottom: 12, marginTop: 8 }]}>
-                                📊 {skillsReviewed ? 'Review Submitted' : 'Review This Assessment'}
+                                📊 {skillsReviewed ? 'Review Submitted' : 'Submit Master Review (Skills & Exams)'}
                             </Text>
 
                             {skillsReviewed && (
@@ -212,7 +215,7 @@ export default function AlertDetailScreen({ route, navigation }) {
                                     />
 
                                     <TouchableOpacity
-                                        onPress={handleSkillsReview}
+                                        onPress={handleUnifiedReview}
                                         disabled={savingSkills || !skillStatus}
                                         style={{ marginTop: 12 }}
                                     >
@@ -222,7 +225,7 @@ export default function AlertDetailScreen({ route, navigation }) {
                                             style={s.submitBtn}
                                         >
                                             <Text style={[s.submitBtnText, { color: skillStatus ? '#fff' : colors.muted }]}>
-                                                {savingSkills ? 'Saving...' : '💾 Submit Review'}
+                                                {savingSkills ? 'Saving...' : '💾 Submit Master Review'}
                                             </Text>
                                         </LinearGradient>
                                     </TouchableOpacity>
@@ -263,23 +266,6 @@ export default function AlertDetailScreen({ route, navigation }) {
                                     <View style={[s.statusBadge, { backgroundColor: statusColor + '18', borderColor: statusColor + '44' }]}>
                                         <Text style={[s.statusText, { color: statusColor }]}>{sub.status}</Text>
                                     </View>
-                                    <TouchableOpacity
-                                        style={[s.reviewBtn, { borderColor: colors.blue + '33' }]}
-                                        onPress={() => navigation.navigate('Validation', {
-                                            submissionId: sub.id,
-                                            examTitle: sub.exam_title,
-                                            studentName: student.name,
-                                            studentId: studentId,
-                                            studentEmail: student.email,
-                                            answers: sub.answers,
-                                            existingStatus: sub.status,
-                                            existingRemarks: sub.mentor_remarks,
-                                        })}
-                                    >
-                                        <Text style={[s.reviewBtnText, { color: colors.blue }]}>
-                                            {sub.status === 'Pending Review' ? '📝 Review' : '✏️ Edit'}
-                                        </Text>
-                                    </TouchableOpacity>
                                 </View>
                             </View>
                         );
