@@ -68,7 +68,7 @@ router.get('/dashboard-stats', auth, async (req, res) => {
 router.get('/skills', auth, async (req, res) => {
     try {
         const row = await get('SELECT * FROM student_skills WHERE student_id = ?', [req.user.id]);
-        if (!row) return res.json({ goal: '', skills: [] });
+        if (!row) return res.json(null); // Return null so frontend knows it's unsubmitted
         // Parse skills if stored as JSON string
         const skills = typeof row.skills === 'string' ? JSON.parse(row.skills) : (row.skills || []);
         res.json({ ...row, skills });
@@ -83,8 +83,8 @@ router.post('/skills', auth, async (req, res) => {
     const { goal, skills } = req.body;
     try {
         const skillsJson = JSON.stringify(skills || []);
-        // Disable FK temporarily so UUID-based users can save without FK type mismatch
-        await run('PRAGMA foreign_keys = OFF');
+        
+        // Execute the insertion correctly based on database type (Postgres natively handles UUID FKs now)
         const existing = await get('SELECT id FROM student_skills WHERE student_id = ?', [req.user.id]);
         if (existing) {
             await run(
@@ -97,10 +97,8 @@ router.post('/skills', auth, async (req, res) => {
                 [req.user.id, goal, skillsJson]
             );
         }
-        await run('PRAGMA foreign_keys = ON');
         res.status(201).json({ message: 'Skill assessment updated! 🎯' });
     } catch (e) {
-        await run('PRAGMA foreign_keys = ON').catch(() => {});
         console.error('Update Skills Error:', e.message);
         res.status(500).json({ error: 'Failed to save assessment' });
     }
