@@ -45,7 +45,24 @@ export default function NotificationFeedScreen({ navigation }) {
         } catch (e) { console.log('Notification fetch error:', e.message); }
     };
 
-    useFocusEffect(useCallback(() => { fetchNotifications(); }, []));
+    useEffect(() => {
+        const { supabase } = require('../../api/supabase');
+        fetchNotifications();
+
+        // Subscribe to changes in mentor_notifications for real-time list updates
+        const channel = supabase
+            .channel('mentor-notifs-feed')
+            .on('postgres_changes', 
+                { event: '*', schema: 'public', table: 'mentor_notifications' }, 
+                () => {
+                    console.log('🔄 List change detected, refreshing feed...');
+                    fetchNotifications();
+                }
+            )
+            .subscribe();
+
+        return () => supabase.removeChannel(channel);
+    }, []);
     const onRefresh = async () => { setRefreshing(true); await fetchNotifications(); setRefreshing(false); };
 
     const handleConnect = async (notification) => {

@@ -84,17 +84,32 @@ export default function MentorTabs() {
     const { colors } = useTheme();
     const [notifCount, setNotifCount] = useState(0);
 
-    // Poll notification count every 30 seconds
+    // Real-time notification count
     useEffect(() => {
-        const fetchCount = async () => {
+        const { supabase } = require('../api/supabase');
+        
+        const fetchInitialCount = async () => {
             try {
                 const res = await api.get('/api/mentor/notification-count');
                 setNotifCount(res.data.count || 0);
-            } catch (e) { /* silently fail */ }
+            } catch (e) { /* silent */ }
         };
-        fetchCount();
-        const interval = setInterval(fetchCount, 30000);
-        return () => clearInterval(interval);
+
+        fetchInitialCount();
+
+        // Subscribe to changes in mentor_notifications
+        const channel = supabase
+            .channel('mentor-notifs-badge')
+            .on('postgres_changes', 
+                { event: '*', schema: 'public', table: 'mentor_notifications' }, 
+                () => {
+                    console.log('🔔 Real-time notification update detected');
+                    fetchInitialCount();
+                }
+            )
+            .subscribe();
+
+        return () => supabase.removeChannel(channel);
     }, []);
 
     return (
