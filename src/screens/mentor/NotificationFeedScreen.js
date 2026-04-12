@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
     View, Text, StyleSheet, ScrollView, TouchableOpacity,
     RefreshControl, Dimensions, Platform, Modal, TextInput, Alert
@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect } from '@react-navigation/native';
 import api from '../../api/client';
+import { supabase } from '../../api/supabase';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../components/Toast';
 
@@ -46,7 +47,6 @@ export default function NotificationFeedScreen({ navigation }) {
     };
 
     useEffect(() => {
-        const { supabase } = require('../../api/supabase');
         fetchNotifications();
 
         // Subscribe to changes in mentor_notifications for real-time list updates
