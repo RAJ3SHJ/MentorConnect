@@ -153,7 +153,7 @@ export default function MentorDashboardScreen({ navigation }) {
                     )}
                 </ScrollView>
 
-                {/* ── Assessment Queue ── */}
+                {/* ── Assessment Queue (Grouped by Student) ── */}
                 <Text style={s.sectionTitle}>⚠️ Action Required: Assessments</Text>
                 <View style={{ gap: 14 }}>
                     {assessments.length === 0 ? (
@@ -161,21 +161,52 @@ export default function MentorDashboardScreen({ navigation }) {
                             <Text style={s.emptyText}>Inbox Zero. Excellent work.</Text>
                         </View>
                     ) : (
-                        assessments.map(item => (
-                            <View key={item.id} style={[s.queueCard, Platform.OS === 'web' && { backdropFilter: 'blur(15px)' }]}>
+                        // Grouping assessments by student ID
+                        Object.values(assessments.reduce((acc, alert) => {
+                            if (!acc[alert.student_id]) {
+                                acc[alert.student_id] = {
+                                    student_id: alert.student_id,
+                                    student_name: alert.student_name,
+                                    items: []
+                                };
+                            }
+                            acc[alert.student_id].items.push(alert);
+                            return acc;
+                        }, {})).map(student => (
+                            <View key={student.student_id} style={[s.queueCard, Platform.OS === 'web' && { backdropFilter: 'blur(15px)' }]}>
                                 <View style={s.queueHeader}>
-                                    <Text style={s.queueTitle} numberOfLines={2}>{item.exam_title}</Text>
-                                    <View style={s.queueBadge}>
-                                        <Text style={s.queueBadgeText}>SUBMITTED</Text>
+                                    <View style={s.qAvatar}><Text style={{ fontSize: 20 }}>🎓</Text></View>
+                                    <View style={{ flex: 1 }}>
+                                        <Text style={s.queueStudent}>{student.student_name}</Text>
+                                        <Text style={s.queueSub}>{student.items.length} pending assessment{student.items.length > 1 ? 's' : ''}</Text>
                                     </View>
                                 </View>
-                                <Text style={s.queueStudent}>By: {item.student_name}</Text>
-                                <Text style={s.queueDate}>
-                                    Submitted: {new Date(item.submitted_at).toLocaleDateString()}
-                                </Text>
-                                <View style={s.divider} />
-                                <TouchableOpacity style={s.gradeBtn} onPress={() => setGradingItem(item)}>
-                                    <Text style={s.gradeBtnText}>Grade Now ➔</Text>
+                                
+                                <View style={s.qBody}>
+                                    {student.items.map((item, idx) => (
+                                        <TouchableOpacity 
+                                            key={item.id} 
+                                            style={[s.qRow, idx > 0 && s.qDivider]} 
+                                            onPress={() => setGradingItem(item)}
+                                            activeOpacity={0.7}
+                                        >
+                                            <View style={{ flex: 1 }}>
+                                                <Text style={s.queueTitle}>{item.exam_title || 'Assessment'}</Text>
+                                                <Text style={s.queueDate}>Submitted: {new Date(item.submitted_at).toLocaleDateString()}</Text>
+                                            </View>
+                                            <TouchableOpacity style={s.gradeBadge} onPress={() => setGradingItem(item)}>
+                                                <Text style={s.gradeBadgeText}>Grade →</Text>
+                                            </TouchableOpacity>
+                                        </TouchableOpacity>
+                                    ))}
+                                </View>
+
+                                {/* Optional: Unified navigation to student profile or detailed review */}
+                                <TouchableOpacity 
+                                    style={s.viewProfileBtn}
+                                    onPress={() => navigation.navigate('StudentDetail', { studentId: student.student_id })}
+                                >
+                                    <Text style={s.viewProfileText}>View Student Progress ➔</Text>
                                 </TouchableOpacity>
                             </View>
                         ))
@@ -274,16 +305,21 @@ const s = StyleSheet.create({
     // Queue cards
     emptyBox: { padding: 28, borderRadius: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)', backgroundColor: 'rgba(255,255,255,0.02)', alignItems: 'center' },
     emptyText: { color: C.muted, fontWeight: '600' },
-    queueCard: { backgroundColor: 'rgba(255,255,255,0.02)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', borderRadius: 20, padding: 20 },
-    queueHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10, marginBottom: 8, flexWrap: 'wrap' },
-    queueTitle: { fontSize: 18, color: '#fff', fontWeight: '800', flex: 1 },
-    queueBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8, backgroundColor: 'rgba(255,71,87,0.1)', borderWidth: 1, borderColor: 'rgba(255,71,87,0.3)' },
-    queueBadgeText: { color: '#ff4757', fontSize: 10, fontWeight: '800' },
-    queueStudent: { color: C.faint, marginBottom: 4 },
-    queueDate: { color: C.muted, fontSize: 12, marginBottom: 4 },
+    queueCard: { backgroundColor: 'rgba(255,255,255,0.02)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', borderRadius: 24, padding: 20, marginBottom: 16 },
+    queueHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 16 },
+    qAvatar: { width: 44, height: 44, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.04)', alignItems: 'center', justifyContent: 'center' },
+    queueStudent: { fontSize: 16, color: '#fff', fontWeight: '800' },
+    queueSub: { fontSize: 12, color: C.primary, fontWeight: '600' },
+    qBody: { backgroundColor: 'rgba(255,255,255,0.015)', borderRadius: 16, padding: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.04)', marginBottom: 16 },
+    qRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 8 },
+    qDivider: { borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.06)', marginTop: 8, paddingTop: 16 },
+    queueTitle: { fontSize: 14, color: '#fff', fontWeight: '700', marginBottom: 2 },
+    queueDate: { fontSize: 11, color: C.muted },
+    gradeBadge: { backgroundColor: 'rgba(0,210,255,0.1)', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, borderWidth: 1, borderColor: 'rgba(0,210,255,0.2)' },
+    gradeBadgeText: { color: '#00d2ff', fontSize: 11, fontWeight: '800' },
+    viewProfileBtn: { alignItems: 'center', paddingVertical: 12 },
+    viewProfileText: { color: C.primary, fontSize: 13, fontWeight: '700' },
     divider: { height: 1, backgroundColor: 'rgba(255,255,255,0.05)', marginVertical: 14 },
-    gradeBtn: { paddingVertical: 14, borderRadius: 12, backgroundColor: 'rgba(0,210,255,0.1)', alignItems: 'center', borderWidth: 1, borderColor: 'rgba(0,210,255,0.3)' },
-    gradeBtnText: { color: '#00d2ff', fontWeight: '800', fontSize: 14, textTransform: 'uppercase', letterSpacing: 1 },
 
     // Create course button (inline)
     createCourseBtn: { marginTop: 28 },

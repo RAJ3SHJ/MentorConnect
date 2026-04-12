@@ -128,48 +128,51 @@ export default function NotificationFeedScreen({ navigation }) {
                     >
                         <LinearGradient colors={['rgba(255,255,255,0.03)', 'transparent']} style={StyleSheet.absoluteFillObject} />
 
-                        {/* Student Header */}
+                        {/* Student Info Header */}
                         <View style={s.cardHeader}>
                             <View style={s.avatar}><Text style={{ fontSize: 24 }}>🎓</Text></View>
                             <View style={{ flex: 1 }}>
-                                <Text style={s.studentName}>{student.student_name}</Text>
+                                <Text style={s.studentName}>{student.student_name || 'Learner'}</Text>
                                 <Text style={s.studentEmail}>{student.student_email}</Text>
                             </View>
                         </View>
 
-                        {/* Grouped Alerts List */}
+                        {/* Stacked Pending Items */}
                         <View style={s.cardBody}>
+                            <Text style={s.sectionLabel}>Pending Submissions:</Text>
                             {student.alerts.map((alert, idx) => (
                                 <TouchableOpacity 
                                     key={alert.id}
-                                    style={[s.alertRow, idx > 0 && { marginTop: 16, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.05)', paddingTop: 12 }]}
+                                    style={[s.alertItem, idx > 0 && s.alertDivider]}
                                     onPress={() => navigation.navigate('AlertDetail', { alert })}
+                                    activeOpacity={0.7}
                                 >
-                                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                                    <View style={s.alertMain}>
                                         <TriggerBadge type={alert.trigger_type} />
+                                        <Text style={s.alertTitle}>{alert.reference_title || 'Assessment'}</Text>
+                                    </View>
+                                    <View style={s.alertMeta}>
                                         <Text style={s.timestamp}>
                                             {new Date(alert.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
                                         </Text>
+                                        <Text style={s.viewLink}>View Details →</Text>
                                     </View>
-                                    <Text style={s.refTitle}>{alert.reference_title || 'Assessment Submitted'}</Text>
                                 </TouchableOpacity>
                             ))}
                         </View>
 
-                        {/* Unified Connect Action */}
-                        <View style={s.cardActions}>
-                            <TouchableOpacity
-                                style={[s.connectBtn, connecting === student.student_id && { opacity: 0.6 }]}
-                                onPress={() => handleConnect(student.alerts[0])}
-                                disabled={!!connecting}
-                            >
-                                <LinearGradient colors={['#00d2ff', '#3a7bd5']} style={s.connectInner}>
-                                    <Text style={s.connectText}>
-                                        {connecting === student.student_id ? 'Connecting…' : '🔗 Connect'}
-                                    </Text>
-                                </LinearGradient>
-                            </TouchableOpacity>
-                        </View>
+                        {/* Connect Button (Consolidated) */}
+                        <TouchableOpacity
+                            style={[s.connectBtn, connecting === student.student_id && { opacity: 0.6 }]}
+                            onPress={() => handleConnect(student.alerts[0])}
+                            disabled={!!connecting}
+                        >
+                            <LinearGradient colors={['#00d2ff', '#3a7bd5']} style={s.connectInner}>
+                                <Text style={s.connectText}>
+                                    {connecting === student.student_id ? '🔄 Connecting…' : '🔗 Connect with Learner'}
+                                </Text>
+                            </LinearGradient>
+                        </TouchableOpacity>
                     </View>
                 ))}
             </ScrollView>
@@ -189,24 +192,26 @@ const s = StyleSheet.create({
     emptySub: { fontSize: 15, color: 'rgba(255,255,255,0.4)', textAlign: 'center', lineHeight: 22, maxWidth: 380 },
 
     card: { backgroundColor: 'rgba(255,255,255,0.02)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.07)', borderRadius: 24, padding: 24, marginBottom: 20, overflow: 'hidden' },
-    cardHeader: { flexDirection: 'row', alignItems: 'center', gap: 16, marginBottom: 16 },
+    cardHeader: { flexDirection: 'row', alignItems: 'center', gap: 16, marginBottom: 20 },
     avatar: { width: 56, height: 56, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.04)', alignItems: 'center', justifyContent: 'center' },
     studentName: { fontSize: 18, color: '#fff', fontWeight: '700', marginBottom: 2 },
-    studentEmail: { fontSize: 13, color: 'rgba(255,255,255,0.4)' },
+    studentEmail: { fontSize: 13, color: 'rgba(255,255,255,0.3)', marginBottom: 4 },
     badge: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8, borderWidth: 1 },
     badgeText: { fontSize: 10, fontWeight: '800', letterSpacing: 0.5 },
 
-    cardBody: { borderTopWidth: 1, borderColor: 'rgba(255,255,255,0.05)', paddingTop: 16, marginBottom: 20 },
-    alertRow: { borderRadius: 12 },
-    refTitle: { fontSize: 16, color: '#fff', fontWeight: '600', marginBottom: 4 },
-    timestamp: { fontSize: 12, color: 'rgba(255,255,255,0.3)' },
+    cardBody: { backgroundColor: 'rgba(255,255,255,0.015)', borderRadius: 16, padding: 16, marginBottom: 20, borderWidth: 1, borderColor: 'rgba(255,255,255,0.03)' },
+    sectionLabel: { fontSize: 11, fontWeight: '800', color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 12 },
+    alertItem: { paddingVertical: 8 },
+    alertDivider: { borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.05)', marginTop: 12, paddingTop: 16 },
+    alertMain: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 8 },
+    alertTitle: { fontSize: 15, color: '#fff', fontWeight: '600' },
+    alertMeta: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+    timestamp: { fontSize: 12, color: 'rgba(255,255,255,0.25)' },
+    viewLink: { fontSize: 12, color: '#00d2ff', fontWeight: '700' },
 
-    cardActions: { flexDirection: 'row', gap: 12 },
-    feedbackBtn: { flex: 1, paddingVertical: 14, borderRadius: 14, backgroundColor: 'rgba(138,43,226,0.1)', borderWidth: 1, borderColor: 'rgba(138,43,226,0.3)', alignItems: 'center' },
-    feedbackBtnText: { color: '#bf80ff', fontWeight: '700', fontSize: 13 },
-    connectBtn: { flex: 1 },
-    connectInner: { paddingVertical: 14, borderRadius: 14, alignItems: 'center' },
-    connectText: { color: '#fff', fontWeight: '800', fontSize: 13, textTransform: 'uppercase', letterSpacing: 0.5 },
+    connectBtn: { width: '100%' },
+    connectInner: { paddingVertical: 16, borderRadius: 16, alignItems: 'center' },
+    connectText: { color: '#fff', fontWeight: '800', fontSize: 14, textTransform: 'uppercase', letterSpacing: 0.8 },
 });
 
 const fd = StyleSheet.create({
