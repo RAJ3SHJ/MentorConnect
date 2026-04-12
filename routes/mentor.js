@@ -235,23 +235,38 @@ router.get('/my-students', auth, async (req, res) => {
 // GET /api/mentor/my-assessments — filtered by mentor's assigned students
 router.get('/my-assessments', auth, async (req, res) => {
     try {
-        const mentorId = req.user.id;
+        const mentorUserId = req.user.id;
 
         const submissions = await all(`
-            SELECT es.id, es.student_id, es.exam_id, es.answers, es.status,
-                   es.mentor_remarks, es.submitted_at, es.reviewed_at, 
+            -- Exam Submissions
+            SELECT es.id, es.student_id, 'exam' as type, es.exam_id, es.answers, es.status,
+                   es.mentor_remarks, es.submitted_at, 
                    e.title AS exam_title, u.name AS student_name
             FROM exam_submissions es
             JOIN exams e ON e.id = es.exam_id
             JOIN users u ON u.id = es.student_id
             JOIN mentor_assignments ma ON ma.student_id = u.id
-            WHERE ma.mentor_id = ? AND es.status IN ('Submitted', 'Pending Review')
-            ORDER BY es.submitted_at DESC
-        `, [mentorId]);
+            WHERE ma.mentor_user_id = ? AND es.status IN ('Submitted', 'Pending Review')
+
+            UNION ALL
+
+            -- Skills Submissions
+            SELECT ss.id, ss.student_id, 'skills' as type, NULL as exam_id, ss.skills as answers, 'Submitted' as status,
+                   NULL as mentor_remarks, ss.submitted_at, 
+                   'Skills Assessment: ' || ss.goal AS exam_title, u.name AS student_name
+            FROM student_skills ss
+            JOIN users u ON u.id = ss.student_id
+            JOIN mentor_assignments ma ON ma.student_id = u.id
+            -- We only show skills that haven't been "handled" yet if we had a status, 
+            -- but for now we show them if the student is assigned.
+            WHERE ma.mentor_user_id = ? 
+            
+            ORDER BY submitted_at DESC
+        `, [mentorUserId, mentorUserId]);
         
         const result = submissions.map(sub => ({ 
             ...sub, 
-            answers: JSON.parse(sub.answers || '[]') 
+            answers: sub.type === 'exam' ? JSON.parse(sub.answers || '[]') : sub.answers 
         }));
         res.json(result);
     } catch (e) {
@@ -296,9 +311,9 @@ router.get('/notifications', auth, async (req, res) => {
             LEFT JOIN exams e ON e.id = es.exam_id
             LEFT JOIN courses c ON c.id = mn.reference_id AND mn.trigger_type = 'course'
             LEFT JOIN student_skills ss ON ss.id = mn.reference_id AND mn.trigger_type = 'skills'
-            WHERE mn.is_claimed = 0 AND (ma.id IS NULL OR ma.mentor_user_id = ?)
+            WHERE mn.is_claimed = 0 AND ma.id IS NULL
             ORDER BY mn.created_at DESC
-        `, [req.user.id]);
+        `);
         res.json(notifications);
     } catch (e) { res.status(500).json({ error: e.message }); }
 });
@@ -310,8 +325,8 @@ router.get('/notification-count', auth, async (req, res) => {
             SELECT COUNT(DISTINCT mn.student_id) as count 
             FROM mentor_notifications mn
             LEFT JOIN mentor_assignments ma ON ma.student_id = mn.student_id
-            WHERE mn.is_claimed = 0 AND (ma.id IS NULL OR ma.mentor_user_id = ?)
-        `, [req.user.id]);
+            WHERE mn.is_claimed = 0 AND ma.id IS NULL
+        `);
         res.json({ count: row ? row.count : 0 });
     } catch (e) { res.status(500).json({ error: e.message }); }
 });
