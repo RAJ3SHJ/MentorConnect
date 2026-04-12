@@ -48,29 +48,46 @@ router.post('/login', async (req, res) => {
         const isEmail = identifier.includes('@');
         const loginEmail = isEmail ? identifier.toLowerCase() : `${identifier.toLowerCase()}@mentor.local`;
 
-        // 2. Authenticate with Supabase Auth — with 5s timeout to prevent cold-start blocking
-        const supabaseLoginPromise = supabaseAdmin.auth.signInWithPassword({
-            email: loginEmail,
-            password: password
-        });
-        const timeoutPromise = new Promise((_, reject) => 
-            setTimeout(() => reject(new Error('Supabase auth timeout')), 5000)
-        );
-        const { data: authData, error: authError } = await Promise.race([
-            supabaseLoginPromise,
-            timeoutPromise.then(() => ({ data: null, error: { message: 'timeout' } })).catch(e => ({ data: null, error: { message: e.message } }))
-        ]);
+        // 2. Authenticate with Supabase Auth — with 12s timeout and single retry for concurrency robustness
+        const performAuth = async (retryCount = 0) => {
+            try {
+                const supabaseLoginPromise = supabaseAdmin.auth.signInWithPassword({
+                    email: loginEmail,
+                    password: password
+                });
+                const timeoutPromise = new Promise((_, reject) => 
+                    setTimeout(() => reject(new Error('Supabase auth timeout')), 12000)
+                );
+                
+                const result = await Promise.race([supabaseLoginPromise, timeoutPromise]);
+                if (result.error) throw result.error;
+                return result;
+            } catch (authError) {
+                if ((authError.message === 'timeout' || authError.status === 504) && retryCount < 1) {
+                    console.log(`🔄 Retrying auth for ${loginEmail} due to potential concurrency bottleneck...`);
+                    return performAuth(retryCount + 1);
+                }
+                throw authError;
+            }
+        };
+
+        let authData, authError;
+        try {
+            const result = await performAuth();
+            authData = result.data;
+        } catch (err) {
+            authError = err;
+        }
 
         if (authError) {
-            console.error('Supabase Login Failed:', authError.message);
-            // Fallback: Check local for Admin/Mentor PIN-based legacy accounts if needed
+            console.error('Login Failed:', authError.message);
+            // Fallback: Check local for Admin/Mentor PIN-based legacy accounts
             const localUser = await get("SELECT * FROM users WHERE (email = ? OR username = ?) AND role IN ('admin', 'mentor')", [identifier, identifier]);
             if (localUser && bcrypt.compareSync(password, localUser.password_hash)) {
-                // Legacy path for local-only accounts
                 const token = jwt.sign({ id: localUser.id, name: localUser.name, role: localUser.role || 'learner' }, JWT_SECRET, { expiresIn: '30d' });
                 return res.json({ token, user: localUser });
             }
-            return res.status(401).json({ error: 'Invalid credentials' });
+            return res.status(401).json({ error: authError.message === 'Supabase auth timeout' ? 'Server is busy, please try again' : 'Invalid credentials' });
         }
 
         const cloudUser = authData.user;

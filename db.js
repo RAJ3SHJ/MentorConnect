@@ -58,10 +58,10 @@ async function initDb() {
 
     CREATE TABLE IF NOT EXISTS mentor_assignments (
       id ${isPG ? 'SERIAL' : 'INTEGER'} PRIMARY KEY ${isPG ? '' : 'AUTOINCREMENT'},
-      mentor_id ${isPG ? 'VARCHAR(255)' : 'TEXT'} REFERENCES users(id),
-      student_id ${isPG ? 'VARCHAR(255)' : 'TEXT'} REFERENCES users(id),
+      mentor_id ${isPG ? 'VARCHAR(255)' : 'TEXT'} REFERENCES users(id) ON DELETE CASCADE,
+      student_id ${isPG ? 'VARCHAR(255)' : 'TEXT'} REFERENCES users(id) ON DELETE CASCADE,
       assigned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      mentor_user_id ${isPG ? 'VARCHAR(255)' : 'TEXT'} REFERENCES users(id),
+      mentor_user_id ${isPG ? 'VARCHAR(255)' : 'TEXT'} REFERENCES users(id) ON DELETE CASCADE,
       UNIQUE(student_id)
     );
 
@@ -78,8 +78,8 @@ async function initDb() {
 
     CREATE TABLE IF NOT EXISTS roadmap (
       id ${isPG ? 'SERIAL' : 'INTEGER'} PRIMARY KEY ${isPG ? '' : 'AUTOINCREMENT'},
-      student_id ${isPG ? 'VARCHAR(255)' : 'TEXT'} REFERENCES users(id),
-      course_id INTEGER REFERENCES courses(id),
+      student_id ${isPG ? 'VARCHAR(255)' : 'TEXT'} REFERENCES users(id) ON DELETE CASCADE,
+      course_id INTEGER REFERENCES courses(id) ON DELETE CASCADE,
       status TEXT DEFAULT 'Yet to Start',
       assigned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       UNIQUE(student_id, course_id)
@@ -87,7 +87,7 @@ async function initDb() {
 
     CREATE TABLE IF NOT EXISTS student_skills (
       id ${isPG ? 'SERIAL' : 'INTEGER'} PRIMARY KEY ${isPG ? '' : 'AUTOINCREMENT'},
-      student_id ${isPG ? 'VARCHAR(255)' : 'TEXT'} REFERENCES users(id) UNIQUE,
+      student_id ${isPG ? 'VARCHAR(255)' : 'TEXT'} REFERENCES users(id) ON DELETE CASCADE UNIQUE,
       goal TEXT,
       skills TEXT,
       submitted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -111,8 +111,8 @@ async function initDb() {
 
     CREATE TABLE IF NOT EXISTS exam_submissions (
       id ${isPG ? 'SERIAL' : 'INTEGER'} PRIMARY KEY ${isPG ? '' : 'AUTOINCREMENT'},
-      student_id ${isPG ? 'VARCHAR(255)' : 'TEXT'} REFERENCES users(id),
-      exam_id INTEGER REFERENCES exams(id),
+      student_id ${isPG ? 'VARCHAR(255)' : 'TEXT'} REFERENCES users(id) ON DELETE CASCADE,
+      exam_id INTEGER REFERENCES exams(id) ON DELETE CASCADE,
       answers TEXT,
       status TEXT DEFAULT 'Pending Review',
       mentor_remarks TEXT,
@@ -125,7 +125,7 @@ async function initDb() {
     CREATE TABLE IF NOT EXISTS notifications (
       id ${isPG ? 'SERIAL' : 'INTEGER'} PRIMARY KEY ${isPG ? '' : 'AUTOINCREMENT'},
       type TEXT NOT NULL,
-      student_id ${isPG ? 'VARCHAR(255)' : 'TEXT'} REFERENCES users(id),
+      student_id ${isPG ? 'VARCHAR(255)' : 'TEXT'} REFERENCES users(id) ON DELETE CASCADE,
       mentor_id ${isPG ? 'VARCHAR(255)' : 'TEXT'},
       reference_id INTEGER,
       is_read INTEGER DEFAULT 0,
@@ -134,7 +134,7 @@ async function initDb() {
 
     CREATE TABLE IF NOT EXISTS mentor_notifications (
       id ${isPG ? 'SERIAL' : 'INTEGER'} PRIMARY KEY ${isPG ? '' : 'AUTOINCREMENT'},
-      student_id ${isPG ? 'VARCHAR(255)' : 'TEXT'} REFERENCES users(id),
+      student_id ${isPG ? 'VARCHAR(255)' : 'TEXT'} REFERENCES users(id) ON DELETE CASCADE,
       trigger_type TEXT NOT NULL,
       reference_id INTEGER,
       is_claimed INTEGER DEFAULT 0,
