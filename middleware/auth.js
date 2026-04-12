@@ -7,7 +7,7 @@ const LEGACY_JWT_SECRET = 'mentor_app_jwt_secret_key_2024';
 // Supabase JWT Secret (MUST be added to environment variables for cloud identity)
 const SUPABASE_JWT_SECRET = process.env.SUPABASE_JWT_SECRET;
 
-module.exports = (req, res, next) => {
+module.exports = async (req, res, next) => {
     const authHeader = req.headers['authorization'];
     const token = authHeader && authHeader.split(' ')[1];
     if (!token) return res.status(401).json({ error: 'Identity token required' });
