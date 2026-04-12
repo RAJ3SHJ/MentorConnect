@@ -1,13 +1,23 @@
 name: Build Android APK (The Bypass)
 on:
   workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version Name'
+        required: false
+        default: 'latest'
   push:
     branches:
       - main
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - name: 🏗 Checkout
         uses: actions/checkout@v4
@@ -37,24 +47,50 @@ jobs:
       - name: 📦 Install dependencies
         run: npm install --legacy-peer-deps
 
+      - name: 🔍 Verify Expo Auth
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: npx eas-cli whoami
+
+      - name: 🛠 Prebuild
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: npx expo prebuild --platform android --non-interactive
+
       - name: 🏗 Build Android APK (Local Bypass)
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+          EXPO_DEBUG: true
+          DEBUG: expo:*
         run: |
           if [ -z "$EXPO_TOKEN" ]; then
             echo "❌ ERROR: EXPO_TOKEN is not set in GitHub Secrets. Build will fail."
             exit 1
           fi
-          # Dynamically create the .env file for the production build
+          
+          # Use values from app.json or secrets if available
           echo "EXPO_PUBLIC_API_URL=https://mentor-app-backend-w6bk.onrender.com" > .env
           echo "EXPO_PUBLIC_SUPABASE_URL=https://fxmqluspbkjjajdnnxel.supabase.co" >> .env
           echo "EXPO_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ4bXFsdXNwYmtqamFqZG5ueGVsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3NzkxMTQsImV4cCI6MjA5MDM1NTExNH0.mCeIB_KxKQqhHg35fVMem5xlq8y6X07xiX9GK31NrfM" >> .env
           
-          # Use npx for EAS CLI and run build
-          npx eas-cli build --platform android --profile preview --local --non-interactive --output ./mentor-app-release.apk
+          echo "🚀 Starting Local EAS Build with Debugging..."
+          npx eas-cli build --platform android --profile preview --local --non-interactive --output ./Mentor-Connect-Release.apk
 
-      - name: 📤 Upload APK
+      - name: 📤 Upload Artifact
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: Mentor-Connect-APK
-          path: ./mentor-app-release.apk
+          path: ./Mentor-Connect-Release.apk
+
+      - name: 🚀 Create GitHub Release
+        if: success() && (github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main')
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: build-${{ github.run_number }}
+          name: Mentor Connect Build ${{ github.run_number }}
+          draft: false
+          prerelease: false
+          files: ./Mentor-Connect-Release.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
