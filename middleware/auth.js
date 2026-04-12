@@ -1,4 +1,5 @@
 const jwt = require('jsonwebtoken');
+const { run, get } = require('../db');
 
 // Legacy secret for Admin-only sessions
 const LEGACY_JWT_SECRET = 'mentor_app_jwt_secret_key_2024';
@@ -20,8 +21,26 @@ module.exports = (req, res, next) => {
                 id: decoded.sub,
                 email: decoded.email,
                 role: decoded.user_metadata?.role || 'learner',
+                name: decoded.user_metadata?.name || decoded.email?.split('@')[0] || 'Learner',
                 ...decoded
             };
+
+            // AUTO-PROVISION: Ensure user exists in local DB for foreign key consistency
+            try {
+                const existing = await get('SELECT id FROM users WHERE id = ?', [req.user.id]);
+                if (!existing) {
+                    console.log(`🆕 Auto-provisioning new cloud user: ${req.user.email} (${req.user.id})`);
+                    await run(`
+                        INSERT INTO users (id, name, email, role, password_hash)
+                        VALUES (?, ?, ?, ?, ?)
+                    `, [req.user.id, req.user.name, req.user.email, req.user.role, 'CLOUD_AUTH']);
+                }
+            } catch (authDbError) {
+                console.error('⚠️ Auth Provisioning Warning:', authDbError.message);
+                // We don't block the request if provisioning fails unless it's critical,
+                // but for assessment submissions it WILL fail later if this fails.
+            }
+
             return next();
         } catch (e) {
             // If it failed Supabase check, we continue to check Legacy/Admin

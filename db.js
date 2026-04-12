@@ -58,10 +58,10 @@ async function initDb() {
 
     CREATE TABLE IF NOT EXISTS mentor_assignments (
       id ${isPG ? 'SERIAL' : 'INTEGER'} PRIMARY KEY ${isPG ? '' : 'AUTOINCREMENT'},
-      mentor_id ${isPG ? 'VARCHAR(255)' : 'INTEGER'} REFERENCES users(id),
-      student_id ${isPG ? 'VARCHAR(255)' : 'INTEGER'} REFERENCES users(id),
+      mentor_id ${isPG ? 'VARCHAR(255)' : 'TEXT'} REFERENCES users(id),
+      student_id ${isPG ? 'VARCHAR(255)' : 'TEXT'} REFERENCES users(id),
       assigned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      mentor_user_id ${isPG ? 'VARCHAR(255)' : 'INTEGER'} REFERENCES users(id),
+      mentor_user_id ${isPG ? 'VARCHAR(255)' : 'TEXT'} REFERENCES users(id),
       UNIQUE(student_id)
     );
 
@@ -78,7 +78,7 @@ async function initDb() {
 
     CREATE TABLE IF NOT EXISTS roadmap (
       id ${isPG ? 'SERIAL' : 'INTEGER'} PRIMARY KEY ${isPG ? '' : 'AUTOINCREMENT'},
-      student_id ${isPG ? 'VARCHAR(255)' : 'INTEGER'} REFERENCES users(id),
+      student_id ${isPG ? 'VARCHAR(255)' : 'TEXT'} REFERENCES users(id),
       course_id INTEGER REFERENCES courses(id),
       status TEXT DEFAULT 'Yet to Start',
       assigned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -87,7 +87,7 @@ async function initDb() {
 
     CREATE TABLE IF NOT EXISTS student_skills (
       id ${isPG ? 'SERIAL' : 'INTEGER'} PRIMARY KEY ${isPG ? '' : 'AUTOINCREMENT'},
-      student_id ${isPG ? 'VARCHAR(255)' : 'INTEGER'} REFERENCES users(id) UNIQUE,
+      student_id ${isPG ? 'VARCHAR(255)' : 'TEXT'} REFERENCES users(id) UNIQUE,
       goal TEXT,
       skills TEXT,
       submitted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -111,7 +111,7 @@ async function initDb() {
 
     CREATE TABLE IF NOT EXISTS exam_submissions (
       id ${isPG ? 'SERIAL' : 'INTEGER'} PRIMARY KEY ${isPG ? '' : 'AUTOINCREMENT'},
-      student_id ${isPG ? 'VARCHAR(255)' : 'INTEGER'} REFERENCES users(id),
+      student_id ${isPG ? 'VARCHAR(255)' : 'TEXT'} REFERENCES users(id),
       exam_id INTEGER REFERENCES exams(id),
       answers TEXT,
       status TEXT DEFAULT 'Pending Review',
@@ -125,8 +125,8 @@ async function initDb() {
     CREATE TABLE IF NOT EXISTS notifications (
       id ${isPG ? 'SERIAL' : 'INTEGER'} PRIMARY KEY ${isPG ? '' : 'AUTOINCREMENT'},
       type TEXT NOT NULL,
-      student_id ${isPG ? 'VARCHAR(255)' : 'INTEGER'} REFERENCES users(id),
-      mentor_id ${isPG ? 'VARCHAR(255)' : 'INTEGER'},
+      student_id ${isPG ? 'VARCHAR(255)' : 'TEXT'} REFERENCES users(id),
+      mentor_id ${isPG ? 'VARCHAR(255)' : 'TEXT'},
       reference_id INTEGER,
       is_read INTEGER DEFAULT 0,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -134,11 +134,11 @@ async function initDb() {
 
     CREATE TABLE IF NOT EXISTS mentor_notifications (
       id ${isPG ? 'SERIAL' : 'INTEGER'} PRIMARY KEY ${isPG ? '' : 'AUTOINCREMENT'},
-      student_id ${isPG ? 'VARCHAR(255)' : 'INTEGER'} REFERENCES users(id),
+      student_id ${isPG ? 'VARCHAR(255)' : 'TEXT'} REFERENCES users(id),
       trigger_type TEXT NOT NULL,
       reference_id INTEGER,
       is_claimed INTEGER DEFAULT 0,
-      claimed_by_mentor_id ${isPG ? 'VARCHAR(255)' : 'INTEGER'},
+      claimed_by_mentor_id ${isPG ? 'VARCHAR(255)' : 'TEXT'},
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
 
@@ -209,6 +209,27 @@ async function initDb() {
     await syncPostgresSchema();
   } else {
     sqlite.exec(schema);
+
+    // ─── SQLITE SELF-HEALING MIGRATION ───
+    // If tables are empty but have the old 'INTEGER' types for UUID columns,
+    // we drop them so they get recreated with the correct 'TEXT' types.
+    const tablesToFix = ['student_skills', 'exam_submissions', 'roadmap', 'mentor_assignments', 'notifications', 'mentor_notifications'];
+    tablesToFix.forEach(table => {
+      try {
+        const info = sqlite.prepare(`PRAGMA table_info(${table})`).all();
+        const studentIdCol = info.find(c => c.name === 'student_id' || c.name === 'mentor_id');
+        if (studentIdCol && studentIdCol.type === 'INTEGER') {
+          const count = sqlite.prepare(`SELECT count(*) as count FROM ${table}`).get().count;
+          if (count === 0) {
+            console.log(`🛠️ Repairing SQLite table schema: ${table}`);
+            sqlite.exec(`DROP TABLE ${table}`);
+          }
+        }
+      } catch (e) {}
+    });
+    // Re-run schema to create any dropped tables
+    sqlite.exec(schema);
+
     // Add columns for existing users
     try { sqlite.prepare("ALTER TABLE users ADD COLUMN first_name TEXT").run(); } catch (e) {}
     try { sqlite.prepare("ALTER TABLE users ADD COLUMN last_name TEXT").run(); } catch (e) {}

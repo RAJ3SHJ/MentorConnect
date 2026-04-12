@@ -58,13 +58,32 @@ router.get('/:id', auth, async (req, res) => {
     }
 });
 
-// POST /api/exams/:id/submit — save submission to local SQLite
+// POST /api/exams/:id/submit — save submission to local SQLite (with JIT Exam Provisioning)
 router.post('/:id/submit', auth, async (req, res) => {
     const { answers } = req.body;
+    const examId = req.params.id;
+
     try {
+        // 1. Ensure the exam exists in local DB metadata (Foreign Key requirement)
+        const localExam = await get('SELECT id FROM exams WHERE id = ?', [examId]);
+        if (!localExam) {
+            console.log(`📥 Syncing exam metadata for ID: ${examId}`);
+            if (!supabaseAdmin) throw new Error('Identity provider not ready for syncing');
+            const { data: cloudExam, error: cloudErr } = await supabaseAdmin
+                .from('exams')
+                .select('*')
+                .eq('id', examId)
+                .single();
+            
+            if (!cloudErr && cloudExam) {
+                await run('INSERT INTO exams (id, title, created_at) VALUES (?, ?, ?)', 
+                    [cloudExam.id, cloudExam.title, cloudExam.created_at]);
+            }
+        }
+
         const submissionId = await runGetId(
             'INSERT INTO exam_submissions (student_id, exam_id, answers) VALUES (?, ?, ?)',
-            [req.user.id, req.params.id, JSON.stringify(answers || [])]
+            [req.user.id, examId, JSON.stringify(answers || [])]
         );
 
         // Also notify mentor via local notifications table
