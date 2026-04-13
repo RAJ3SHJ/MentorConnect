@@ -41,6 +41,7 @@ async function initDb() {
       email TEXT UNIQUE NOT NULL,
       password_hash TEXT NOT NULL,
       role TEXT DEFAULT 'learner',
+      mentor_id ${isPG ? 'VARCHAR(255)' : 'TEXT'} REFERENCES users(id),
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
 
@@ -195,7 +196,8 @@ async function initDb() {
         "ALTER TABLE mentors ADD COLUMN IF NOT EXISTS username TEXT UNIQUE",
         "ALTER TABLE student_skills ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'Pending Review'",
         "ALTER TABLE student_skills ADD COLUMN IF NOT EXISTS mentor_remarks TEXT",
-        "ALTER TABLE student_skills ADD COLUMN IF NOT EXISTS reviewed_at TIMESTAMP"
+        "ALTER TABLE student_skills ADD COLUMN IF NOT EXISTS reviewed_at TIMESTAMP",
+        "ALTER TABLE users ADD COLUMN IF NOT EXISTS mentor_id VARCHAR(255) REFERENCES users(id)"
       ];
 
       for (const query of safeAlters) {
