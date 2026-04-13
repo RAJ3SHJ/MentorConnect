@@ -130,7 +130,7 @@ export default function DashboardScreen() {
                             >
                                 <LinearGradient
                                     colors={['#00d2ff', '#3a7bd5']}
-                                    start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+                                    start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
                                     style={s.resumeBtn}
                                 >
                                     <Text style={s.resumeBtnText}>Resume Learning ➔</Text>
@@ -140,46 +140,47 @@ export default function DashboardScreen() {
                     </View>
                 </View>
 
-                {/* ── Mentor Assignments — vertical stack always ── */}
-                <Text style={[s.sectionTitle, { marginTop: 8 }]}>⚠️ Mentor Assignments</Text>
+                {/* ── Mentor & Support ── */}
+                <Text style={[s.sectionTitle, { marginTop: 8 }]}>🤝 Mentor Assignments</Text>
                 <View style={{ gap: 14 }}>
-                    {/* Mentor card */}
+                    {/* Primary Mentor Card */}
                     <View style={[s.taskCard, Platform.OS === 'web' && { backdropFilter: 'blur(15px)' }]}>
                         <View style={s.taskAvatar}>
                             <Text style={{ fontSize: 24 }}>👨‍🏫</Text>
                         </View>
                         <View style={{ flex: 1 }}>
                             <Text style={s.taskTitle}>
-                                {stats?.mentor ? stats.mentor.name : 'No Mentor Assigned'}
+                                {stats?.mentor ? stats.mentor.name : 'Awaiting Assignment'}
                             </Text>
                             <Text style={s.taskSub}>
-                                {e.needsImprovement > 0 ? `${e.needsImprovement} exams need revision` : 'Awaiting your submission'}
+                                {stats?.mentor ? (stats.mentor.expertise || 'Your Success Partner') : 'Connect soon for guidance'}
                             </Text>
                         </View>
-                        <TouchableOpacity
-                            style={s.taskActionBtn}
-                            onPress={() => navigation.navigate('Assessment')}
-                        >
-                            <Text style={s.taskActionText}>View</Text>
-                        </TouchableOpacity>
+                        {stats?.mentor ? (
+                            <TouchableOpacity style={s.supportBadge}>
+                                <Text style={s.supportBadgeText}>Active</Text>
+                            </TouchableOpacity>
+                        ) : (
+                            <View style={s.pendingBadge}>
+                                <Text style={s.pendingBadgeText}>Pending</Text>
+                            </View>
+                        )}
                     </View>
 
-                    {/* Exams card */}
-                    <View style={[s.taskCard, { borderColor: C.borderDanger }, Platform.OS === 'web' && { backdropFilter: 'blur(15px)' }]}>
-                        <View style={[s.taskAvatar, { backgroundColor: 'rgba(255,71,87,0.1)' }]}>
-                            <Text style={{ fontSize: 24 }}>📝</Text>
-                        </View>
-                        <View style={{ flex: 1 }}>
-                            <Text style={s.taskTitle}>Upcoming Exams</Text>
-                            <Text style={[s.taskSub, { color: C.danger }]}>
-                                {e.total - e.approved} pending completion
-                            </Text>
-                        </View>
-                        <TouchableOpacity
-                            style={[s.taskActionBtn, { borderColor: 'rgba(255,71,87,0.3)' }]}
-                            onPress={() => navigation.navigate('TakeExam')}
+                    {/* Interaction Buttons */}
+                    <View style={{ flexDirection: 'row', gap: 12 }}>
+                        <TouchableOpacity 
+                            style={[s.subCard, { flex: 1 }]}
+                            onPress={() => navigation.navigate('Assessment')}
                         >
-                            <Text style={[s.taskActionText, { color: C.danger }]}>Start</Text>
+                            <Text style={{ fontSize: 20, marginBottom: 8 }}>📝</Text>
+                            <Text style={s.subCardTitle}>View Feedback</Text>
+                            <Text style={s.subCardSub}>Recent reviews</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity style={[s.subCard, { flex: 1 }]}>
+                            <Text style={{ fontSize: 20, marginBottom: 8 }}>💡</Text>
+                            <Text style={s.subCardTitle}>Ask Assistance</Text>
+                            <Text style={s.subCardSub}>Direct Support</Text>
                         </TouchableOpacity>
                     </View>
                 </View>
@@ -198,7 +199,7 @@ const s = StyleSheet.create({
     greetingSub: { fontSize: 15, color: C.faint },
     gearBtn: { width: 48, height: 48, borderRadius: 24, backgroundColor: 'rgba(255,255,255,0.03)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)', alignItems: 'center', justifyContent: 'center' },
 
-    // Gamification widgets — flex-wrap handles 2-per-row naturally
+    // Gamification widgets
     widgetRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 14, marginBottom: 28 },
     widgetCard: { flex: 1, minWidth: '45%', flexDirection: 'row', alignItems: 'center', gap: 14, backgroundColor: C.card, borderWidth: 1, borderColor: C.border, borderRadius: 20, padding: 18 },
     widgetIconBox: { width: 48, height: 48, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.04)', alignItems: 'center', justifyContent: 'center' },
@@ -207,7 +208,7 @@ const s = StyleSheet.create({
 
     sectionTitle: { fontSize: 12, fontWeight: '800', color: C.muted, textTransform: 'uppercase', letterSpacing: 2, marginBottom: 14, marginLeft: 2 },
 
-    // Hero roadmap card — vertical layout, no fixed heights
+    // Hero roadmap
     heroCard: { backgroundColor: 'rgba(255,255,255,0.02)', borderWidth: 1, borderColor: C.borderPrimary, borderRadius: 28, padding: 24, marginBottom: 32, overflow: 'hidden' },
     heroInner: { alignItems: 'stretch' },
     heroContent: { alignItems: 'center' },
@@ -218,11 +219,18 @@ const s = StyleSheet.create({
     resumeBtn: { paddingHorizontal: 28, paddingVertical: 16, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
     resumeBtnText: { color: '#fff', fontWeight: '800', fontSize: 14, textTransform: 'uppercase', letterSpacing: 0.5 },
 
-    // Task/assignment cards — always full width rows with action button
+    // Mentor Cards
     taskCard: { flexDirection: 'row', alignItems: 'center', gap: 14, backgroundColor: C.card, borderWidth: 1, borderColor: C.border, borderRadius: 24, padding: 18 },
     taskAvatar: { width: 52, height: 52, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.03)', alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
     taskTitle: { fontSize: 16, color: '#fff', fontWeight: '700', marginBottom: 4 },
     taskSub: { fontSize: 13, color: C.muted, fontWeight: '500' },
-    taskActionBtn: { paddingHorizontal: 14, paddingVertical: 10, borderRadius: 12, backgroundColor: 'rgba(0,210,255,0.04)', borderWidth: 1, borderColor: 'rgba(0,210,255,0.2)', flexShrink: 0 },
-    taskActionText: { color: C.primary, fontWeight: '700', fontSize: 12, textTransform: 'uppercase', letterSpacing: 0.5 },
+    
+    supportBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6, backgroundColor: 'rgba(0,242,96,0.1)', borderWidth: 1, borderColor: 'rgba(0,242,96,0.3)' },
+    supportBadgeText: { color: '#00f260', fontSize: 10, fontWeight: '800' },
+    pendingBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6, backgroundColor: 'rgba(255,159,67,0.1)', borderWidth: 1, borderColor: 'rgba(255,159,67,0.3)' },
+    pendingBadgeText: { color: '#ff9f43', fontSize: 10, fontWeight: '800' },
+
+    subCard: { backgroundColor: 'rgba(255,255,255,0.015)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)', borderRadius: 20, padding: 16, alignItems: 'center' },
+    subCardTitle: { color: '#fff', fontSize: 13, fontWeight: '700', marginBottom: 2 },
+    subCardSub: { color: C.muted, fontSize: 11 },
 });

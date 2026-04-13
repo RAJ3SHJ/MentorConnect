@@ -239,9 +239,17 @@ export default function MentorDashboardScreen({ navigation }) {
                             <Text style={{ color: C.primary, fontWeight: '800', marginBottom: 4 }}>{gradingItem?.student_name}</Text>
                             <Text style={{ color: C.muted, marginBottom: 20 }}>{gradingItem?.exam_title}</Text>
                             <View style={s.mcqBox}>
-                                <Text style={{ color: C.white, fontWeight: '800', marginBottom: 10 }}>MCQ Results</Text>
+                                <Text style={{ color: C.white, fontWeight: '800', marginBottom: 10 }}>
+                                    {gradingItem?.type === 'skills' ? 'Skillset Submitted' : 'MCQ Results'}
+                                </Text>
                                 <Text style={{ color: C.faint }}>
-                                    Selected: {gradingItem?.answers?.map(a => a.selected).join(', ') || 'None captured'}
+                                    {gradingItem?.type === 'skills' 
+                                        ? (typeof gradingItem.answers === 'string' 
+                                            ? JSON.parse(gradingItem.answers || '[]').join(' • ') 
+                                            : gradingItem.answers?.join(' • '))
+                                        : (Array.isArray(gradingItem?.answers) 
+                                            ? gradingItem.answers.map(a => a.selected).join(', ') 
+                                            : 'No answers provided')}
                                 </Text>
                             </View>
                             <Text style={{ color: C.white, fontWeight: '800', marginBottom: 10, marginTop: 20 }}>Mentor Feedback</Text>
