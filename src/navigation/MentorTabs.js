@@ -24,7 +24,7 @@ function MentorHomeNavigator() {
             <HomeStack.Screen name="MentorHome" component={MentorDashboardScreen} />
             <HomeStack.Screen name="AlertDetail" component={AlertDetailScreen} />
             <HomeStack.Screen name="Validation" component={ValidationScreen} />
-            <HomeStack.Screen name="LinkStudent" component={LinkStudentScreen} />
+            <HomeStack.Screen name="LinkLearner" component={LinkStudentScreen} />
             <HomeStack.Screen name="AssignCourses" component={AssignCoursesScreen} />
         </HomeStack.Navigator>
     );

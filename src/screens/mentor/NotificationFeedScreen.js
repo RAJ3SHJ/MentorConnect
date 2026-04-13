@@ -75,7 +75,7 @@ export default function NotificationFeedScreen({ navigation }) {
         } catch (e) {
             const msg = e.response?.data?.error || 'Connection failed';
             toast.show(msg === 'Student already connected to another mentor'
-                ? '⚡ Another mentor just claimed this student!'
+                ? '⚡ Another mentor just claimed this learner!'
                 : msg, 'error');
             fetchNotifications(); // refresh to remove card
         } finally { setConnecting(null); }
@@ -129,14 +129,14 @@ export default function NotificationFeedScreen({ navigation }) {
                 contentContainerStyle={[s.scroll, { paddingTop: insets.top > 0 ? insets.top : 20, paddingBottom: insets.bottom + 100 }]} 
                 refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#00d2ff" />}
             >
-                <Text style={s.heading}>🔔 Student Alerts</Text>
-                <Text style={s.sub}>{groupedList.length} student{groupedList.length !== 1 ? 's' : ''} awaiting review</Text>
+                <Text style={s.heading}>🔔 Learner Alerts</Text>
+                <Text style={s.sub}>{groupedList.length} learner{groupedList.length !== 1 ? 's' : ''} awaiting review</Text>
 
                 {groupedList.length === 0 ? (
                     <View style={s.emptyState}>
                         <Text style={{ fontSize: 48, marginBottom: 16 }}>🎉</Text>
                         <Text style={s.emptyTitle}>All caught up!</Text>
-                        <Text style={s.emptySub}>No new student alerts. Check back after students submit exams or complete courses.</Text>
+                        <Text style={s.emptySub}>No new learner alerts. Check back after learners submit exams or complete courses.</Text>
                     </View>
                 ) : groupedList.map(student => (
                     <View

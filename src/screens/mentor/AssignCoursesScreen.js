@@ -10,27 +10,21 @@ import { useTheme } from '../../ThemeContext';
 export default function AssignCoursesScreen({ navigation, route }) {
     const { colors, gradients } = useTheme();
     const insets = useSafeAreaInsets();
-    const [students, setStudents] = useState([]);
+    const [learners, setLearners] = useState([]);
     const [courses, setCourses] = useState([]);
-    const [selectedStudent, setSelectedStudent] = useState(route.params?.student || null);
+    const [selectedLearner, setSelectedLearner] = useState(route.params?.learner || null);
     const [selectedCourseIds, setSelectedCourseIds] = useState([]);
     const [saving, setSaving] = useState(false);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         Promise.all([
-            api.get('/api/mentor/my-students'), // Show ONLY connected learners
+            api.get('/api/mentor/my-students'),
             api.get('/api/courses')
         ])
             .then(([sRes, cRes]) => {
-                const fetchedStudents = sRes.data || [];
-                setStudents(fetchedStudents);
+                setLearners(sRes.data || []);
                 setCourses(cRes.data || []);
-                
-                // If a student was passed in but isn't found in the current roster (unlikely), reset
-                if (route.params?.student && !fetchedStudents.find(s => s.id === route.params.student.id)) {
-                    // This case is unlikely but good for defensive coding
-                }
             })
             .catch(console.log)
             .finally(() => setLoading(false));
@@ -42,20 +36,20 @@ export default function AssignCoursesScreen({ navigation, route }) {
         );
     };
 
-    const save = async () => {
-        if (!selectedStudent || selectedCourseIds.length === 0)
-            return Alert.alert('Selection Required', 'Please select courses and then choose a connected learner.');
-        
+    const handleSave = async () => {
+        if (!selectedLearner) return Alert.alert('Error', 'Please select a learner');
+        if (selectedCourseIds.length === 0) return Alert.alert('Error', 'Select at least one course');
+
         setSaving(true);
         try {
-            await api.post('/api/mentor/assign-course', { 
-                student_id: selectedStudent.id, 
+            await api.post('/api/roadmap/assign', { 
+                learner_id: selectedLearner.id, 
                 course_ids: selectedCourseIds 
             });
-            Alert.alert('✅ Roadmap Updated', `The selected courses have been assigned to ${selectedStudent.name}.`);
+            Alert.alert('Success', `Roadmap created for ${selectedLearner.name}`);
             navigation.goBack();
         } catch (e) {
-            Alert.alert('Error', e.response?.data?.error || 'Failed to update roadmap');
+            Alert.alert('Error', e.response?.data?.error || 'Failed to assign courses');
         } finally { setSaving(false); }
     };
 
@@ -75,12 +69,11 @@ export default function AssignCoursesScreen({ navigation, route }) {
                 </TouchableOpacity>
                 <Text style={[s.title, { color: colors.white }]}>Create Learner Roadmap 🗺️</Text>
                 <Text style={{ color: colors.muted, fontSize: 13, marginTop: 4 }}>
-                    Design a personalized learning track for your students.
+                    Design a personalized learning track for your learners.
                 </Text>
             </View>
 
             <ScrollView contentContainerStyle={{ padding: 24, paddingBottom: insets.bottom + 40 }}>
-                {/* Step 1: Courses Library */}
                 <Text style={s.sectionLabel}>1. Select Courses from Library</Text>
                 <View style={s.courseList}>
                     {courses.length === 0 ? (
@@ -132,7 +125,7 @@ export default function AssignCoursesScreen({ navigation, route }) {
                                         backgroundColor: colors.card,
                                         borderColor: isStdSelected ? colors.blue : colors.glassBorder
                                     }]}
-                                    onPress={() => setSelectedStudent(std)}
+                                    onPress={() => setSelectedLearner(std)}
                                 >
                                     <View style={[s.avatar, { backgroundColor: colors.blue + '15' }]}>
                                         <Text style={{ color: colors.blue, fontWeight: '800' }}>{std.name[0]}</Text>
@@ -148,20 +141,20 @@ export default function AssignCoursesScreen({ navigation, route }) {
 
                 {/* Footer Action */}
                 <TouchableOpacity 
-                    onPress={save} 
-                    disabled={saving || !selectedStudent || selectedCourseIds.length === 0}
+                    onPress={handleSave} 
+                    disabled={saving || !selectedLearner || selectedCourseIds.length === 0}
                     style={{ marginTop: 40 }}
                 >
                     <LinearGradient
-                        colors={(!selectedStudent || selectedCourseIds.length === 0) ? [colors.glass, colors.glass] : gradients.accent}
+                        colors={(!selectedLearner || selectedCourseIds.length === 0) ? [colors.glass, colors.glass] : gradients.accent}
                         start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
                         style={s.saveBtn}
                     >
                         {saving ? (
                             <ActivityIndicator color="#fff" />
                         ) : (
-                            <Text style={[s.saveBtnText, { color: (!selectedStudent || selectedCourseIds.length === 0) ? colors.muted : '#fff' }]}>
-                                🚀 Deploy Roadmap
+                            <Text style={[s.saveBtnText, { color: (!selectedLearner || selectedCourseIds.length === 0) ? colors.muted : '#fff' }]}>
+                                🚀 Assign & Create Roadmap
                             </Text>
                         )}
                     </LinearGradient>

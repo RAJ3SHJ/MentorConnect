@@ -6,10 +6,10 @@ import { LinearGradient } from 'expo-linear-gradient';
 import api from '../../api/client';
 import { COLORS, RADIUS, GRADIENTS } from '../../theme';
 
-export default function LinkStudentScreen({ navigation }) {
-    const [students, setStudents] = useState([]);
+export default function LinkLearnerScreen({ navigation }) {
+    const [learners, setLearners] = useState([]);
     const [mentors, setMentors] = useState([]);
-    const [selectedStudent, setSelectedStudent] = useState(null);
+    const [selectedLearner, setSelectedLearner] = useState(null);
     const [selectedMentor, setSelectedMentor] = useState(null);
     const [saving, setSaving] = useState(false);
     const [loading, setLoading] = useState(true);
@@ -17,7 +17,7 @@ export default function LinkStudentScreen({ navigation }) {
     useEffect(() => {
         Promise.all([api.get('/api/mentor/students'), api.get('/api/mentor/list')])
             .then(([sRes, mRes]) => {
-                setStudents(sRes.data);
+                setLearners(sRes.data);
                 setMentors(mRes.data);
             })
             .catch(console.log)
@@ -25,12 +25,12 @@ export default function LinkStudentScreen({ navigation }) {
     }, []);
 
     const save = async () => {
-        if (!selectedStudent || !selectedMentor) return Alert.alert('Error', 'Select both a learner and a mentor');
+        if (!selectedLearner || !selectedMentor) return Alert.alert('Error', 'Select both a learner and a mentor');
         setSaving(true);
         try {
-            await api.post('/api/mentor/link', { mentor_id: selectedMentor.id, student_id: selectedStudent.id });
-            Alert.alert('✅ Linked', `${selectedMentor.name} linked to ${selectedStudent.name}`);
-            setSelectedStudent(null);
+            await api.post('/api/mentor/link', { mentor_id: selectedMentor.id, student_id: selectedLearner.id });
+            Alert.alert('✅ Linked', `${selectedMentor.name} linked to ${selectedLearner.name}`);
+            setSelectedLearner(null);
             setSelectedMentor(null);
         } catch (e) {
             Alert.alert('Error', e.response?.data?.error || 'Failed to link');
@@ -58,19 +58,19 @@ export default function LinkStudentScreen({ navigation }) {
                 ListHeaderComponent={
                     <View>
                         <Text style={styles.sectionLabel}>1. Select Learner</Text>
-                        {students.map(s => (
+                        {learners.map(l => (
                             <TouchableOpacity
-                                key={s.id}
-                                style={[styles.listItem, selectedStudent?.id === s.id && styles.listItemSelected]}
-                                onPress={() => setSelectedStudent(s)}
+                                key={l.id}
+                                style={[styles.listItem, selectedLearner?.id === l.id && styles.listItemSelected]}
+                                onPress={() => setSelectedLearner(l)}
                             >
-                                <View style={styles.avatar}><Text style={styles.avatarText}>{s.name[0]}</Text></View>
+                                <View style={styles.avatar}><Text style={styles.avatarText}>{l.name[0]}</Text></View>
                                 <View style={{ flex: 1 }}>
-                                    <Text style={styles.itemName}>{s.name}</Text>
-                                    <Text style={styles.itemSub}>{s.email}</Text>
-                                    {s.mentor_name && <Text style={styles.currentMentor}>Currently: {s.mentor_name}</Text>}
+                                    <Text style={styles.itemName}>{l.name}</Text>
+                                    <Text style={styles.itemSub}>{l.email}</Text>
+                                    {l.mentor_name && <Text style={styles.currentMentor}>Currently: {l.mentor_name}</Text>}
                                 </View>
-                                {selectedStudent?.id === s.id && <Text style={{ color: COLORS.blue, fontSize: 20 }}>✓</Text>}
+                                {selectedLearner?.id === l.id && <Text style={{ color: COLORS.blue, fontSize: 20 }}>✓</Text>}
                             </TouchableOpacity>
                         ))}
 
