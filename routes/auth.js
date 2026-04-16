@@ -84,6 +84,9 @@ router.post('/login', async (req, res) => {
             // Fallback: Check local for Admin/Mentor PIN-based legacy accounts
             const localUser = await get("SELECT * FROM users WHERE (email = ? OR username = ?) AND role IN ('admin', 'mentor')", [identifier, identifier]);
             if (localUser && bcrypt.compareSync(password, localUser.password_hash)) {
+                if (localUser.is_active === 0 || localUser.is_active === false) {
+                    return res.status(403).json({ error: 'Account is inactive.' });
+                }
                 const token = jwt.sign({ id: localUser.id, name: localUser.name, role: localUser.role || 'learner' }, JWT_SECRET, { expiresIn: '30d' });
                 return res.json({ token, user: localUser });
             }
@@ -96,6 +99,11 @@ router.post('/login', async (req, res) => {
         const username = cloudUser.user_metadata?.username || (isEmail ? identifier.split('@')[0] : identifier);
 
         // 3. Sync to Local Database (Provision on demand)
+        const localData = await get('SELECT is_active FROM users WHERE id = ?', [cloudUser.id]);
+        if (localData && (localData.is_active === 0 || localData.is_active === false)) {
+            return res.status(403).json({ error: 'Account is inactive. Please contact support.' });
+        }
+
         await run(`
             INSERT INTO users (id, name, email, username, role, password_hash) 
             VALUES (?, ?, ?, ?, ?, ?)

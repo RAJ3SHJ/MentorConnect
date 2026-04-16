@@ -89,27 +89,30 @@ router.get('/student-detail/:studentId', auth, async (req, res) => {
 
 // POST /api/mentor/validate/:submissionId
 router.post('/validate/:submissionId', auth, async (req, res) => {
-    const { status, remarks } = req.body;
+    const { status, remarks, type } = req.body;
     if (!['Approved', 'Needs Improvement'].includes(status))
         return res.status(400).json({ error: 'status must be Approved or Needs Improvement' });
 
     try {
+        const submissionId = req.params.submissionId;
+        const tableName = type === 'skills' ? 'student_skills' : 'exam_submissions';
+        
         await run(`
-            UPDATE exam_submissions
+            UPDATE ${tableName}
             SET status = ?, mentor_remarks = ?, reviewed_at = ${isPG ? 'CURRENT_TIMESTAMP' : "datetime('now')"}
             WHERE id = ?
-        `, [status, remarks || null, req.params.submissionId]);
+        `, [status, remarks || null, submissionId]);
 
-        // Notify the student of their review result
+        // Notify the student
         try {
-            const sub = await get('SELECT student_id FROM exam_submissions WHERE id = ?', [req.params.submissionId]);
+            const sub = await get(`SELECT student_id FROM ${tableName} WHERE id = ?`, [submissionId]);
             if (sub) {
                 await run(
                     'INSERT INTO notifications (type, student_id, reference_id) VALUES (?, ?, ?)',
-                    ['exam_reviewed', sub.student_id, req.params.submissionId]
+                    ['assessment_reviewed', sub.student_id, submissionId]
                 );
             }
-        } catch (_) { /* non-critical — notification failure should not block response */ }
+        } catch (_) {}
 
         res.json({ message: 'Validation saved' });
     } catch (e) { res.status(500).json({ error: e.message }); }
@@ -251,15 +254,13 @@ router.get('/my-assessments', auth, async (req, res) => {
             UNION ALL
 
             -- Skills Submissions
-            SELECT ss.id, ss.student_id, 'skills' as type, NULL as exam_id, ss.skills as answers, 'Submitted' as status,
-                   NULL as mentor_remarks, ss.submitted_at, 
+            SELECT ss.id, ss.student_id, 'skills' as type, NULL as exam_id, ss.skills as answers, ss.status,
+                   ss.mentor_remarks, ss.submitted_at, 
                    'Skills Assessment: ' || ss.goal AS exam_title, u.name AS student_name
             FROM student_skills ss
             JOIN users u ON u.id = ss.student_id
             JOIN mentor_assignments ma ON ma.student_id = u.id
-            -- We only show skills that haven't been "handled" yet if we had a status, 
-            -- but for now we show them if the student is assigned.
-            WHERE ma.mentor_user_id = ? 
+            WHERE ma.mentor_user_id = ? AND ss.status IN ('Submitted', 'Pending Review')
             
             ORDER BY submitted_at DESC
         `, [mentorUserId, mentorUserId]);

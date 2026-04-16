@@ -8,7 +8,7 @@ const auth = require('../middleware/auth');
 router.get('/students', auth, async (req, res) => {
     try {
         const students = await all(`
-            SELECT id, name, first_name, last_name, qualification, username, email, created_at 
+            SELECT id, name, first_name, last_name, qualification, username, email, is_active, created_at 
             FROM users 
             WHERE role = 'learner' 
             ORDER BY created_at DESC
@@ -643,7 +643,7 @@ router.post('/create-student', auth, async (req, res) => {
 // GET /api/admin/mentor-accounts — list all mentor users
 router.get('/mentor-accounts', auth, async (req, res) => {
     try {
-        const mentors = await all("SELECT id, name, email, created_at FROM users WHERE role = 'mentor' ORDER BY created_at DESC");
+        const mentors = await all("SELECT id, name, email, is_active, created_at FROM users WHERE role = 'mentor' ORDER BY created_at DESC");
         const result = await Promise.all(mentors.map(async m => {
             const learners = await all(`
                 SELECT u.id, u.name, u.email FROM mentor_assignments ma
@@ -670,6 +670,28 @@ router.get('/mentor-assignments', auth, async (req, res) => {
         `);
         res.json(assignments);
     } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// POST /api/admin/toggle-status/:id — flip the is_active status
+router.post('/toggle-status/:id', auth, async (req, res) => {
+    try {
+        const user = await get('SELECT is_active, role FROM users WHERE id = ?', [req.params.id]);
+        if (!user) return res.status(404).json({ error: 'User not found' });
+
+        const nextStatus = (user.is_active === 1 || user.is_active === true) ? 0 : 1;
+        
+        // 1. Update local users table (Master)
+        await run('UPDATE users SET is_active = ? WHERE id = ?', [nextStatus, req.params.id]);
+
+        // 2. If it's a mentor, keep mentors table in sync if applicable
+        if (user.role === 'mentor') {
+            await run('UPDATE mentors SET is_active = ? WHERE id = ?', [nextStatus, req.params.id]);
+        }
+
+        res.json({ message: `Account status updated to ${nextStatus ? 'Active' : 'Inactive'} ✅`, is_active: nextStatus });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
 });
 
 module.exports = router;

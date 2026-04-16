@@ -42,6 +42,7 @@ async function initDb() {
       password_hash TEXT NOT NULL,
       role TEXT DEFAULT 'learner',
       mentor_id ${isPG ? 'VARCHAR(255)' : 'TEXT'} REFERENCES users(id),
+      is_active ${isPG ? 'BOOLEAN DEFAULT TRUE' : 'INTEGER DEFAULT 1'},
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
 
@@ -54,6 +55,7 @@ async function initDb() {
       username TEXT UNIQUE,
       email TEXT NOT NULL,
       expertise TEXT,
+      is_active ${isPG ? 'BOOLEAN DEFAULT TRUE' : 'INTEGER DEFAULT 1'},
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
 
@@ -197,7 +199,9 @@ async function initDb() {
         "ALTER TABLE student_skills ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'Pending Review'",
         "ALTER TABLE student_skills ADD COLUMN IF NOT EXISTS mentor_remarks TEXT",
         "ALTER TABLE student_skills ADD COLUMN IF NOT EXISTS reviewed_at TIMESTAMP",
-        "ALTER TABLE users ADD COLUMN IF NOT EXISTS mentor_id VARCHAR(255) REFERENCES users(id)"
+        "ALTER TABLE users ADD COLUMN IF NOT EXISTS mentor_id VARCHAR(255) REFERENCES users(id)",
+        "ALTER TABLE users ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT TRUE",
+        "ALTER TABLE mentors ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT TRUE"
       ];
 
       for (const query of safeAlters) {
@@ -248,6 +252,8 @@ async function initDb() {
     try { sqlite.prepare("ALTER TABLE student_skills ADD COLUMN status TEXT DEFAULT 'Pending Review'").run(); } catch (e) {}
     try { sqlite.prepare("ALTER TABLE student_skills ADD COLUMN mentor_remarks TEXT").run(); } catch (e) {}
     try { sqlite.prepare("ALTER TABLE student_skills ADD COLUMN reviewed_at DATETIME").run(); } catch (e) {}  
+    try { sqlite.prepare("ALTER TABLE users ADD COLUMN is_active INTEGER DEFAULT 1").run(); } catch (e) {}
+    try { sqlite.prepare("ALTER TABLE mentors ADD COLUMN is_active INTEGER DEFAULT 1").run(); } catch (e) {}
   }
 }
 

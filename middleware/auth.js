@@ -25,22 +25,21 @@ module.exports = async (req, res, next) => {
                 ...decoded
             };
 
-            // AUTO-PROVISION: Ensure user exists in local DB for foreign key consistency
+            // AUTO-PROVISION & STATUS CHECK: Ensure user exists and is active
             try {
-                const existing = await get('SELECT id FROM users WHERE id = ?', [req.user.id]);
-                if (!existing) {
+                const dbUser = await get('SELECT id, is_active FROM users WHERE id = ?', [req.user.id]);
+                if (!dbUser) {
                     console.log(`🆕 Auto-provisioning new cloud user: ${req.user.email} (${req.user.id})`);
                     await run(`
-                        INSERT INTO users (id, name, email, role, password_hash)
-                        VALUES (?, ?, ?, ?, ?)
+                        INSERT INTO users (id, name, email, role, password_hash, is_active)
+                        VALUES (?, ?, ?, ?, ?, 1)
                     `, [req.user.id, req.user.name, req.user.email, req.user.role, 'CLOUD_AUTH']);
+                } else if (dbUser.is_active === 0 || dbUser.is_active === false) {
+                    return res.status(403).json({ error: 'Your account has been deactivated. Please contact support.' });
                 }
             } catch (authDbError) {
-                console.error('⚠️ Auth Provisioning Warning:', authDbError.message);
-                // We don't block the request if provisioning fails unless it's critical,
-                // but for assessment submissions it WILL fail later if this fails.
+                console.error('⚠️ Auth Provisioning/Status Warning:', authDbError.message);
             }
-
             return next();
         } catch (e) {
             // If it failed Supabase check, we continue to check Legacy/Admin
