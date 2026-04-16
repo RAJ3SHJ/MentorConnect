@@ -10,9 +10,9 @@ import { useTheme } from '../../ThemeContext';
 export default function AssignCoursesScreen({ navigation, route }) {
     const { colors, gradients } = useTheme();
     const insets = useSafeAreaInsets();
-    const [learners, setLearners] = useState([]);
+    const [students, setStudents] = useState([]);
     const [courses, setCourses] = useState([]);
-    const [selectedLearner, setSelectedLearner] = useState(route.params?.learner || null);
+    const [selectedStudent, setSelectedStudent] = useState(route.params?.student || route.params?.learner || null);
     const [selectedCourseIds, setSelectedCourseIds] = useState([]);
     const [saving, setSaving] = useState(false);
     const [loading, setLoading] = useState(true);
@@ -23,7 +23,7 @@ export default function AssignCoursesScreen({ navigation, route }) {
             api.get('/api/courses')
         ])
             .then(([sRes, cRes]) => {
-                setLearners(sRes.data || []);
+                setStudents(sRes.data || []);
                 setCourses(cRes.data || []);
             })
             .catch(console.log)
@@ -37,16 +37,16 @@ export default function AssignCoursesScreen({ navigation, route }) {
     };
 
     const handleSave = async () => {
-        if (!selectedLearner) return Alert.alert('Error', 'Please select a learner');
+        if (!selectedStudent) return Alert.alert('Error', 'Please select a learner');
         if (selectedCourseIds.length === 0) return Alert.alert('Error', 'Select at least one course');
 
         setSaving(true);
         try {
             await api.post('/api/roadmap/assign', { 
-                learner_id: selectedLearner.id, 
+                learner_id: selectedStudent.id, 
                 course_ids: selectedCourseIds 
             });
-            Alert.alert('Success', `Roadmap created for ${selectedLearner.name}`);
+            Alert.alert('Success', `Roadmap created for ${selectedStudent.name}`);
             navigation.goBack();
         } catch (e) {
             Alert.alert('Error', e.response?.data?.error || 'Failed to assign courses');
@@ -125,7 +125,7 @@ export default function AssignCoursesScreen({ navigation, route }) {
                                         backgroundColor: colors.card,
                                         borderColor: isStdSelected ? colors.blue : colors.glassBorder
                                     }]}
-                                    onPress={() => setSelectedLearner(std)}
+                                    onPress={() => setSelectedStudent(std)}
                                 >
                                     <View style={[s.avatar, { backgroundColor: colors.blue + '15' }]}>
                                         <Text style={{ color: colors.blue, fontWeight: '800' }}>{std.name[0]}</Text>
@@ -142,18 +142,18 @@ export default function AssignCoursesScreen({ navigation, route }) {
                 {/* Footer Action */}
                 <TouchableOpacity 
                     onPress={handleSave} 
-                    disabled={saving || !selectedLearner || selectedCourseIds.length === 0}
+                    disabled={saving || !selectedStudent || selectedCourseIds.length === 0}
                     style={{ marginTop: 40 }}
                 >
                     <LinearGradient
-                        colors={(!selectedLearner || selectedCourseIds.length === 0) ? [colors.glass, colors.glass] : gradients.accent}
+                        colors={(!selectedStudent || selectedCourseIds.length === 0) ? [colors.glass, colors.glass] : gradients.accent}
                         start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
                         style={s.saveBtn}
                     >
                         {saving ? (
                             <ActivityIndicator color="#fff" />
                         ) : (
-                            <Text style={[s.saveBtnText, { color: (!selectedLearner || selectedCourseIds.length === 0) ? colors.muted : '#fff' }]}>
+                            <Text style={[s.saveBtnText, { color: (!selectedStudent || selectedCourseIds.length === 0) ? colors.muted : '#fff' }]}>
                                 🚀 Assign & Create Roadmap
                             </Text>
                         )}

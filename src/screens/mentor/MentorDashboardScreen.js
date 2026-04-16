@@ -198,7 +198,11 @@ export default function MentorDashboardScreen({ navigation }) {
                             <Text style={s.drawerTitle}>Grade Assessments</Text>
                             <TouchableOpacity onPress={() => setActiveLearnerItems(null)}><Text style={{ color: C.white, fontSize: 24 }}>✕</Text></TouchableOpacity>
                         </View>
-                        <ScrollView style={{ flex: 1 }}>
+                        <ScrollView 
+                            style={{ flex: 1 }} 
+                            contentContainerStyle={{ paddingBottom: 40 }}
+                            showsVerticalScrollIndicator={false}
+                        >
                             <Text style={{ color: C.primary, fontWeight: '800', marginBottom: 20 }}>
                                 Learner: {activeLearnerItems?.[0]?.student_name}
                             </Text>
@@ -292,7 +296,14 @@ const s = StyleSheet.create({
     createCourseBtnInner: { paddingVertical: 18, borderRadius: 20, alignItems: 'center' },
     createCourseBtnText: { color: '#fff', fontWeight: '800', fontSize: 14, textTransform: 'uppercase', letterSpacing: 1 },
     modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'flex-end' },
-    drawer: { backgroundColor: '#020b14', borderTopLeftRadius: 32, borderTopRightRadius: 32, padding: 24, maxHeight: '90%' },
+    drawer: { 
+        backgroundColor: '#020b14', 
+        borderTopLeftRadius: 32, 
+        borderTopRightRadius: 32, 
+        padding: 24, 
+        maxHeight: '90%',
+        minHeight: 450 // Ensure it doesn't collapse
+    },
     drawerTopBar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
     drawerTitle: { fontSize: 24, color: '#fff', fontWeight: '800' },
     gradeItemBox: { backgroundColor: 'rgba(255,255,255,0.02)', borderRadius: 20, padding: 16, marginBottom: 20, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
