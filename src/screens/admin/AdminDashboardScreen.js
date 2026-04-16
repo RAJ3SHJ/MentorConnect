@@ -19,6 +19,7 @@ const C = {
     borderTop: 'rgba(255,255,255,0.10)',
     borderMuted: 'rgba(255,255,255,0.15)',
     primary: '#00d2ff',
+    success: '#00cc66',
     danger: '#ff4757',
     white: '#fff',
     muted: 'rgba(255,255,255,0.30)',
@@ -42,6 +43,7 @@ export default function AdminDashboardScreen({ navigation }) {
     const [search, setSearch] = useState('');
     const [refreshing, setRefreshing] = useState(false);
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+    const [showInactive, setShowInactive] = useState(false); // Default: show active only
     const sidebarAnim = React.useRef(new Animated.Value(-300)).current;
 
     const toggleSidebar = (open) => {
@@ -70,6 +72,14 @@ export default function AdminDashboardScreen({ navigation }) {
     useFocusEffect(useCallback(() => { fetchAll(); }, []));
     const onRefresh = async () => { setRefreshing(true); await fetchAll(); setRefreshing(false); };
 
+    const toggleStatus = async (item, type) => {
+        try {
+            await api.post(`/api/admin/toggle-status/${item.id}`);
+            toast.show(`${item.name || 'Account'} status updated`, 'success');
+            fetchAll();
+        } catch (e) { toast.show('Status update failed', 'error'); }
+    };
+
     const confirmDelete = async (type, id, name) => {
         const doDelete = async () => {
             try {
@@ -87,10 +97,18 @@ export default function AdminDashboardScreen({ navigation }) {
         : list;
 
     let activeList = [];
-    if (tab === 'students') activeList = filterList(students, 'name');
-    else if (tab === 'mentors') activeList = filterList(mentors, 'name');
-    else if (tab === 'courses') activeList = filterList(courses, 'title');
-    else if (tab === 'exams') activeList = filterList(exams, 'title');
+    const applyFilter = (list, key) => {
+        let filtered = filterList(list, key);
+        if (!showInactive && (tab === 'students' || tab === 'mentors')) {
+            filtered = filtered.filter(i => i.is_active === 1 || i.is_active === true || i.is_active === undefined);
+        }
+        return filtered;
+    };
+
+    if (tab === 'students') activeList = applyFilter(students, 'name');
+    else if (tab === 'mentors') activeList = applyFilter(mentors, 'name');
+    else if (tab === 'courses') activeList = applyFilter(courses, 'title');
+    else if (tab === 'exams') activeList = applyFilter(exams, 'title');
 
     // ── Header ──────────────────────────────────────────────────────────────
     const renderHeader = () => (
@@ -227,40 +245,57 @@ export default function AdminDashboardScreen({ navigation }) {
     };
 
     // ── Entity Row ────────────────────────────────────────────────────────────
-    const renderEntity = (item, emoji, type, titleKey, subKey) => (
-        <View key={item.id} style={s.entityCard}>
-            {/* Info row */}
-            <View style={s.entityInfo}>
-                <View style={s.entityAvatar}>
-                    <Text style={{ fontSize: 22 }}>{emoji}</Text>
+    const renderEntity = (item, emoji, type, titleKey, subKey) => {
+        const isActive = item.is_active === 1 || item.is_active === true || item.is_active === undefined;
+        const isUser = type === 'students' || type === 'mentors';
+
+        return (
+            <View key={item.id} style={[s.entityCard, !isActive && { opacity: 0.5 }]}>
+                {/* Info row */}
+                <View style={s.entityInfo}>
+                    <View style={s.entityAvatar}>
+                        <Text style={{ fontSize: 22 }}>{emoji}</Text>
+                    </View>
+                    <View style={{ flex: 1 }}>
+                        <Text style={s.entityTitle} numberOfLines={1}>{item[titleKey]} {!isActive && '(Inactive)'}</Text>
+                        <Text style={s.entitySub} numberOfLines={1}>{item[subKey] || 'N/A'}</Text>
+                    </View>
                 </View>
-                <View style={{ flex: 1 }}>
-                    <Text style={s.entityTitle} numberOfLines={1}>{item[titleKey]}</Text>
-                    <Text style={s.entitySub} numberOfLines={1}>{item[subKey] || 'N/A'}</Text>
+                {/* Action buttons — always on their own row, no clipping */}
+                <View style={s.entityActions}>
+                    <TouchableOpacity
+                        style={[s.actionBtn, s.actionBtnBlue]}
+                        onPress={() => {
+                            if (type === 'students') navigation.navigate('AddStudent', { editStudent: item });
+                            if (type === 'mentors') navigation.navigate('AddMentor', { editMentor: item });
+                            if (type === 'courses') navigation.navigate('AddCourse', { editCourse: item });
+                            if (type === 'exams') navigation.navigate('AddExam', { editExamId: item.id });
+                        }}
+                    >
+                        <Text style={[s.actionBtnText, { color: C.primary }]}>Edit</Text>
+                    </TouchableOpacity>
+
+                    {isUser ? (
+                        <TouchableOpacity
+                            style={[s.actionBtn, isActive ? s.actionBtnGreen : s.actionBtnRed, { flex: 0.4 }]}
+                            onPress={() => toggleStatus(item, type)}
+                        >
+                            <Text style={[s.actionBtnText, { color: isActive ? C.success : C.danger }]}>
+                                {isActive ? '[ A ]' : '[ I ]'}
+                            </Text>
+                        </TouchableOpacity>
+                    ) : ( 
+                        <TouchableOpacity
+                            style={[s.actionBtn, s.actionBtnRed]}
+                            onPress={() => confirmDelete(type, item.id, item[titleKey])}
+                        >
+                            <Text style={[s.actionBtnText, { color: C.danger }]}>Delete</Text>
+                        </TouchableOpacity>
+                    )}
                 </View>
             </View>
-            {/* Action buttons — always on their own row, no clipping */}
-            <View style={s.entityActions}>
-                <TouchableOpacity
-                    style={[s.actionBtn, s.actionBtnBlue]}
-                    onPress={() => {
-                        if (type === 'students') navigation.navigate('AddStudent', { editStudent: item });
-                        if (type === 'mentors') navigation.navigate('AddMentor', { editMentor: item });
-                        if (type === 'courses') navigation.navigate('AddCourse', { editCourse: item });
-                        if (type === 'exams') navigation.navigate('AddExam', { editExamId: item.id });
-                    }}
-                >
-                    <Text style={[s.actionBtnText, { color: C.primary }]}>Edit</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                    style={[s.actionBtn, s.actionBtnRed]}
-                    onPress={() => confirmDelete(type, item.id, item[titleKey])}
-                >
-                    <Text style={[s.actionBtnText, { color: C.danger }]}>Delete</Text>
-                </TouchableOpacity>
-            </View>
-        </View>
-    );
+        );
+    };
 
     // ── Root ─────────────────────────────────────────────────────────────────
     return (
@@ -283,19 +318,32 @@ export default function AdminDashboardScreen({ navigation }) {
 
                 {tab === 'overview' ? renderOverview() : (
                     <View>
-                        {/* Search */}
-                        <View style={s.searchBar}>
-                            <Text style={{ fontSize: 18 }}>🔍</Text>
-                            <TextInput
-                                style={s.searchInput}
-                                placeholder={`Search ${tab}…`}
-                                placeholderTextColor={C.muted}
-                                value={search}
-                                onChangeText={setSearch}
-                            />
-                            {search.length > 0 && (
-                                <TouchableOpacity onPress={() => setSearch('')}>
-                                    <Text style={{ color: C.faint, fontSize: 18 }}>✕</Text>
+                        {/* Search & Filter */}
+                        <View style={{ flexDirection: isMobile ? 'column' : 'row', gap: 12, marginBottom: 20 }}>
+                            <View style={[s.searchBar, { marginBottom: 0, flex: 1 }]}>
+                                <Text style={{ fontSize: 18 }}>🔍</Text>
+                                <TextInput
+                                    style={s.searchInput}
+                                    placeholder={`Search ${tab}…`}
+                                    placeholderTextColor={C.muted}
+                                    value={search}
+                                    onChangeText={setSearch}
+                                />
+                                {search.length > 0 && (
+                                    <TouchableOpacity onPress={() => setSearch('')}>
+                                        <Text style={{ color: C.faint, fontSize: 18 }}>✕</Text>
+                                    </TouchableOpacity>
+                                )}
+                            </View>
+
+                            {(tab === 'students' || tab === 'mentors') && (
+                                <TouchableOpacity 
+                                    style={[s.filterToggle, showInactive && s.filterToggleActive]} 
+                                    onPress={() => setShowInactive(!showInactive)}
+                                >
+                                    <Text style={{ color: showInactive ? C.white : C.muted, fontWeight: '700' }}>
+                                        {showInactive ? 'Showing All' : 'Active Only (A)'}
+                                    </Text>
                                 </TouchableOpacity>
                             )}
                         </View>
@@ -412,7 +460,11 @@ const s = StyleSheet.create({
     actionBtn: { flex: 1, paddingVertical: 12, borderRadius: RADIUS.sm, alignItems: 'center', borderWidth: 1 },
     actionBtnBlue: { backgroundColor: 'rgba(0,210,255,0.04)', borderColor: 'rgba(0,210,255,0.2)' },
     actionBtnRed: { backgroundColor: 'rgba(255,71,87,0.04)', borderColor: 'rgba(255,71,87,0.2)' },
+    actionBtnGreen: { backgroundColor: 'rgba(0,204,102,0.04)', borderColor: 'rgba(0,204,102,0.2)' },
     actionBtnText: { fontWeight: '700', fontSize: 12, textTransform: 'uppercase', letterSpacing: 0.5 },
+
+    filterToggle: { paddingHorizontal: 20, paddingVertical: 14, borderRadius: RADIUS.lg, backgroundColor: 'rgba(255,255,255,0.02)', borderWidth: 1, borderColor: C.border, justifyContent: 'center', alignItems: 'center' },
+    filterToggleActive: { borderColor: C.primary, backgroundColor: 'rgba(0,210,255,0.1)' },
 
     // ── Empty state ──
     emptyState: { alignItems: 'center', justifyContent: 'center', paddingVertical: 64 },

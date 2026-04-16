@@ -1,6 +1,6 @@
 {
   "name": "mentor-app",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Student-Mentor Learning Platform Mobile App",
   "main": "index.js",
   "scripts": {

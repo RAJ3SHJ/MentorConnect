@@ -2,7 +2,7 @@
   "expo": {
     "name": "MentorPath",
     "slug": "mentor-app",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "icon": "./assets/icon.png",
     "orientation": "portrait",
     "userInterfaceStyle": "dark",

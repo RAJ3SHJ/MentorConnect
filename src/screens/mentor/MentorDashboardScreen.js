@@ -65,10 +65,12 @@ export default function MentorDashboardScreen({ navigation }) {
     useFocusEffect(useCallback(() => { fetchData(); }, []));
     const onRefresh = async () => { setRefreshing(true); await fetchData(); setRefreshing(false); };
 
-    const handleGradeItem = async (item, status) => {
-        setSavingId(item.id);
         try {
-            await api.post(`/api/mentor/validate/${item.id}`, { status, remarks: gradingRemarks[item.id] || '' });
+            await api.post(`/api/mentor/validate/${item.id}`, { 
+                type: item.type, // 'exam' or 'skills'
+                status, 
+                remarks: gradingRemarks[item.id] || '' 
+            });
             fetchData();
             // Remove from active list locally to reflect progress in the "one roof" view
             setActiveLearnerItems(prev => {
