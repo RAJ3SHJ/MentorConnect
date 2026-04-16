@@ -13,6 +13,7 @@ export default function AssignCoursesScreen({ navigation, route }) {
     const [students, setStudents] = useState([]);
     const [courses, setCourses] = useState([]);
     const [selectedStudent, setSelectedStudent] = useState(route.params?.student || route.params?.learner || null);
+    const [isChangingLearner, setIsChangingLearner] = useState(false);
     const [selectedCourseIds, setSelectedCourseIds] = useState([]);
     const [saving, setSaving] = useState(false);
     const [loading, setLoading] = useState(true);
@@ -105,39 +106,65 @@ export default function AssignCoursesScreen({ navigation, route }) {
                 </View>
 
                 {/* Step 2: Target Learner */}
-                <Text style={[s.sectionLabel, { marginTop: 32 }]}>2. Assign to My Connected Learner</Text>
-                <View style={s.studentGrid}>
-                    {students.filter(std => !std.has_roadmap).length === 0 ? (
-                        <View style={s.emptyBox}>
-                            <Text style={{ color: colors.muted, textAlign: 'center' }}>
-                                {students.length > 0 
-                                    ? "All your connected learners already have roadmaps assigned." 
-                                    : "You have no connected learners yet. Connect with a student from the Alerts tab first."}
-                            </Text>
+                <Text style={[s.sectionLabel, { marginTop: 32 }]}>
+                    {selectedStudent && !isChangingLearner ? 'Target Learner' : '2. Assign to My Connected Learner'}
+                </Text>
+
+                {selectedStudent && !isChangingLearner ? (
+                    <View style={[s.selectedStudentCard, { backgroundColor: colors.card, borderColor: colors.blue + '33' }]}>
+                        <View style={s.studentInfoRow}>
+                            <View style={[s.avatar, { backgroundColor: colors.blue + '15' }]}>
+                                <Text style={{ color: colors.blue, fontWeight: '800' }}>{selectedStudent.name[0]}</Text>
+                            </View>
+                            <View style={{ flex: 1 }}>
+                                <Text style={{ color: colors.white, fontWeight: '700', fontSize: 16 }}>{selectedStudent.name}</Text>
+                                <Text style={{ color: colors.muted, fontSize: 12 }}>Currently selected for this roadmap</Text>
+                            </View>
+                            <TouchableOpacity 
+                                style={[s.changeBtn, { borderColor: colors.glassBorder }]} 
+                                onPress={() => setIsChangingLearner(true)}
+                            >
+                                <Text style={{ color: colors.muted, fontSize: 13, fontWeight: '700' }}>Change</Text>
+                            </TouchableOpacity>
                         </View>
-                    ) : (
-                        students.filter(std => !std.has_roadmap).map(std => {
-                            const isStdSelected = selectedStudent?.id === std.id;
-                            return (
-                                <TouchableOpacity
-                                    key={std.id}
-                                    style={[s.studentTab, { 
-                                        backgroundColor: colors.card,
-                                        borderColor: isStdSelected ? colors.blue : colors.glassBorder
-                                    }]}
-                                    onPress={() => setSelectedStudent(std)}
-                                >
-                                    <View style={[s.avatar, { backgroundColor: colors.blue + '15' }]}>
-                                        <Text style={{ color: colors.blue, fontWeight: '800' }}>{std.name[0]}</Text>
-                                    </View>
-                                    <Text style={[s.studentName, { color: isStdSelected ? colors.blue : colors.white }]} numberOfLines={1}>
-                                        {std.name.split(' ')[0]}
-                                    </Text>
-                                </TouchableOpacity>
-                            );
-                        })
-                    )}
-                </View>
+                    </View>
+                ) : (
+                    <View style={s.studentGrid}>
+                        {students.filter(std => !std.has_roadmap).length === 0 ? (
+                            <View style={s.emptyBox}>
+                                <Text style={{ color: colors.muted, textAlign: 'center' }}>
+                                    {students.length > 0 
+                                        ? "All your connected learners already have roadmaps assigned." 
+                                        : "You have no connected learners yet. Connect with a student from the Alerts tab first."}
+                                </Text>
+                            </View>
+                        ) : (
+                            students.filter(std => !std.has_roadmap).map(std => {
+                                const isStdSelected = selectedStudent?.id === std.id;
+                                return (
+                                    <TouchableOpacity
+                                        key={std.id}
+                                        style={[s.studentTab, { 
+                                            backgroundColor: colors.card,
+                                            borderColor: isStdSelected ? colors.blue : colors.glassBorder
+                                        }]}
+                                        onPress={() => {
+                                            setSelectedStudent(std);
+                                            setIsChangingLearner(false);
+                                        }}
+                                    >
+                                        <View style={[s.avatar, { backgroundColor: colors.blue + '15' }]}>
+                                            <Text style={{ color: colors.blue, fontWeight: '800' }}>{std.name[0]}</Text>
+                                        </View>
+                                        <Text style={[s.studentName, { color: isStdSelected ? colors.blue : colors.white }]} numberOfLines={1}>
+                                            {std.name.split(' ')[0]}
+                                        </Text>
+                                    </TouchableOpacity>
+                                );
+                            })
+                        )}
+                    </View>
+                )}
 
                 {/* Footer Action */}
                 <TouchableOpacity 
@@ -195,6 +222,9 @@ const s = StyleSheet.create({
         borderStyle: 'dashed', borderColor: 'rgba(255,255,255,0.1)', 
         alignItems: 'center', justifyContent: 'center' 
     },
+    selectedStudentCard: { padding: 16, borderRadius: 20, borderWidth: 1 },
+    studentInfoRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+    changeBtn: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10, borderWidth: 1 },
     saveBtn: { borderRadius: 16, paddingVertical: 16, alignItems: 'center' },
     saveBtnText: { fontWeight: '800', fontSize: 16, textTransform: 'uppercase', letterSpacing: 1 },
 });
