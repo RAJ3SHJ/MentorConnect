@@ -10,10 +10,9 @@ import { useTheme } from '../../ThemeContext';
 export default function AssignCoursesScreen({ navigation, route }) {
     const { colors, gradients } = useTheme();
     const insets = useSafeAreaInsets();
+    const [selectedStudent] = useState(route.params?.student || route.params?.learner || null);
     const [students, setStudents] = useState([]);
     const [courses, setCourses] = useState([]);
-    const [selectedStudent, setSelectedStudent] = useState(route.params?.student || route.params?.learner || null);
-    const [isChangingLearner, setIsChangingLearner] = useState(false);
     const [selectedCourseIds, setSelectedCourseIds] = useState([]);
     const [saving, setSaving] = useState(false);
     const [loading, setLoading] = useState(true);
@@ -68,9 +67,11 @@ export default function AssignCoursesScreen({ navigation, route }) {
                 <TouchableOpacity onPress={() => navigation.goBack()}>
                     <Text style={[s.back, { color: colors.muted }]}>← Back</Text>
                 </TouchableOpacity>
-                <Text style={[s.title, { color: colors.white }]}>Create Learner Roadmap 🗺️</Text>
+                <Text style={[s.title, { color: colors.white }]}>
+                    {selectedStudent ? `Roadmap for ${selectedStudent.name.split(' ')[0]} 🗺️` : 'Create Learner Roadmap 🗺️'}
+                </Text>
                 <Text style={{ color: colors.muted, fontSize: 13, marginTop: 4 }}>
-                    Design a personalized learning track for your learners.
+                    {selectedStudent ? `Designing a personalized track for ${selectedStudent.name}.` : 'Design a personalized learning track for your learners.'}
                 </Text>
             </View>
 
@@ -105,65 +106,43 @@ export default function AssignCoursesScreen({ navigation, route }) {
                     })}
                 </View>
 
-                {/* Step 2: Target Learner */}
-                <Text style={[s.sectionLabel, { marginTop: 32 }]}>
-                    {selectedStudent && !isChangingLearner ? 'Target Learner' : '2. Assign to My Connected Learner'}
-                </Text>
-
-                {selectedStudent && !isChangingLearner ? (
-                    <View style={[s.selectedStudentCard, { backgroundColor: colors.card, borderColor: colors.blue + '33' }]}>
-                        <View style={s.studentInfoRow}>
-                            <View style={[s.avatar, { backgroundColor: colors.blue + '15' }]}>
-                                <Text style={{ color: colors.blue, fontWeight: '800' }}>{selectedStudent.name[0]}</Text>
-                            </View>
-                            <View style={{ flex: 1 }}>
-                                <Text style={{ color: colors.white, fontWeight: '700', fontSize: 16 }}>{selectedStudent.name}</Text>
-                                <Text style={{ color: colors.muted, fontSize: 12 }}>Currently selected for this roadmap</Text>
-                            </View>
-                            <TouchableOpacity 
-                                style={[s.changeBtn, { borderColor: colors.glassBorder }]} 
-                                onPress={() => setIsChangingLearner(true)}
-                            >
-                                <Text style={{ color: colors.muted, fontSize: 13, fontWeight: '700' }}>Change</Text>
-                            </TouchableOpacity>
+                {/* Step 2: Target Learner (Only if not pre-selected) */}
+                {!selectedStudent && (
+                    <>
+                        <Text style={[s.sectionLabel, { marginTop: 32 }]}>2. Assign to My Connected Learner</Text>
+                        <View style={s.studentGrid}>
+                            {students.filter(std => !std.has_roadmap).length === 0 ? (
+                                <View style={s.emptyBox}>
+                                    <Text style={{ color: colors.muted, textAlign: 'center' }}>
+                                        {students.length > 0 
+                                            ? "All your connected learners already have roadmaps assigned." 
+                                            : "You have no connected learners yet. Connect with a student from the Alerts tab first."}
+                                    </Text>
+                                </View>
+                            ) : (
+                                students.filter(std => !std.has_roadmap).map(std => {
+                                    const isStdSelected = selectedStudent?.id === std.id;
+                                    return (
+                                        <TouchableOpacity
+                                            key={std.id}
+                                            style={[s.studentTab, { 
+                                                backgroundColor: colors.card,
+                                                borderColor: isStdSelected ? colors.blue : colors.glassBorder
+                                            }]}
+                                            onPress={() => setSelectedStudent(std)}
+                                        >
+                                            <View style={[s.avatar, { backgroundColor: colors.blue + '15' }]}>
+                                                <Text style={{ color: colors.blue, fontWeight: '800' }}>{std.name[0]}</Text>
+                                            </View>
+                                            <Text style={[s.studentName, { color: isStdSelected ? colors.blue : colors.white }]} numberOfLines={1}>
+                                                {std.name.split(' ')[0]}
+                                            </Text>
+                                        </TouchableOpacity>
+                                    );
+                                })
+                            )}
                         </View>
-                    </View>
-                ) : (
-                    <View style={s.studentGrid}>
-                        {students.filter(std => !std.has_roadmap).length === 0 ? (
-                            <View style={s.emptyBox}>
-                                <Text style={{ color: colors.muted, textAlign: 'center' }}>
-                                    {students.length > 0 
-                                        ? "All your connected learners already have roadmaps assigned." 
-                                        : "You have no connected learners yet. Connect with a student from the Alerts tab first."}
-                                </Text>
-                            </View>
-                        ) : (
-                            students.filter(std => !std.has_roadmap).map(std => {
-                                const isStdSelected = selectedStudent?.id === std.id;
-                                return (
-                                    <TouchableOpacity
-                                        key={std.id}
-                                        style={[s.studentTab, { 
-                                            backgroundColor: colors.card,
-                                            borderColor: isStdSelected ? colors.blue : colors.glassBorder
-                                        }]}
-                                        onPress={() => {
-                                            setSelectedStudent(std);
-                                            setIsChangingLearner(false);
-                                        }}
-                                    >
-                                        <View style={[s.avatar, { backgroundColor: colors.blue + '15' }]}>
-                                            <Text style={{ color: colors.blue, fontWeight: '800' }}>{std.name[0]}</Text>
-                                        </View>
-                                        <Text style={[s.studentName, { color: isStdSelected ? colors.blue : colors.white }]} numberOfLines={1}>
-                                            {std.name.split(' ')[0]}
-                                        </Text>
-                                    </TouchableOpacity>
-                                );
-                            })
-                        )}
-                    </View>
+                    </>
                 )}
 
                 {/* Footer Action */}
