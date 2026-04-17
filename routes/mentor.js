@@ -24,14 +24,26 @@ router.post('/link', auth, async (req, res) => {
         return res.status(400).json({ error: 'mentor_id and student_id required' });
 
     try {
+        // Resolve mentor's user ID (Supabase UID) for dashboard consistency
+        const mentorProfile = await get('SELECT email FROM mentors WHERE id = ?', [mentor_id]);
+        let mentorUserId = mentor_id; // Default to the ID passed
+        if (mentorProfile) {
+            const mentorUser = await get('SELECT id FROM users WHERE email = ?', [mentorProfile.email]);
+            if (mentorUser) mentorUserId = mentorUser.id;
+        }
+
         const existing = await get('SELECT id FROM mentor_assignments WHERE student_id = ?', [student_id]);
         if (existing) {
-            await run(`UPDATE mentor_assignments SET mentor_id = ?, assigned_at = ${isPG ? 'CURRENT_TIMESTAMP' : "datetime('now')"} WHERE student_id = ?`,
-                [mentor_id, student_id]);
+            await run(`UPDATE mentor_assignments SET mentor_id = ?, mentor_user_id = ?, assigned_at = ${isPG ? 'CURRENT_TIMESTAMP' : "datetime('now')"} WHERE student_id = ?`,
+                [mentor_id, mentorUserId, student_id]);
         } else {
-            await runGetId('INSERT INTO mentor_assignments (mentor_id, student_id) VALUES (?, ?)',
-                [mentor_id, student_id]);
+            await runGetId('INSERT INTO mentor_assignments (mentor_id, student_id, mentor_user_id) VALUES (?, ?, ?)',
+                [mentor_id, student_id, mentorUserId]);
         }
+
+        // Also update users table for redundancy/inclusive queries
+        await run('UPDATE users SET mentor_id = ? WHERE id = ?', [mentorUserId, student_id]);
+
         res.json({ message: 'Mentor linked to student' });
     } catch (e) { res.status(500).json({ error: e.message }); }
 });
@@ -220,13 +232,14 @@ router.get('/my-students', auth, async (req, res) => {
 
         // Fetch students assigned to this specific mentor UID, with a check if they already have roadmap courses
         const students = await all(`
-            SELECT u.id, u.name, u.email, u.created_at, ma.assigned_at,
+            SELECT u.id, u.name, u.email, u.created_at, 
+                   COALESCE(ma.assigned_at, u.created_at) as assigned_at,
                    EXISTS(SELECT 1 FROM roadmap r WHERE r.student_id = u.id) as has_roadmap
-            FROM mentor_assignments ma
-            JOIN users u ON u.id = ma.student_id
-            WHERE ma.mentor_user_id = ?
-            ORDER BY ma.assigned_at DESC
-        `, [mentorId]);
+            FROM users u
+            LEFT JOIN mentor_assignments ma ON ma.student_id = u.id
+            WHERE u.mentor_id = ? OR ma.mentor_user_id = ?
+            ORDER BY assigned_at DESC
+        `, [mentorId, mentorId]);
 
         res.json(students);
     } catch (e) {
@@ -247,9 +260,9 @@ router.get('/my-assessments', auth, async (req, res) => {
             FROM exam_submissions es
             JOIN exams e ON e.id = es.exam_id
             JOIN users u ON u.id = es.student_id
-            JOIN mentor_assignments ma ON ma.student_id = u.id
-            WHERE ma.mentor_user_id = ? AND es.status IN ('Submitted', 'Pending Review')
-        `, [mentorUserId]);
+            LEFT JOIN mentor_assignments ma ON ma.student_id = u.id
+            WHERE (ma.mentor_user_id = ? OR u.mentor_id = ?) AND es.status IN ('Submitted', 'Pending Review')
+        `, [mentorUserId, mentorUserId]);
 
         // 2. Fetch Skills Submissions
         const skillsSubmissions = await all(`
@@ -257,9 +270,9 @@ router.get('/my-assessments', auth, async (req, res) => {
                    ss.mentor_remarks, ss.submitted_at, 'Skills Assessment' AS exam_title, u.name AS student_name
             FROM student_skills ss
             JOIN users u ON u.id = ss.student_id
-            JOIN mentor_assignments ma ON ma.student_id = u.id
-            WHERE ma.mentor_user_id = ? AND ss.status IN ('Submitted', 'Pending Review')
-        `, [mentorUserId]);
+            LEFT JOIN mentor_assignments ma ON ma.student_id = u.id
+            WHERE (ma.mentor_user_id = ? OR u.mentor_id = ?) AND ss.status IN ('Submitted', 'Pending Review')
+        `, [mentorUserId, mentorUserId]);
 
         // 3. Combine and Assign Priority Rankings
         const combined = [

@@ -38,6 +38,7 @@ export default function NotificationFeedScreen({ navigation }) {
     const [notifications, setNotifications] = useState([]);
     const [refreshing, setRefreshing] = useState(false);
     const [connecting, setConnecting] = useState(null);
+    const [connectedIds, setConnectedIds] = useState([]);
 
     const fetchNotifications = async () => {
         try {
@@ -66,12 +67,17 @@ export default function NotificationFeedScreen({ navigation }) {
     const onRefresh = async () => { setRefreshing(true); await fetchNotifications(); setRefreshing(false); };
 
     const handleConnect = async (notification) => {
-        if (connecting) return;
+        if (connecting || connectedIds.includes(notification.student_id)) return;
         setConnecting(notification.student_id);
         try {
             await api.post(`/api/mentor/connect/${notification.student_id}`);
             toast.show(`🔗 Connected with ${notification.student_name}!`, 'success');
-            fetchNotifications(); // refresh list — this notification vanishes
+            setConnectedIds(prev => [...prev, notification.student_id]);
+            
+            // Wait 2 seconds before refreshing so user can see "✅ Connected"
+            setTimeout(() => {
+                fetchNotifications();
+            }, 2000);
         } catch (e) {
             const msg = e.response?.data?.error || 'Connection failed';
             toast.show(msg === 'Student already connected to another mentor'
@@ -184,9 +190,13 @@ export default function NotificationFeedScreen({ navigation }) {
                             onPress={() => handleConnect(student.alerts[0])}
                             disabled={!!connecting}
                         >
-                            <LinearGradient colors={['#00d2ff', '#3a7bd5']} style={s.connectInner}>
+                            <LinearGradient 
+                                colors={connectedIds.includes(student.student_id) ? ['#00f260', '#0575E6'] : ['#00d2ff', '#3a7bd5']} 
+                                style={s.connectInner}
+                            >
                                 <Text style={s.connectText}>
-                                    {connecting === student.student_id ? '🔄 Connecting…' : '🔗 Connect with Learner'}
+                                    {connecting === student.student_id ? '🔄 Connecting…' : 
+                                     connectedIds.includes(student.student_id) ? '✅ Connected' : '🔗 Connect with Learner'}
                                 </Text>
                             </LinearGradient>
                         </TouchableOpacity>
