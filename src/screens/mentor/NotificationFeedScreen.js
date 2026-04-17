@@ -42,7 +42,7 @@ export default function NotificationFeedScreen({ navigation }) {
 
     const fetchNotifications = async () => {
         try {
-            const res = await api.get('/api/mentor/notifications');
+            const res = await api.get(`/api/mentor/notifications?t=${Date.now()}`);
             setNotifications(res.data);
         } catch (e) { console.log('Notification fetch error:', e.message); }
     };

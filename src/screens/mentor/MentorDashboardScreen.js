@@ -42,8 +42,8 @@ export default function MentorDashboardScreen({ navigation }) {
     const fetchData = async () => {
         try {
             const [sRes, aRes] = await Promise.all([
-                api.get('/api/mentor/my-students'),
-                api.get('/api/mentor/my-assessments')
+                api.get(`/api/mentor/my-students?t=${Date.now()}`),
+                api.get(`/api/mentor/my-assessments?t=${Date.now()}`)
             ]);
             setRoster(sRes.data || []);
             setAssessments(aRes.data || []);

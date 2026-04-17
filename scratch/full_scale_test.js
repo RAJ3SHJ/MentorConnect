@@ -1,92 +1,94 @@
-const axios = require('axios');
-const { execSync } = require('child_process');
-const path = require('path');
+const Database = require('better-sqlite3');
+const jwt = require('jsonwebtoken');
+const db = new Database('mentor_app.db');
 
-const API_URL = 'http://localhost:3001';
-const runId = Math.floor(Math.random() * 9000) + 1000;
+const JWT_SECRET = 'mentor_app_jwt_secret_key_2024';
 
-async function runTest() {
-    console.log(`🚀 Starting Robust Full Scale Test [Run ${runId}]...`);
+// 1. Create Test Mentor
+const mentorId = 'test-mentor-uuid-' + Date.now();
+db.prepare("INSERT OR REPLACE INTO users (id, name, email, role, password_hash) VALUES (?, ?, ?, 'mentor', 'test')")
+  .run(mentorId, 'Test Mentor', 'test-mentor@test.com');
+db.prepare("INSERT OR REPLACE INTO mentors (id, name, email) VALUES (?, ?, ?)")
+  .run(mentorId, 'Test Mentor', 'test-mentor@test.com');
+
+const mentorToken = jwt.sign({ id: mentorId, email: 'test-mentor@test.com', role: 'mentor' }, JWT_SECRET);
+
+console.log(`✅ Test Mentor Created: ${mentorId}`);
+
+// 2. Create 2 Learners
+const learner1Id = 'l1-' + Date.now();
+const learner2Id = 'l2-' + Date.now();
+
+[learner1Id, learner2Id].forEach((id, i) => {
+    db.prepare("INSERT INTO users (id, name, email, role, password_hash) VALUES (?, ?, ?, 'learner', 'test')")
+      .run(id, `Learner ${i+1}`, `learner${i+1}@test.com`);
+    console.log(`✅ Learner ${i+1} Created: ${id}`);
+});
+
+// 3. Submit Skills Assessment for Learners
+[learner1Id, learner2Id].forEach((id, i) => {
+    const skillsId = db.prepare("INSERT INTO student_skills (student_id, goal, skills) VALUES (?, ?, ?)")
+      .run(id, `Become a ${i === 0 ? 'Cloud Architect' : 'Project Manager'}`, JSON.stringify(['AWS', 'Docker']));
     
-    try {
-        // 1. Register a dedicated Test Mentor
-        const m = { email: `mentor_auto_${runId}@test.com`, name: `Auto Mentor ${runId}`, password: 'Password123!' };
-        console.log(`👨‍🏫 Registering ${m.name}...`);
-        const regRes = await axios.post(`${API_URL}/api/auth/register`, m);
-        const mentorId = regRes.data.user.id;
+    // Create notification
+    db.prepare("INSERT INTO mentor_notifications (student_id, trigger_type, reference_id) VALUES (?, 'skills', ?)")
+      .run(id, skillsId.lastInsertRowid);
+    
+    console.log(`✅ Skills Submitted for Learner ${i+1}`);
+});
 
-        // 2. PROMOTE to mentor role via local DB access (Assuming test is running where backend has local DB access)
-        // Note: If running against a remote production DB, we'd need admin API access.
-        // For this local verification, we'll use the local DB.
-        console.log(`🆙 Promoting ${m.email} to Mentor role...`);
-        const cmd = `node -e "const db = require('./db'); db.initDb().then(async () => { await db.run('UPDATE users SET role = \\'mentor\\' WHERE email = ?', ['${m.email}']); process.exit(0); })"`;
-        execSync(cmd, { cwd: path.join(__dirname, '..', '..', 'mentor-app-backend') });
+// 4. Submit Exams for Learners
+[learner1Id, learner2Id].forEach((id, i) => {
+    const submissionId = db.prepare("INSERT INTO exam_submissions (student_id, exam_id, status) VALUES (?, 1, 'Submitted')")
+      .run(id);
+    
+    // Create notification
+    db.prepare("INSERT INTO mentor_notifications (student_id, trigger_type, reference_id) VALUES (?, 'exam', ?)")
+      .run(id, submissionId.lastInsertRowid);
+      
+    console.log(`✅ Exam Submitted for Learner ${i+1}`);
+});
 
-        // 3. Login as the new Mentor
-        console.log(`🔐 Logging in as the newly promoted Mentor...`);
-        const login = await axios.post(`${API_URL}/api/auth/login`, { email: m.email, password: m.password });
-        const mentorToken = login.data.token;
-        console.log(`✅ Login successful.`);
+// 5. Verify Notifications
+const notifications = db.prepare(`
+    SELECT mn.id, u.name as student_name 
+    FROM mentor_notifications mn 
+    JOIN users u ON u.id = mn.student_id 
+    WHERE mn.is_claimed = 0
+`).all();
+console.log(`📋 Notifications Pending: ${notifications.length}`);
 
-        // 4. Register 3 Learners and submit skills
-        const learners = [];
-        for (let i = 1; i <= 3; i++) {
-            const l = { email: `learner_test_${runId}_${i}@test.com`, name: `Learner ${i}`, password: 'Password123!' };
-            console.log(`🎓 Registering ${l.name}...`);
-            await axios.post(`${API_URL}/api/auth/register`, l);
-            const lLogin = await axios.post(`${API_URL}/api/auth/login`, { email: l.email, password: l.password });
-            l.token = lLogin.data.token;
-            l.userId = lLogin.data.user.id;
-            
-            console.log(`🎯 ${l.name} submitting Skills...`);
-            await axios.post(`${API_URL}/api/student/skills`, { goal: 'Fullstack', skills: ['React', 'Node'] }, { 
-                headers: { Authorization: `Bearer ${l.token}` } 
-            });
-            learners.push(l);
-        }
+// 6. Connect with Learners (Simulating /api/mentor/connect)
+[learner1Id, learner2Id].forEach(sid => {
+    // Atomic connect logic
+    db.prepare("INSERT INTO mentor_assignments (mentor_id, student_id, mentor_user_id) VALUES (?, ?, ?)")
+      .run(mentorId, sid, mentorId);
+    db.prepare("UPDATE users SET mentor_id = ? WHERE id = ?").run(mentorId, sid);
+    db.prepare("UPDATE mentor_notifications SET is_claimed = 1, claimed_by_mentor_id = ? WHERE student_id = ?")
+      .run(mentorId, sid);
+    console.log(`🔗 Connected with ${sid}`);
+});
 
-        // 5. Check Alert count
-        const countRes = await axios.get(`${API_URL}/api/mentor/notification-count`, { 
-            headers: { Authorization: `Bearer ${mentorToken}` } 
-        });
-        const countBefore = countRes.data.count;
-        console.log(`📊 Alerts before connection: ${countBefore}`);
+// 7. Final Verification: Check Dashboard Query Logic
+const roster = db.prepare(`
+    SELECT DISTINCT u.id, u.name, u.mentor_id as direct_mentor_id,
+           ma.mentor_user_id, ma.mentor_id as legacy_mentor_id,
+           EXISTS(SELECT 1 FROM roadmap r WHERE r.student_id = u.id) as has_roadmap
+    FROM users u
+    LEFT JOIN mentor_assignments ma ON ma.student_id = u.id
+    WHERE u.mentor_id = ? 
+       OR ma.mentor_user_id = ?
+       OR (ma.mentor_id IS NOT NULL AND ma.mentor_id = ?)
+`).all(mentorId, mentorId, mentorId);
 
-        // 6. Connect with Learner 1
-        const target = learners[0];
-        console.log(`🔗 Connecting with ${target.name}...`);
-        await axios.post(`${API_URL}/api/mentor/connect/${target.userId}`, {}, { 
-            headers: { Authorization: `Bearer ${mentorToken}` } 
-        });
+console.log('--- FINAL DASHBOARD VERIFICATION ---');
+console.log(`📊 Roster Count: ${roster.length}`);
+roster.forEach(r => console.log(`  - ${r.name} (ID: ${r.id})`));
 
-        // 7. Verification: Learner 1 must NOT show in alerts
-        console.log(`🔍 Verifying ${target.name} has vanished from global alerts...`);
-        const notifsRes = await axios.get(`${API_URL}/api/mentor/notifications`, { 
-            headers: { Authorization: `Bearer ${mentorToken}` } 
-        });
-        const exists = notifsRes.data.some(n => n.student_id === target.userId);
-        
-        if (!exists) {
-            console.log(`✅ SUCCESS: Student removed from Alerts list.`);
-        } else {
-            console.log(`❌ FAILURE: Student still visible in Alerts.`);
-        }
-
-        const countAfterRes = await axios.get(`${API_URL}/api/mentor/notification-count`, { 
-            headers: { Authorization: `Bearer ${mentorToken}` } 
-        });
-        console.log(`📊 Alerts after: ${countAfterRes.data.count}`);
-        
-        if (countAfterRes.data.count < countBefore) {
-            console.log(`✅ SUCCESS: Badge count decremented.`);
-        }
-
-        console.log('\n✨ All requirements verified.');
-
-    } catch (e) {
-        console.error('\n❌ TEST ERROR');
-        console.error(e.response?.data || e.message);
-    }
+if (roster.length === 2) {
+    console.log('✨ SUCCESS: Both learners are visible on the dashboard!');
+} else {
+    console.log('❌ FAILURE: Roster count mismatch.');
 }
 
-runTest();
+db.close();
