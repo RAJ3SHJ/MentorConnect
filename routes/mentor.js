@@ -238,6 +238,7 @@ router.get('/my-students', auth, async (req, res) => {
 // GET /api/mentor/my-assessments — filtered by mentor's assigned students
 router.get('/my-assessments', auth, async (req, res) => {
     try {
+        const mentorUserId = req.user.id;
 
         // 1. Fetch Exam Submissions
         const examSubmissions = await all(`
