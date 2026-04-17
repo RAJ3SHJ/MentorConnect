@@ -238,35 +238,36 @@ router.get('/my-students', auth, async (req, res) => {
 // GET /api/mentor/my-assessments — filtered by mentor's assigned students
 router.get('/my-assessments', auth, async (req, res) => {
     try {
-        const mentorUserId = req.user.id;
 
-        const submissions = await all(`
-            -- Exam Submissions
+        // 1. Fetch Exam Submissions
+        const examSubmissions = await all(`
             SELECT es.id, es.student_id, 'exam' as type, es.exam_id, es.answers, es.status,
-                   es.mentor_remarks, es.submitted_at, 
-                   e.title AS exam_title, u.name AS student_name, CAST(NULL AS TEXT) as goal, 2 as sort_rank
+                   es.mentor_remarks, es.submitted_at, e.title AS exam_title, u.name AS student_name
             FROM exam_submissions es
             JOIN exams e ON e.id = es.exam_id
             JOIN users u ON u.id = es.student_id
             JOIN mentor_assignments ma ON ma.student_id = u.id
             WHERE ma.mentor_user_id = ? AND es.status IN ('Submitted', 'Pending Review')
+        `, [mentorUserId]);
 
-            UNION ALL
-
-            -- Skills Submissions
-            SELECT ss.id, ss.student_id, 'skills' as type, CAST(NULL AS INTEGER) as exam_id, ss.skills as answers, ss.status,
-                   ss.mentor_remarks, ss.submitted_at, 
-                   'Skills Assessment' AS exam_title, u.name AS student_name, CAST(ss.goal AS TEXT) as goal, 1 as sort_rank
+        // 2. Fetch Skills Submissions
+        const skillsSubmissions = await all(`
+            SELECT ss.id, ss.student_id, 'skills' as type, ss.goal, ss.skills as answers, ss.status,
+                   ss.mentor_remarks, ss.submitted_at, 'Skills Assessment' AS exam_title, u.name AS student_name
             FROM student_skills ss
             JOIN users u ON u.id = ss.student_id
             JOIN mentor_assignments ma ON ma.student_id = u.id
             WHERE ma.mentor_user_id = ? AND ss.status IN ('Submitted', 'Pending Review')
-            
-            ORDER BY sort_rank ASC, submitted_at DESC
-        `, [mentorUserId, mentorUserId]);
+        `, [mentorUserId]);
 
-        // Enrichment Phase: Fetch Questions for Exams
-        const rawExamIds = submissions.filter(s => s.type === 'exam').map(s => s.exam_id);
+        // 3. Combine and Assign Priority Rankings
+        const combined = [
+            ...skillsSubmissions.map(s => ({ ...s, sort_rank: 1 })),
+            ...examSubmissions.map(e => ({ ...e, sort_rank: 2, goal: null, exam_id: e.exam_id }))
+        ];
+
+        // 4. Enrichment Phase: Fetch Questions for Exams
+        const rawExamIds = combined.filter(s => s.type === 'exam').map(s => s.exam_id);
         const examIds = [...new Set(rawExamIds)].filter(id => id !== undefined && id !== null).map(String);
         let questionsMap = {};
 
@@ -289,7 +290,7 @@ router.get('/my-assessments', auth, async (req, res) => {
             }
         }
         
-        const result = submissions.map(sub => {
+        const result = combined.map(sub => {
             let parsedAnswers = [];
             try {
                 parsedAnswers = typeof sub.answers === 'string' ? JSON.parse(sub.answers || '[]') : sub.answers;
@@ -302,7 +303,7 @@ router.get('/my-assessments', auth, async (req, res) => {
                 answers: parsedAnswers,
                 questions: sub.type === 'exam' ? (questionsMap[String(sub.exam_id)] || []) : null
             };
-        });
+        }).sort((a, b) => a.sort_rank - b.sort_rank || new Date(b.submitted_at) - new Date(a.submitted_at));
 
         res.json(result);
     } catch (e) {
