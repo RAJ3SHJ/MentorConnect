@@ -115,10 +115,10 @@ export default function MentorDashboardScreen({ navigation }) {
                 {/* ── Learner Roster ── */}
                 <Text style={s.sectionTitle}>🔗 Learner Roster</Text>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} style={s.rosterScroll}>
-                    {roster.length === 0 ? (
-                        <View style={s.emptyBox}><Text style={s.emptyText}>No learners assigned.</Text></View>
+                    {roster.filter(l => !l.has_roadmap).length === 0 ? (
+                        <View style={s.emptyBox}><Text style={s.emptyText}>No pending roadmaps.</Text></View>
                     ) : (
-                        roster.map(learner => (
+                        roster.filter(l => !l.has_roadmap).map(learner => (
                             <View key={learner.id} style={s.rosterCard}>
                                 <View style={s.rosterTop}>
                                     <View style={s.rosterAvatar}><Text style={{ fontSize: 24 }}>🎓</Text></View>

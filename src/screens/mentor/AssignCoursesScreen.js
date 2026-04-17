@@ -15,6 +15,7 @@ export default function AssignCoursesScreen({ navigation, route }) {
     const [courses, setCourses] = useState([]);
     const [selectedCourseIds, setSelectedCourseIds] = useState([]);
     const [saving, setSaving] = useState(false);
+    const [completed, setCompleted] = useState(false);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -46,8 +47,9 @@ export default function AssignCoursesScreen({ navigation, route }) {
                 learner_id: selectedStudent.id, 
                 course_ids: selectedCourseIds 
             });
+            setCompleted(true);
             Alert.alert('Success', `Roadmap created for ${selectedStudent.name}`);
-            navigation.goBack();
+            // navigation.goBack(); // Keep on screen as requested with success state
         } catch (e) {
             Alert.alert('Error', e.response?.data?.error || 'Failed to assign courses');
         } finally { setSaving(false); }
@@ -148,19 +150,19 @@ export default function AssignCoursesScreen({ navigation, route }) {
                 {/* Footer Action */}
                 <TouchableOpacity 
                     onPress={handleSave} 
-                    disabled={saving || !selectedStudent || selectedCourseIds.length === 0}
+                    disabled={saving || completed || !selectedStudent || selectedCourseIds.length === 0}
                     style={{ marginTop: 40 }}
                 >
                     <LinearGradient
-                        colors={(!selectedStudent || selectedCourseIds.length === 0) ? [colors.glass, colors.glass] : gradients.accent}
+                        colors={(completed || !selectedStudent || selectedCourseIds.length === 0) ? [colors.glass, colors.glass] : gradients.accent}
                         start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
                         style={s.saveBtn}
                     >
                         {saving ? (
                             <ActivityIndicator color="#fff" />
                         ) : (
-                            <Text style={[s.saveBtnText, { color: (!selectedStudent || selectedCourseIds.length === 0) ? colors.muted : '#fff' }]}>
-                                🚀 Assign & Create Roadmap
+                            <Text style={[s.saveBtnText, { color: (completed || !selectedStudent || selectedCourseIds.length === 0) ? colors.muted : '#fff' }]}>
+                                {completed ? '✅ Roadmap Assigned' : '🚀 Assign & Create Roadmap'}
                             </Text>
                         )}
                     </LinearGradient>
