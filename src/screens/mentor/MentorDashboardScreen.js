@@ -303,31 +303,94 @@ export default function MentorDashboardScreen({ navigation }) {
                             {activeLearnerItems?.map((item) => (
                                 <View key={item.id} style={s.gradeItemBox}>
                                     <View style={s.gradeItemHeader}>
-                                        <Text style={{ color: C.white, fontWeight: '800' }}>
+                                        <Text style={{ color: C.white, fontWeight: '900', fontSize: 16 }}>
                                             {item.type === 'skills' ? '🎯 Skills Assessment' : `📝 ${item.exam_title}`}
                                         </Text>
                                     </View>
-                                    <View style={{ backgroundColor: 'rgba(0,0,0,0.4)', borderRadius: 12, padding: 12, marginBottom: 12 }}>
-                                        <Text style={{ color: C.white, fontSize: 14 }}>
-                                            {item.type === 'skills' 
-                                                ? (typeof item.answers === 'string' ? JSON.parse(item.answers || '[]').join(', ') : item.answers?.join(', '))
-                                                : (Array.isArray(item.answers) ? item.answers.map(a => a.selected).join(', ') : 'No data')}
-                                        </Text>
-                                    </View>
+                                    
+                                    {/* Skills goal & answers */}
+                                    {item.type === 'skills' && (
+                                        <View style={{ marginBottom: 12 }}>
+                                             {item.goal && (
+                                                <View style={{ backgroundColor: 'rgba(0,210,255,0.08)', padding: 12, borderRadius: 12, marginBottom: 16, borderWidth: 1, borderColor: 'rgba(0,210,255,0.2)' }}>
+                                                    <Text style={{ color: C.primary, fontSize: 11, fontWeight: '900', textTransform: 'uppercase', marginBottom: 4 }}>Goal Entered by Learner:</Text>
+                                                    <Text style={{ color: C.white, fontSize: 15, fontWeight: '700' }}>{item.goal}</Text>
+                                                </View>
+                                             )}
+                                             <Text style={{ color: C.faint, fontSize: 11, fontWeight: '900', textTransform: 'uppercase', marginBottom: 8 }}>Selected Skills:</Text>
+                                             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+                                                {(typeof item.answers === 'string' ? JSON.parse(item.answers || '[]') : item.answers)?.map((sk, i) => (
+                                                    <View key={i} style={s.pSkillChip}><Text style={{ color: C.primary, fontSize: 12, fontWeight: '700' }}>{sk}</Text></View>
+                                                ))}
+                                             </View>
+                                        </View>
+                                    )}
+
+                                    {/* Exams Full Context */}
+                                    {item.type === 'exam' && (
+                                        <View style={{ marginBottom: 16 }}>
+                                            {item.questions && item.questions.length > 0 ? (
+                                                item.questions.map((q, qIdx) => {
+                                                    const userAnswer = item.answers?.find(a => a.question_id === q.id)?.selected;
+                                                    return (
+                                                        <View key={q.id} style={{ marginBottom: 20, borderBottomWidth: qIdx === item.questions.length - 1 ? 0 : 1, borderBottomColor: 'rgba(255,255,255,0.05)', pb: 16 }}>
+                                                            <Text style={{ color: C.white, fontSize: 14, fontWeight: '700', marginBottom: 12 }}>
+                                                                {qIdx + 1}. {q.question_text}
+                                                            </Text>
+                                                            {['a', 'b', 'c', 'd'].map(opt => (
+                                                                <View 
+                                                                    key={opt} 
+                                                                    style={{ 
+                                                                        flexDirection: 'row', 
+                                                                        alignItems: 'center', 
+                                                                        gap: 10, 
+                                                                        padding: 8, 
+                                                                        borderRadius: 8, 
+                                                                        backgroundColor: userAnswer === opt ? C.primary + '15' : 'transparent',
+                                                                        borderWidth: 1,
+                                                                        borderColor: userAnswer === opt ? C.primary + '40' : 'transparent',
+                                                                        marginBottom: 4
+                                                                    }}
+                                                                >
+                                                                    <View style={{ 
+                                                                        width: 22, height: 22, borderRadius: 11, 
+                                                                        alignItems: 'center', justifyContent: 'center',
+                                                                        backgroundColor: userAnswer === opt ? C.primary : 'rgba(255,255,255,0.05)',
+                                                                        borderWidth: 1, borderColor: userAnswer === opt ? C.primary : 'rgba(255,255,255,0.2)'
+                                                                    }}>
+                                                                        <Text style={{ color: userAnswer === opt ? '#000' : C.muted, fontSize: 10, fontWeight: '900' }}>{opt.toUpperCase()}</Text>
+                                                                    </View>
+                                                                    <Text style={{ color: userAnswer === opt ? C.white : C.muted, fontSize: 13, flex: 1 }}>{q[`option_${opt}`]}</Text>
+                                                                </View>
+                                                            ))}
+                                                        </View>
+                                                    );
+                                                })
+                                            ) : (
+                                                <View style={{ backgroundColor: 'rgba(0,0,0,0.4)', borderRadius: 12, padding: 12 }}>
+                                                    <Text style={{ color: C.white, fontSize: 14 }}>
+                                                        {Array.isArray(item.answers) ? item.answers.map(a => a.selected).join(', ') : 'No data'}
+                                                    </Text>
+                                                </View>
+                                            )}
+                                        </View>
+                                    )}
+
                                     <TextInput
                                         style={s.feedbackInput}
-                                        placeholder="Feedback..."
+                                        placeholder="Add your feedback/remarks here..."
                                         placeholderTextColor="rgba(255,255,255,0.2)"
                                         multiline
                                         value={gradingRemarks[item.id] || ''}
                                         onChangeText={(val) => setGradingRemarks(prev => ({ ...prev, [item.id]: val }))}
                                     />
+
                                     <View style={s.gradeActions}>
-                                        <TouchableOpacity style={[s.gradeActionBtn, { borderColor: C.danger + '30' }]} onPress={() => handleGradeItem(item, 'Needs Improvement')}>
-                                            {savingId === item.id ? <ActivityIndicator size="small" color={C.danger} /> : <Text style={{ color: C.danger, fontSize: 12, fontWeight: '800' }}>REVISE</Text>}
+                                        <TouchableOpacity style={[s.gradeActionBtn, { borderColor: C.danger + '30', backgroundColor: C.danger + '05' }]} onPress={() => handleGradeItem(item, 'Needs Improvement')}>
+                                            {savingId === item.id ? <ActivityIndicator size="small" color={C.danger} /> : <Text style={{ color: C.danger, fontSize: 12, fontWeight: '900' }}>REVISE</Text>}
                                         </TouchableOpacity>
-                                        <TouchableOpacity style={[s.gradeActionBtn, { borderColor: C.success + '30' }]} onPress={() => handleGradeItem(item, 'Approved')}>
-                                            {savingId === item.id ? <ActivityIndicator size="small" color={C.success} /> : <Text style={{ color: C.success, fontSize: 12, fontWeight: '800' }}>APPROVE</Text>}
+                                        <TouchableOpacity style={[s.gradeActionBtn, { borderColor: C.success + '30', backgroundColor: C.success + '05' }]} onPress={() => handleGradeItem(item, 'Approved')}>
+                                            {savingId === item.id ? <ActivityIndicator size="small" color={C.success} /> : <Text style={{ color: C.success, fontSize: 12, fontWeight: '900' }}>APPROVE</Text>}
                                         </TouchableOpacity>
                                     </View>
                                 </View>
