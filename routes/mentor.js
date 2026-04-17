@@ -247,7 +247,8 @@ router.get('/my-students', auth, async (req, res) => {
 
         // Fetch students assigned to this mentor via any of the 3 possible links:
         const students = await all(`
-            SELECT DISTINCT u.id, u.name, u.email, u.created_at, 
+            SELECT DISTINCT u.id, u.name, u.email, u.created_at, u.mentor_id as direct_mentor_id,
+                   ma.mentor_user_id, ma.mentor_id as legacy_mentor_id,
                    COALESCE(ma.assigned_at, u.created_at) as assigned_at,
                    EXISTS(SELECT 1 FROM roadmap r WHERE r.student_id = u.id) as has_roadmap
             FROM users u
