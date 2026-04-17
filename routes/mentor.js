@@ -85,7 +85,11 @@ router.get('/student-detail/:studentId', auth, async (req, res) => {
                 WHERE es.student_id = ?
                 ORDER BY es.submitted_at DESC
             `, [studentId]),
-            get('SELECT id FROM mentor_assignments WHERE student_id = ? AND mentor_user_id = ?', [studentId, mentorUserId])
+            get(`
+                SELECT ma.id FROM users u 
+                LEFT JOIN mentor_assignments ma ON ma.student_id = u.id 
+                WHERE u.id = ? AND (u.mentor_id = ? OR ma.mentor_user_id = ?)
+            `, [studentId, mentorUserId, mentorUserId])
         ]);
 
         if (!user) return res.status(404).json({ error: 'Student not found' });
@@ -139,8 +143,12 @@ router.post('/unified-review/:studentId', auth, async (req, res) => {
         const mentorUserId = req.user.id;
         const studentId = req.params.studentId;
 
-        // Verify connection exists
-        const assignment = await get('SELECT id FROM mentor_assignments WHERE student_id = ? AND mentor_user_id = ?', [studentId, mentorUserId]);
+        // Verify connection exists (inclusive check)
+        const assignment = await get(`
+            SELECT 1 FROM users u 
+            LEFT JOIN mentor_assignments ma ON ma.student_id = u.id 
+            WHERE u.id = ? AND (u.mentor_id = ? OR ma.mentor_user_id = ?)
+        `, [studentId, mentorUserId, mentorUserId]);
         if (!assignment) {
             return res.status(403).json({ error: 'You must connect with this student before submitting a review.' });
         }

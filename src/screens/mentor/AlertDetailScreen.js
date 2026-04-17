@@ -142,24 +142,23 @@ export default function AlertDetailScreen({ route, navigation }) {
                         <Text style={{ color: colors.muted, fontSize: 13 }}>{student.email}</Text>
                     </View>
                     {/* Connect Button in Header - Hide if already connected */}
-                    {!detail.isConnected && (
-                        <TouchableOpacity
-                            style={[s.connectBtn, { borderColor: colors.blue + '55', opacity: connecting ? 0.6 : 1 }]}
-                            onPress={handleConnect}
-                            disabled={connecting}
+                    <TouchableOpacity
+                        style={[
+                            s.connectBtn, 
+                            { borderColor: detail.isConnected ? colors.success + '55' : colors.blue + '55', opacity: connecting ? 0.6 : 1 }
+                        ]}
+                        onPress={handleConnect}
+                        disabled={connecting || detail.isConnected}
+                    >
+                        <LinearGradient 
+                            colors={detail.isConnected ? ['#00f260', '#0575E6'] : ['#00d2ff', '#3a7bd5']} 
+                            style={s.connectBtnInner}
                         >
-                            <LinearGradient colors={['#00d2ff', '#3a7bd5']} style={s.connectBtnInner}>
-                                <Text style={s.connectBtnText}>
-                                    {connecting ? '…' : '🔗 Connect'}
-                                </Text>
-                            </LinearGradient>
-                        </TouchableOpacity>
-                    )}
-                    {detail.isConnected && (
-                        <View style={[s.connectedTag, { backgroundColor: colors.success + '15' }]}>
-                            <Text style={{ color: colors.success, fontSize: 12, fontWeight: '700' }}>✅ Connected</Text>
-                        </View>
-                    )}
+                            <Text style={s.connectBtnText}>
+                                {connecting ? '…' : detail.isConnected ? '✅ Connected' : '🔗 Connect'}
+                            </Text>
+                        </LinearGradient>
+                    </TouchableOpacity>
                 </View>
             </View>
 
