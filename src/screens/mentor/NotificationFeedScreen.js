@@ -76,8 +76,13 @@ export default function NotificationFeedScreen({ navigation, route }) {
             
             // After 1.5 seconds, navigate to Dashboard tab so user sees learner appear
             setTimeout(() => {
-                // Navigate to Dashboard tab, then to the MentorHome screen inside it
-                navigation.navigate('Dashboard', { screen: 'MentorHome' });
+                // On Native, we need getParent() to reach the Tab navigator from inside the Notification Stack
+                const parent = navigation.getParent();
+                if (parent) {
+                    parent.navigate('Dashboard', { screen: 'MentorHome' });
+                } else {
+                    navigation.navigate('Dashboard', { screen: 'MentorHome' });
+                }
             }, 1500);
         } catch (e) {
             const msg = e.response?.data?.error || 'Connection failed';

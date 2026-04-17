@@ -58,7 +58,12 @@ export default function AlertDetailScreen({ route, navigation }) {
                 setDetail(res.data);
                 // Navigate to Dashboard tab after 1.5 seconds
                 setTimeout(() => {
-                    navigation.navigate('Dashboard', { screen: 'MentorHome' });
+                    const parent = navigation.getParent();
+                    if (parent) {
+                        parent.navigate('Dashboard', { screen: 'MentorHome' });
+                    } else {
+                        navigation.navigate('Dashboard', { screen: 'MentorHome' });
+                    }
                 }, 1500);
             } catch (e) {
                 const msg = e.response?.data?.error || 'Connection failed';
