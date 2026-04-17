@@ -31,7 +31,7 @@ function StarRating({ value, onChange }) {
 
 
 // ── Main Notification Feed ──
-export default function NotificationFeedScreen({ navigation }) {
+export default function NotificationFeedScreen({ navigation, route }) {
     const insets = useSafeAreaInsets();
     const { user } = useAuth();
     const toast = useToast();
@@ -71,13 +71,18 @@ export default function NotificationFeedScreen({ navigation }) {
         setConnecting(notification.student_id);
         try {
             await api.post(`/api/mentor/connect/${notification.student_id}`);
-            toast.show(`🔗 Connected with ${notification.student_name}!`, 'success');
+            toast.show(`🔗 Connected! Switching to Dashboard…`, 'success');
             setConnectedIds(prev => [...prev, notification.student_id]);
-            
-            // Wait 2 seconds before refreshing so user can see "✅ Connected"
+
+            // After 1.5s switch to Dashboard tab so user sees the learner there
             setTimeout(() => {
                 fetchNotifications();
-            }, 2000);
+                // Navigate to the Dashboard tab (index 0 in the bottom tab navigator)
+                const parent = navigation.getParent();
+                if (parent) {
+                    parent.navigate('Dashboard');
+                }
+            }, 1500);
         } catch (e) {
             const msg = e.response?.data?.error || 'Connection failed';
             toast.show(msg === 'Student already connected to another mentor'
