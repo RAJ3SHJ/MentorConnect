@@ -32,8 +32,11 @@ export default function MentorDashboardScreen({ navigation }) {
     const [assessments, setAssessments] = useState([]);
     const [refreshing, setRefreshing] = useState(false);
 
-    const [activeLearnerItems, setActiveLearnerItems] = useState(null); // Consolidated Review Case
-    const [gradingRemarks, setGradingRemarks] = useState({}); // mapped by itemId
+    // Review / Profile states
+    const [activeLearnerItems, setActiveLearnerItems] = useState(null); // Items awaiting review
+    const [selectedProfile, setSelectedProfile] = useState(null); // Historical view
+    const [loadingProfile, setLoadingProfile] = useState(false);
+    const [gradingRemarks, setGradingRemarks] = useState({});
     const [savingId, setSavingId] = useState(null);
 
     const fetchData = async () => {
@@ -54,7 +57,7 @@ export default function MentorDashboardScreen({ navigation }) {
                 event: 'INSERT', 
                 schema: 'public', 
                 table: 'exam_submissions' 
-            }, (payload) => {
+            }, () => {
                 toast.show('New assessment received! 📝', 'success');
                 fetchData();
             })
@@ -65,23 +68,34 @@ export default function MentorDashboardScreen({ navigation }) {
     useFocusEffect(useCallback(() => { fetchData(); }, []));
     const onRefresh = async () => { setRefreshing(true); await fetchData(); setRefreshing(false); };
 
+    const fetchStudentDetail = async (studentId) => {
+        setLoadingProfile(true);
+        try {
+            const res = await api.get(`/api/mentor/student-detail/${studentId}`);
+            setSelectedProfile(res.data);
+        } catch (e) {
+            console.error(e);
+            toast.show('Failed to load learner profile', 'error');
+        } finally { setLoadingProfile(false); }
+    };
+
     const handleGradeItem = async (item, status) => {
         setSavingId(item.id);
         try {
             await api.post(`/api/mentor/validate/${item.id}`, { 
-                type: item.type, // 'exam' or 'skills'
+                type: item.type,
                 status, 
                 remarks: gradingRemarks[item.id] || '' 
             });
             fetchData();
-            // Remove from active list locally to reflect progress in the "one roof" view
             setActiveLearnerItems(prev => {
                 const updated = prev.filter(i => i.id !== item.id);
-                if (updated.length === 0) return null;
-                return updated;
+                return updated.length === 0 ? null : updated;
             });
-        } catch (e) { console.error(e); }
-        finally { setSavingId(null); }
+        } catch (e) {
+            console.error(e);
+            toast.show('Save failed', 'error');
+        } finally { setSavingId(null); }
     };
 
     return (
@@ -119,7 +133,11 @@ export default function MentorDashboardScreen({ navigation }) {
                         <View style={s.emptyBox}><Text style={s.emptyText}>Inbox Zero. No pending setups.</Text></View>
                     ) : (
                         roster.filter(l => !l.has_roadmap).map(learner => (
-                            <View key={learner.id} style={s.rosterCard}>
+                            <TouchableOpacity 
+                                key={learner.id} 
+                                style={s.rosterCard}
+                                onPress={() => fetchStudentDetail(learner.id)}
+                            >
                                 <View style={s.rosterTop}>
                                     <View style={s.rosterAvatar}><Text style={{ fontSize: 18 }}>🎓</Text></View>
                                     <View style={{ flex: 1 }}>
@@ -129,10 +147,10 @@ export default function MentorDashboardScreen({ navigation }) {
                                 <View style={s.progressTrack}>
                                     <View style={[s.progressFill, { width: '0%', backgroundColor: C.muted }]} />
                                 </View>
-                                <TouchableOpacity style={s.rosterBtn} onPress={() => navigation.navigate('AssignCourses', { student: learner })}>
+                                <View style={s.rosterBtn}>
                                     <Text style={s.rosterBtnText}>🗺️ Create</Text>
-                                </TouchableOpacity>
-                            </View>
+                                </View>
+                            </TouchableOpacity>
                         ))
                     )}
                 </ScrollView>
@@ -144,7 +162,11 @@ export default function MentorDashboardScreen({ navigation }) {
                         <View style={s.emptyBox}><Text style={s.emptyText}>No active roadmaps yet.</Text></View>
                     ) : (
                         roster.filter(l => l.has_roadmap).map(learner => (
-                            <View key={learner.id} style={[s.rosterCard, { borderColor: 'rgba(0,242,96,0.2)' }]}>
+                            <TouchableOpacity 
+                                key={learner.id} 
+                                style={[s.rosterCard, { borderColor: 'rgba(0,242,96,0.2)' }]}
+                                onPress={() => fetchStudentDetail(learner.id)}
+                            >
                                 <View style={s.rosterTop}>
                                     <View style={[s.rosterAvatar, { backgroundColor: 'rgba(0,242,96,0.1)' }]}><Text style={{ fontSize: 18 }}>🚀</Text></View>
                                     <View style={{ flex: 1 }}>
@@ -154,10 +176,10 @@ export default function MentorDashboardScreen({ navigation }) {
                                 <View style={s.progressTrack}>
                                     <View style={[s.progressFill, { width: '40%' }]} />
                                 </View>
-                                <TouchableOpacity style={[s.rosterBtn, { backgroundColor: 'rgba(0,242,96,0.05)' }]} onPress={() => navigation.navigate('AssignCourses', { student: learner })}>
+                                <View style={[s.rosterBtn, { backgroundColor: 'rgba(0,242,96,0.05)' }]}>
                                     <Text style={[s.rosterBtnText, { color: C.success }]}>✅ Set</Text>
-                                </TouchableOpacity>
-                            </View>
+                                </View>
+                            </TouchableOpacity>
                         ))
                     )}
                 </ScrollView>
@@ -192,11 +214,81 @@ export default function MentorDashboardScreen({ navigation }) {
                         ))
                     )}
                 </View>
-
-                {/* Global button removed as requested */}
             </ScrollView>
 
-            {/* ── Consolidated Grading Modal (Under One Roof) ── */}
+            {/* ── Learner Profile drawer (Historical) ── */}
+            <Modal visible={!!selectedProfile} animationType="slide" transparent>
+                <View style={s.modalOverlay}>
+                    <View style={s.drawer}>
+                        <View style={s.drawerTopBar}>
+                            <Text style={s.drawerTitle}>Learner Profile</Text>
+                            <TouchableOpacity onPress={() => setSelectedProfile(null)}><Text style={{ color: C.white, fontSize: 24 }}>✕</Text></TouchableOpacity>
+                        </View>
+                        <ScrollView showsVerticalScrollIndicator={false}>
+                            {selectedProfile && (
+                                <>
+                                    <View style={s.profileHeader}>
+                                        <Text style={s.pName}>{selectedProfile.student.name}</Text>
+                                        <Text style={s.pEmail}>{selectedProfile.student.email}</Text>
+                                    </View>
+
+                                    <Text style={s.pSectionTitle}>🎯 Skills Assessment</Text>
+                                    {selectedProfile.skills ? (
+                                        <View style={s.historyCard}>
+                                            <Text style={s.pGoal}>Goal: {selectedProfile.skills.goal}</Text>
+                                            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+                                                {selectedProfile.skills.skills?.map((sk, i) => (
+                                                    <View key={i} style={s.pSkillChip}><Text style={{ color: C.primary, fontSize: 12 }}>{sk}</Text></View>
+                                                ))}
+                                            </View>
+                                        </View>
+                                    ) : (
+                                        <Text style={s.pEmpty}>No skills assessment submitted yet.</Text>
+                                    )}
+
+                                    <Text style={[s.pSectionTitle, { marginTop: 24 }]}>📋 Exam History</Text>
+                                    {selectedProfile.submissions && selectedProfile.submissions.length > 0 ? (
+                                        selectedProfile.submissions.map((sub) => (
+                                            <View key={sub.id} style={s.historyCard}>
+                                                <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 }}>
+                                                    <Text style={{ color: C.white, fontWeight: '700' }}>{sub.exam_title}</Text>
+                                                    <Text style={{ color: sub.status === 'Approved' ? C.success : C.danger, fontSize: 12, fontWeight: '800' }}>
+                                                        {sub.status.toUpperCase()}
+                                                    </Text>
+                                                </View>
+                                                {sub.mentor_remarks && (
+                                                    <View style={s.pFeedbackBox}>
+                                                        <Text style={s.pFeedbackLabel}>Previous Feedback:</Text>
+                                                        <Text style={s.pFeedbackText}>{sub.mentor_remarks}</Text>
+                                                    </View>
+                                                )}
+                                                <Text style={{ color: C.muted, fontSize: 11, marginTop: 8 }}>
+                                                    Reviewed: {sub.reviewed_at ? new Date(sub.reviewed_at).toLocaleDateString() : 'N/A'}
+                                                </Text>
+                                            </View>
+                                        ))
+                                    ) : (
+                                        <Text style={s.pEmpty}>No exams completed yet.</Text>
+                                    )}
+
+                                    <TouchableOpacity 
+                                        style={[s.reviewAllBtn, { marginTop: 32, backgroundColor: C.primary + '15' }]}
+                                        onPress={() => {
+                                            const student = selectedProfile.student;
+                                            setSelectedProfile(null);
+                                            navigation.navigate('AssignCourses', { student });
+                                        }}
+                                    >
+                                        <Text style={[s.reviewAllText, { color: C.primary }]}>Build Roadmap →</Text>
+                                    </TouchableOpacity>
+                                </>
+                            )}
+                        </ScrollView>
+                    </View>
+                </View>
+            </Modal>
+
+            {/* ── Grading Modal (Pending) ── */}
             <Modal visible={!!activeLearnerItems} animationType="slide" transparent>
                 <View style={s.modalOverlay}>
                     <View style={s.drawer}>
@@ -204,15 +296,10 @@ export default function MentorDashboardScreen({ navigation }) {
                             <Text style={s.drawerTitle}>Grade Assessments</Text>
                             <TouchableOpacity onPress={() => setActiveLearnerItems(null)}><Text style={{ color: C.white, fontSize: 24 }}>✕</Text></TouchableOpacity>
                         </View>
-                        <ScrollView 
-                            style={{ flex: 1 }} 
-                            contentContainerStyle={{ paddingBottom: 40 }}
-                            showsVerticalScrollIndicator={false}
-                        >
+                        <ScrollView showsVerticalScrollIndicator={false}>
                             <Text style={{ color: C.primary, fontWeight: '800', marginBottom: 20 }}>
                                 Learner: {activeLearnerItems?.[0]?.student_name}
                             </Text>
-                            
                             {activeLearnerItems?.map((item) => (
                                 <View key={item.id} style={s.gradeItemBox}>
                                     <View style={s.gradeItemHeader}>
@@ -220,39 +307,27 @@ export default function MentorDashboardScreen({ navigation }) {
                                             {item.type === 'skills' ? '🎯 Skills Assessment' : `📝 ${item.exam_title}`}
                                         </Text>
                                     </View>
-                                    
-                                    <View style={s.mcqBox}>
-                                        <Text style={{ color: C.faint, fontSize: 13, marginBottom: 6 }}>Submission Content:</Text>
-                                        <Text style={{ color: C.white }}>
+                                    <View style={{ backgroundColor: 'rgba(0,0,0,0.4)', borderRadius: 12, padding: 12, marginBottom: 12 }}>
+                                        <Text style={{ color: C.white, fontSize: 14 }}>
                                             {item.type === 'skills' 
                                                 ? (typeof item.answers === 'string' ? JSON.parse(item.answers || '[]').join(', ') : item.answers?.join(', '))
                                                 : (Array.isArray(item.answers) ? item.answers.map(a => a.selected).join(', ') : 'No data')}
                                         </Text>
                                     </View>
-
                                     <TextInput
                                         style={s.feedbackInput}
-                                        placeholder="Feedback for this item..."
+                                        placeholder="Feedback..."
                                         placeholderTextColor="rgba(255,255,255,0.2)"
                                         multiline
                                         value={gradingRemarks[item.id] || ''}
                                         onChangeText={(val) => setGradingRemarks(prev => ({ ...prev, [item.id]: val }))}
                                     />
-
                                     <View style={s.gradeActions}>
-                                        <TouchableOpacity
-                                            style={[s.gradeActionBtn, { borderColor: 'rgba(255,71,87,0.3)' }]}
-                                            onPress={() => handleGradeItem(item, 'Needs Improvement')}
-                                            disabled={savingId === item.id}
-                                        >
-                                            {savingId === item.id ? <ActivityIndicator size="small" color={C.danger} /> : <Text style={{ color: C.danger, fontSize: 12, fontWeight: '800' }}>Needs Revision</Text>}
+                                        <TouchableOpacity style={[s.gradeActionBtn, { borderColor: C.danger + '30' }]} onPress={() => handleGradeItem(item, 'Needs Improvement')}>
+                                            {savingId === item.id ? <ActivityIndicator size="small" color={C.danger} /> : <Text style={{ color: C.danger, fontSize: 12, fontWeight: '800' }}>REVISE</Text>}
                                         </TouchableOpacity>
-                                        <TouchableOpacity
-                                            style={[s.gradeActionBtn, { borderColor: 'rgba(0,242,96,0.3)' }]}
-                                            onPress={() => handleGradeItem(item, 'Approved')}
-                                            disabled={savingId === item.id}
-                                        >
-                                            {savingId === item.id ? <ActivityIndicator size="small" color={C.success} /> : <Text style={{ color: C.success, fontSize: 12, fontWeight: '800' }}>Approve</Text>}
+                                        <TouchableOpacity style={[s.gradeActionBtn, { borderColor: C.success + '30' }]} onPress={() => handleGradeItem(item, 'Approved')}>
+                                            {savingId === item.id ? <ActivityIndicator size="small" color={C.success} /> : <Text style={{ color: C.success, fontSize: 12, fontWeight: '800' }}>APPROVE</Text>}
                                         </TouchableOpacity>
                                     </View>
                                 </View>
@@ -261,60 +336,60 @@ export default function MentorDashboardScreen({ navigation }) {
                     </View>
                 </View>
             </Modal>
+
+            {loadingProfile && (
+                <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }]}>
+                    <ActivityIndicator size="large" color={C.primary} />
+                </View>
+            )}
         </View>
     );
 }
 
 const s = StyleSheet.create({
     root: { flex: 1, backgroundColor: '#020b14' },
-    scroll: { padding: 16, paddingBottom: 60 },
-    header: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, marginBottom: 36, flexWrap: 'wrap' },
-    title: { fontSize: 30, fontWeight: '800', color: '#fff', letterSpacing: -0.5, marginBottom: 8 },
-    subtitle: { fontSize: 15, color: 'rgba(0,210,255,0.8)' },
-    signOutBtn: { backgroundColor: 'rgba(255,71,87,0.1)', borderWidth: 1, borderColor: 'rgba(255,71,87,0.3)', borderRadius: 12, paddingHorizontal: 14, paddingVertical: 10 },
-    signOutText: { color: '#ff4757', fontWeight: '700', fontSize: 13 },
-    sectionTitle: { fontSize: 12, fontWeight: '800', color: C.faint, textTransform: 'uppercase', letterSpacing: 2, marginBottom: 16 },
-    rosterScroll: { flexGrow: 0, marginBottom: 28 },
-    rosterCard: { width: 140, backgroundColor: 'rgba(255,255,255,0.03)', borderWidth: 1, borderColor: 'rgba(0,210,255,0.2)', borderRadius: 20, padding: 12, marginRight: 12 },
+    scroll: { padding: 16 },
+    header: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 24 },
+    title: { fontSize: 26, fontWeight: '900', color: '#fff' },
+    subtitle: { fontSize: 14, color: C.primary, opacity: 0.8 },
+    signOutBtn: { backgroundColor: 'rgba(255,71,87,0.1)', borderWidth: 1, borderColor: 'rgba(255,71,87,0.2)', borderRadius: 10, paddingHorizontal: 12, paddingVertical: 8 },
+    signOutText: { color: '#ff4757', fontWeight: '700', fontSize: 12 },
+    sectionTitle: { fontSize: 11, fontWeight: '900', color: C.faint, textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 16 },
+    rosterScroll: { marginBottom: 24 },
+    rosterCard: { width: 140, backgroundColor: 'rgba(255,255,255,0.03)', borderWidth: 1, borderColor: 'rgba(0,210,255,0.15)', borderRadius: 20, padding: 12, marginRight: 12 },
     rosterTop: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 },
-    rosterAvatar: { width: 38, height: 38, borderRadius: 10, backgroundColor: 'rgba(0,210,255,0.1)', alignItems: 'center', justifyContent: 'center' },
+    rosterAvatar: { width: 36, height: 36, borderRadius: 10, backgroundColor: 'rgba(0,210,255,0.1)', alignItems: 'center', justifyContent: 'center' },
     rosterName: { color: '#fff', fontSize: 13, fontWeight: '800' },
-    rosterEmail: { color: C.muted, fontSize: 11 },
     progressTrack: { width: '100%', height: 4, backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 2, marginBottom: 12 },
     progressFill: { height: '100%', backgroundColor: '#00f260', borderRadius: 2 },
     rosterBtn: { paddingVertical: 8, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.05)', alignItems: 'center' },
-    rosterBtnText: { color: '#fff', fontWeight: '700', fontSize: 11 },
-    emptyBox: { padding: 28, borderRadius: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)', backgroundColor: 'rgba(255,255,255,0.02)', alignItems: 'center' },
-    emptyText: { color: C.muted, fontWeight: '600' },
-    queueCard: { backgroundColor: 'rgba(255,255,255,0.02)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', borderRadius: 24, padding: 20, marginBottom: 16 },
-    queueHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 16 },
-    qAvatar: { width: 44, height: 44, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.04)', alignItems: 'center', justifyContent: 'center' },
-    queueStudent: { fontSize: 18, color: '#fff', fontWeight: '800' },
+    rosterBtnText: { color: '#fff', fontWeight: '800', fontSize: 10 },
+    emptyBox: { padding: 24, borderRadius: 16, borderStyle: 'dashed', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)', alignItems: 'center' },
+    emptyText: { color: C.muted, fontSize: 13 },
+    queueCard: { backgroundColor: 'rgba(255,255,255,0.02)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)', borderRadius: 20, padding: 16, marginBottom: 12 },
+    queueHeader: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+    qAvatar: { width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.04)', alignItems: 'center', justifyContent: 'center' },
+    queueStudent: { fontSize: 16, color: '#fff', fontWeight: '800' },
     queueSub: { fontSize: 12, color: C.primary, fontWeight: '600' },
-    qBody: { backgroundColor: 'rgba(0,0,0,0.1)', borderRadius: 16, padding: 16, marginBottom: 16 },
-    qRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10 },
-    qDivider: { borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.06)', marginTop: 4 },
-    queueTitle: { fontSize: 15, color: '#fff', fontWeight: '700', marginBottom: 2 },
-    queueDate: { fontSize: 11, color: C.muted },
-    reviewAllBtn: { alignItems: 'center', paddingVertical: 16, borderRadius: 16, backgroundColor: 'rgba(0,210,255,0.05)', borderWidth: 1, borderColor: 'rgba(0,210,255,0.2)' },
-    reviewAllText: { color: C.primary, fontWeight: '700', fontSize: 14 },
-    createCourseBtn: { marginTop: 28 },
-    createCourseBtnInner: { paddingVertical: 18, borderRadius: 20, alignItems: 'center' },
-    createCourseBtnText: { color: '#fff', fontWeight: '800', fontSize: 14, textTransform: 'uppercase', letterSpacing: 1 },
-    modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'flex-end' },
-    drawer: { 
-        backgroundColor: '#020b14', 
-        borderTopLeftRadius: 32, 
-        borderTopRightRadius: 32, 
-        padding: 24, 
-        maxHeight: '90%',
-        minHeight: 450 // Ensure it doesn't collapse
-    },
+    reviewAllBtn: { alignItems: 'center', paddingVertical: 14, borderRadius: 16, backgroundColor: 'rgba(0,210,255,0.08)', borderWidth: 1, borderColor: 'rgba(0,210,255,0.2)' },
+    reviewAllText: { color: C.white, fontWeight: '800', fontSize: 13 },
+    modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.8)', justifyContent: 'flex-end' },
+    drawer: { backgroundColor: '#020b14', borderTopLeftRadius: 32, borderTopRightRadius: 32, padding: 24, maxHeight: '90%', minHeight: 450 },
     drawerTopBar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
-    drawerTitle: { fontSize: 24, color: '#fff', fontWeight: '800' },
-    gradeItemBox: { backgroundColor: 'rgba(255,255,255,0.02)', borderRadius: 20, padding: 16, marginBottom: 20, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
-    gradeItemHeader: { marginBottom: 12 },
-    mcqBox: { backgroundColor: 'rgba(0,0,0,0.2)', padding: 12, borderRadius: 12, marginBottom: 12 },
+    drawerTitle: { fontSize: 22, color: '#fff', fontWeight: '900' },
+    profileHeader: { marginBottom: 24 },
+    pName: { color: '#fff', fontSize: 22, fontWeight: '900', marginBottom: 4 },
+    pEmail: { color: C.muted, fontSize: 14 },
+    pSectionTitle: { color: C.faint, fontSize: 11, fontWeight: '900', textTransform: 'uppercase', marginBottom: 12 },
+    historyCard: { backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 16, padding: 14, marginBottom: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
+    pGoal: { color: '#fff', fontSize: 15, fontWeight: '700', marginBottom: 10 },
+    pSkillChip: { backgroundColor: 'rgba(0,210,255,0.1)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
+    pEmpty: { color: C.muted, fontSize: 13, fontStyle: 'italic', marginBottom: 16 },
+    pFeedbackBox: { marginTop: 10, paddingTop: 10, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.06)' },
+    pFeedbackLabel: { color: C.primary, fontSize: 10, fontWeight: '900', textTransform: 'uppercase', marginBottom: 4 },
+    pFeedbackText: { color: 'rgba(255,255,255,0.7)', fontSize: 13 },
+    gradeItemBox: { backgroundColor: 'rgba(255,255,255,0.02)', borderRadius: 16, padding: 14, marginBottom: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
+    gradeItemHeader: { marginBottom: 10 },
     feedbackInput: { backgroundColor: 'rgba(0,0,0,0.4)', borderRadius: 12, padding: 12, color: '#fff', fontSize: 14, minHeight: 80, textAlignVertical: 'top', marginBottom: 12 },
     gradeActions: { flexDirection: 'row', gap: 10 },
     gradeActionBtn: { flex: 1, paddingVertical: 12, borderRadius: 10, alignItems: 'center', borderWidth: 1 },
