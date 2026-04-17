@@ -244,7 +244,7 @@ router.get('/my-assessments', auth, async (req, res) => {
             -- Exam Submissions
             SELECT es.id, es.student_id, 'exam' as type, es.exam_id, es.answers, es.status,
                    es.mentor_remarks, es.submitted_at, 
-                   e.title AS exam_title, u.name AS student_name, NULL as goal, 2 as sort_rank
+                   e.title AS exam_title, u.name AS student_name, CAST(NULL AS TEXT) as goal, 2 as sort_rank
             FROM exam_submissions es
             JOIN exams e ON e.id = es.exam_id
             JOIN users u ON u.id = es.student_id
@@ -254,9 +254,9 @@ router.get('/my-assessments', auth, async (req, res) => {
             UNION ALL
 
             -- Skills Submissions
-            SELECT ss.id, ss.student_id, 'skills' as type, NULL as exam_id, ss.skills as answers, ss.status,
+            SELECT ss.id, ss.student_id, 'skills' as type, CAST(NULL AS INTEGER) as exam_id, ss.skills as answers, ss.status,
                    ss.mentor_remarks, ss.submitted_at, 
-                   'Skills Assessment' AS exam_title, u.name AS student_name, ss.goal as goal, 1 as sort_rank
+                   'Skills Assessment' AS exam_title, u.name AS student_name, CAST(ss.goal AS TEXT) as goal, 1 as sort_rank
             FROM student_skills ss
             JOIN users u ON u.id = ss.student_id
             JOIN mentor_assignments ma ON ma.student_id = u.id
