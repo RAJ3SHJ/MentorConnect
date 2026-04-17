@@ -326,14 +326,14 @@ export default function MentorDashboardScreen({ navigation }) {
                                         </View>
                                     )}
 
-                                    {/* Exams Full Context */}
+                                     {/* Exams Full Context */}
                                     {item.type === 'exam' && (
                                         <View style={{ marginBottom: 16 }}>
                                             {item.questions && item.questions.length > 0 ? (
                                                 item.questions.map((q, qIdx) => {
-                                                    const userAnswer = item.answers?.find(a => a.question_id === q.id)?.selected;
+                                                    const userAnswerRaw = item.answers?.find(a => String(a.question_id) === String(q.id))?.selected;
                                                     return (
-                                                        <View key={q.id} style={{ marginBottom: 20, borderBottomWidth: qIdx === item.questions.length - 1 ? 0 : 1, borderBottomColor: 'rgba(255,255,255,0.05)', pb: 16 }}>
+                                                        <View key={q.id} style={{ marginBottom: 20, borderBottomWidth: qIdx === item.questions.length - 1 ? 0 : 1, borderBottomColor: 'rgba(255,255,255,0.05)', paddingBottom: 16 }}>
                                                             <Text style={{ color: C.white, fontSize: 14, fontWeight: '700', marginBottom: 12 }}>
                                                                 {qIdx + 1}. {q.question_text}
                                                             </Text>
@@ -346,30 +346,32 @@ export default function MentorDashboardScreen({ navigation }) {
                                                                         gap: 10, 
                                                                         padding: 8, 
                                                                         borderRadius: 8, 
-                                                                        backgroundColor: userAnswer === opt ? C.primary + '15' : 'transparent',
+                                                                        backgroundColor: userAnswerRaw === opt ? C.primary + '15' : 'transparent',
                                                                         borderWidth: 1,
-                                                                        borderColor: userAnswer === opt ? C.primary + '40' : 'transparent',
+                                                                        borderColor: userAnswerRaw === opt ? C.primary + '40' : 'transparent',
                                                                         marginBottom: 4
                                                                     }}
                                                                 >
                                                                     <View style={{ 
                                                                         width: 22, height: 22, borderRadius: 11, 
                                                                         alignItems: 'center', justifyContent: 'center',
-                                                                        backgroundColor: userAnswer === opt ? C.primary : 'rgba(255,255,255,0.05)',
-                                                                        borderWidth: 1, borderColor: userAnswer === opt ? C.primary : 'rgba(255,255,255,0.2)'
+                                                                        backgroundColor: userAnswerRaw === opt ? C.primary : 'rgba(255,255,255,0.05)',
+                                                                        borderWidth: 1, borderColor: userAnswerRaw === opt ? C.primary : 'rgba(255,255,255,0.2)'
                                                                     }}>
-                                                                        <Text style={{ color: userAnswer === opt ? '#000' : C.muted, fontSize: 10, fontWeight: '900' }}>{opt.toUpperCase()}</Text>
+                                                                        <Text style={{ color: userAnswerRaw === opt ? '#000' : C.muted, fontSize: 10, fontWeight: '900' }}>{opt.toUpperCase()}</Text>
                                                                     </View>
-                                                                    <Text style={{ color: userAnswer === opt ? C.white : C.muted, fontSize: 13, flex: 1 }}>{q[`option_${opt}`]}</Text>
+                                                                    <Text style={{ color: userAnswerRaw === opt ? C.white : C.muted, fontSize: 13, flex: 1 }}>{q[`option_${opt}`]}</Text>
                                                                 </View>
                                                             ))}
                                                         </View>
                                                     );
                                                 })
                                             ) : (
-                                                <View style={{ backgroundColor: 'rgba(0,0,0,0.4)', borderRadius: 12, padding: 12 }}>
-                                                    <Text style={{ color: C.white, fontSize: 14 }}>
-                                                        {Array.isArray(item.answers) ? item.answers.map(a => a.selected).join(', ') : 'No data'}
+                                                <View style={{ backgroundColor: 'rgba(255,71,87,0.05)', borderRadius: 12, padding: 16, borderWidth: 1, borderColor: 'rgba(255,71,87,0.2)' }}>
+                                                    <Text style={{ color: C.danger, fontSize: 12, fontWeight: '800', marginBottom: 8 }}>⚠️ QUESTIONS SYNC MISSING</Text>
+                                                    <Text style={{ color: C.muted, fontSize: 13 }}>
+                                                        The actual questions couldn't be loaded from the cloud.
+                                                        Raw selection: {Array.isArray(item.answers) ? item.answers.map(a => a.selected).join(', ') : 'No data'}
                                                     </Text>
                                                 </View>
                                             )}
