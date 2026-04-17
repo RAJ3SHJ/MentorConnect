@@ -300,103 +300,113 @@ export default function MentorDashboardScreen({ navigation }) {
                             <Text style={{ color: C.primary, fontWeight: '800', marginBottom: 20 }}>
                                 Learner: {activeLearnerItems?.[0]?.student_name}
                             </Text>
-                            {activeLearnerItems?.map((item) => (
-                                <View key={item.id} style={s.gradeItemBox}>
-                                    <View style={s.gradeItemHeader}>
-                                        <Text style={{ color: C.white, fontWeight: '900', fontSize: 16 }}>
-                                            {item.type === 'skills' ? '🎯 Skills Assessment' : `📝 ${item.exam_title}`}
-                                        </Text>
-                                    </View>
-                                    
-                                    {/* Skills goal & answers */}
-                                    {item.type === 'skills' && (
-                                        <View style={{ marginBottom: 12 }}>
-                                             {item.goal && (
-                                                <View style={{ backgroundColor: 'rgba(0,210,255,0.08)', padding: 12, borderRadius: 12, marginBottom: 16, borderWidth: 1, borderColor: 'rgba(0,210,255,0.2)' }}>
-                                                    <Text style={{ color: C.primary, fontSize: 11, fontWeight: '900', textTransform: 'uppercase', marginBottom: 4 }}>Goal Entered by Learner:</Text>
-                                                    <Text style={{ color: C.white, fontSize: 15, fontWeight: '700' }}>{item.goal}</Text>
-                                                </View>
-                                             )}
-                                             <Text style={{ color: C.faint, fontSize: 11, fontWeight: '900', textTransform: 'uppercase', marginBottom: 8 }}>Selected Skills:</Text>
-                                             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
-                                                {(typeof item.answers === 'string' ? JSON.parse(item.answers || '[]') : item.answers)?.map((sk, i) => (
-                                                    <View key={i} style={s.pSkillChip}><Text style={{ color: C.primary, fontSize: 12, fontWeight: '700' }}>{sk}</Text></View>
-                                                ))}
-                                             </View>
-                                        </View>
-                                    )}
+                            {(() => {
+                                const sorted = [...(activeLearnerItems || [])].sort((a, b) => (a.sort_rank || 99) - (b.sort_rank || 99));
+                                const primaryGoal = sorted.find(i => i.goal)?.goal;
+                                
+                                return (
+                                    <>
+                                        {primaryGoal && (
+                                            <View style={s.goalHeaderBox}>
+                                                <Text style={s.goalHeaderLabel}>🎯 LEARNER'S PRIMARY GOAL</Text>
+                                                <Text style={s.goalHeaderText}>{primaryGoal}</Text>
+                                            </View>
+                                        )}
 
-                                     {/* Exams Full Context */}
-                                    {item.type === 'exam' && (
-                                        <View style={{ marginBottom: 16 }}>
-                                            {item.questions && item.questions.length > 0 ? (
-                                                item.questions.map((q, qIdx) => {
-                                                    const userAnswerRaw = item.answers?.find(a => String(a.question_id) === String(q.id))?.selected;
-                                                    return (
-                                                        <View key={q.id} style={{ marginBottom: 20, borderBottomWidth: qIdx === item.questions.length - 1 ? 0 : 1, borderBottomColor: 'rgba(255,255,255,0.05)', paddingBottom: 16 }}>
-                                                            <Text style={{ color: C.white, fontSize: 14, fontWeight: '700', marginBottom: 12 }}>
-                                                                {qIdx + 1}. {q.question_text}
-                                                            </Text>
-                                                            {['a', 'b', 'c', 'd'].map(opt => (
-                                                                <View 
-                                                                    key={opt} 
-                                                                    style={{ 
-                                                                        flexDirection: 'row', 
-                                                                        alignItems: 'center', 
-                                                                        gap: 10, 
-                                                                        padding: 8, 
-                                                                        borderRadius: 8, 
-                                                                        backgroundColor: userAnswerRaw === opt ? C.primary + '15' : 'transparent',
-                                                                        borderWidth: 1,
-                                                                        borderColor: userAnswerRaw === opt ? C.primary + '40' : 'transparent',
-                                                                        marginBottom: 4
-                                                                    }}
-                                                                >
-                                                                    <View style={{ 
-                                                                        width: 22, height: 22, borderRadius: 11, 
-                                                                        alignItems: 'center', justifyContent: 'center',
-                                                                        backgroundColor: userAnswerRaw === opt ? C.primary : 'rgba(255,255,255,0.05)',
-                                                                        borderWidth: 1, borderColor: userAnswerRaw === opt ? C.primary : 'rgba(255,255,255,0.2)'
-                                                                    }}>
-                                                                        <Text style={{ color: userAnswerRaw === opt ? '#000' : C.muted, fontSize: 10, fontWeight: '900' }}>{opt.toUpperCase()}</Text>
-                                                                    </View>
-                                                                    <Text style={{ color: userAnswerRaw === opt ? C.white : C.muted, fontSize: 13, flex: 1 }}>{q[`option_${opt}`]}</Text>
-                                                                </View>
-                                                            ))}
-                                                        </View>
-                                                    );
-                                                })
-                                            ) : (
-                                                <View style={{ backgroundColor: 'rgba(255,71,87,0.05)', borderRadius: 12, padding: 16, borderWidth: 1, borderColor: 'rgba(255,71,87,0.2)' }}>
-                                                    <Text style={{ color: C.danger, fontSize: 12, fontWeight: '800', marginBottom: 8 }}>⚠️ QUESTIONS SYNC MISSING</Text>
-                                                    <Text style={{ color: C.muted, fontSize: 13 }}>
-                                                        The actual questions couldn't be loaded from the cloud.
-                                                        Raw selection: {Array.isArray(item.answers) ? item.answers.map(a => a.selected).join(', ') : 'No data'}
+                                        {sorted.map((item) => (
+                                            <View key={item.id} style={s.gradeItemBox}>
+                                                <View style={s.gradeItemHeader}>
+                                                    <Text style={{ color: C.white, fontWeight: '900', fontSize: 16 }}>
+                                                        {item.type === 'skills' ? '🛠️ Core Skills Assessment' : `📝 ${item.exam_title}`}
                                                     </Text>
                                                 </View>
-                                            )}
-                                        </View>
-                                    )}
+                                                
+                                                {/* Skills list (Goal is now at top of drawer) */}
+                                                {item.type === 'skills' && (
+                                                    <View style={{ marginBottom: 12 }}>
+                                                        <Text style={{ color: C.faint, fontSize: 11, fontWeight: '900', textTransform: 'uppercase', marginBottom: 8 }}>Selected Skills:</Text>
+                                                        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+                                                            {(typeof item.answers === 'string' ? JSON.parse(item.answers || '[]') : item.answers)?.map((sk, i) => (
+                                                                <View key={i} style={s.pSkillChip}><Text style={{ color: C.primary, fontSize: 12, fontWeight: '700' }}>{sk}</Text></View>
+                                                            ))}
+                                                        </View>
+                                                    </View>
+                                                )}
 
-                                    <TextInput
-                                        style={s.feedbackInput}
-                                        placeholder="Add your feedback/remarks here..."
-                                        placeholderTextColor="rgba(255,255,255,0.2)"
-                                        multiline
-                                        value={gradingRemarks[item.id] || ''}
-                                        onChangeText={(val) => setGradingRemarks(prev => ({ ...prev, [item.id]: val }))}
-                                    />
+                                                {/* Exams Full Context */}
+                                                {item.type === 'exam' && (
+                                                    <View style={{ marginBottom: 16 }}>
+                                                        {item.questions && item.questions.length > 0 ? (
+                                                            item.questions.map((q, qIdx) => {
+                                                                const userAnswerRaw = item.answers?.find(a => String(a.question_id) === String(q.id))?.selected;
+                                                                return (
+                                                                    <View key={q.id} style={{ marginBottom: 20, borderBottomWidth: qIdx === item.questions.length - 1 ? 0 : 1, borderBottomColor: 'rgba(255,255,255,0.05)', paddingBottom: 16 }}>
+                                                                        <Text style={{ color: C.white, fontSize: 14, fontWeight: '700', marginBottom: 12 }}>
+                                                                            {qIdx + 1}. {q.question_text}
+                                                                        </Text>
+                                                                        {['a', 'b', 'c', 'd'].map(opt => (
+                                                                            <View 
+                                                                                key={opt} 
+                                                                                style={{ 
+                                                                                    flexDirection: 'row', 
+                                                                                    alignItems: 'center', 
+                                                                                    gap: 10, 
+                                                                                    padding: 8, 
+                                                                                    borderRadius: 8, 
+                                                                                    backgroundColor: userAnswerRaw === opt ? C.primary + '15' : 'transparent',
+                                                                                    borderWidth: 1,
+                                                                                    borderColor: userAnswerRaw === opt ? C.primary + '40' : 'transparent',
+                                                                                    marginBottom: 4
+                                                                                }}
+                                                                            >
+                                                                                <View style={{ 
+                                                                                    width: 22, height: 22, borderRadius: 11, 
+                                                                                    alignItems: 'center', justifyContent: 'center',
+                                                                                    backgroundColor: userAnswerRaw === opt ? C.primary : 'rgba(255,255,255,0.05)',
+                                                                                    borderWidth: 1, borderColor: userAnswerRaw === opt ? C.primary : 'rgba(255,255,255,0.2)'
+                                                                                }}>
+                                                                                    <Text style={{ color: userAnswerRaw === opt ? '#000' : C.muted, fontSize: 10, fontWeight: '900' }}>{opt.toUpperCase()}</Text>
+                                                                                </View>
+                                                                                <Text style={{ color: userAnswerRaw === opt ? C.white : C.muted, fontSize: 13, flex: 1 }}>{q[`option_${opt}`]}</Text>
+                                                                            </View>
+                                                                        ))}
+                                                                    </View>
+                                                                );
+                                                            })
+                                                        ) : (
+                                                            <View style={{ backgroundColor: 'rgba(255,71,87,0.05)', borderRadius: 12, padding: 16, borderWidth: 1, borderColor: 'rgba(255,71,87,0.2)' }}>
+                                                                <Text style={{ color: C.danger, fontSize: 12, fontWeight: '800', marginBottom: 8 }}>⚠️ QUESTIONS SYNC MISSING</Text>
+                                                                <Text style={{ color: C.muted, fontSize: 13 }}>
+                                                                    The actual questions couldn't be loaded from the cloud.
+                                                                    Raw selection: {Array.isArray(item.answers) ? item.answers.map(a => a.selected).join(', ') : 'No data'}
+                                                                </Text>
+                                                            </View>
+                                                        )}
+                                                    </View>
+                                                )}
 
-                                    <View style={s.gradeActions}>
-                                        <TouchableOpacity style={[s.gradeActionBtn, { borderColor: C.danger + '30', backgroundColor: C.danger + '05' }]} onPress={() => handleGradeItem(item, 'Needs Improvement')}>
-                                            {savingId === item.id ? <ActivityIndicator size="small" color={C.danger} /> : <Text style={{ color: C.danger, fontSize: 12, fontWeight: '900' }}>REVISE</Text>}
-                                        </TouchableOpacity>
-                                        <TouchableOpacity style={[s.gradeActionBtn, { borderColor: C.success + '30', backgroundColor: C.success + '05' }]} onPress={() => handleGradeItem(item, 'Approved')}>
-                                            {savingId === item.id ? <ActivityIndicator size="small" color={C.success} /> : <Text style={{ color: C.success, fontSize: 12, fontWeight: '900' }}>APPROVE</Text>}
-                                        </TouchableOpacity>
-                                    </View>
-                                </View>
-                            ))}
+                                                <TextInput
+                                                    style={s.feedbackInput}
+                                                    placeholder="Add your feedback/remarks here..."
+                                                    placeholderTextColor="rgba(255,255,255,0.2)"
+                                                    multiline
+                                                    value={gradingRemarks[item.id] || ''}
+                                                    onChangeText={(val) => setGradingRemarks(prev => ({ ...prev, [item.id]: val }))}
+                                                />
+
+                                                <View style={s.gradeActions}>
+                                                    <TouchableOpacity style={[s.gradeActionBtn, { borderColor: C.danger + '30', backgroundColor: C.danger + '05' }]} onPress={() => handleGradeItem(item, 'Needs Improvement')}>
+                                                        {savingId === item.id ? <ActivityIndicator size="small" color={C.danger} /> : <Text style={{ color: C.danger, fontSize: 12, fontWeight: '900' }}>REVISE</Text>}
+                                                    </TouchableOpacity>
+                                                    <TouchableOpacity style={[s.gradeActionBtn, { borderColor: C.success + '30', backgroundColor: C.success + '05' }]} onPress={() => handleGradeItem(item, 'Approved')}>
+                                                        {savingId === item.id ? <ActivityIndicator size="small" color={C.success} /> : <Text style={{ color: C.success, fontSize: 12, fontWeight: '900' }}>APPROVE</Text>}
+                                                    </TouchableOpacity>
+                                                </View>
+                                            </View>
+                                        ))}
+                                    </>
+                                );
+                            })()}
                         </ScrollView>
                     </View>
                 </View>
@@ -456,6 +466,20 @@ const s = StyleSheet.create({
     gradeItemBox: { backgroundColor: 'rgba(255,255,255,0.02)', borderRadius: 16, padding: 14, marginBottom: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
     gradeItemHeader: { marginBottom: 10 },
     feedbackInput: { backgroundColor: 'rgba(0,0,0,0.4)', borderRadius: 12, padding: 12, color: '#fff', fontSize: 14, minHeight: 80, textAlignVertical: 'top', marginBottom: 12 },
-    gradeActions: { flexDirection: 'row', gap: 10 },
-    gradeActionBtn: { flex: 1, paddingVertical: 12, borderRadius: 10, alignItems: 'center', borderWidth: 1 },
+    gradeActions: { flexDirection: 'row', gap: 10, marginTop: 12 },
+    gradeActionBtn: { flex: 1, height: 40, borderRadius: 10, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+    goalHeaderBox: { 
+        backgroundColor: 'rgba(0,210,255,0.08)', 
+        padding: 16, 
+        borderRadius: 16, 
+        marginBottom: 20, 
+        borderWidth: 1.5, 
+        borderColor: 'rgba(0,210,255,0.25)',
+        shadowColor: C.primary,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 10
+    },
+    goalHeaderLabel: { color: C.primary, fontSize: 11, fontWeight: '900', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 },
+    goalHeaderText: { color: C.white, fontSize: 18, fontWeight: '800', lineHeight: 26 },
 });
