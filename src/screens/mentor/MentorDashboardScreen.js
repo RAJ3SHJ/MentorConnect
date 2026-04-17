@@ -121,17 +121,16 @@ export default function MentorDashboardScreen({ navigation }) {
                         roster.filter(l => !l.has_roadmap).map(learner => (
                             <View key={learner.id} style={s.rosterCard}>
                                 <View style={s.rosterTop}>
-                                    <View style={s.rosterAvatar}><Text style={{ fontSize: 24 }}>🎓</Text></View>
+                                    <View style={s.rosterAvatar}><Text style={{ fontSize: 18 }}>🎓</Text></View>
                                     <View style={{ flex: 1 }}>
-                                        <Text style={s.rosterName}>{learner.name}</Text>
-                                        <Text style={s.rosterEmail} numberOfLines={1}>{learner.email}</Text>
+                                        <Text style={s.rosterName} numberOfLines={1}>{learner.name}</Text>
                                     </View>
                                 </View>
                                 <View style={s.progressTrack}>
                                     <View style={[s.progressFill, { width: '0%', backgroundColor: C.muted }]} />
                                 </View>
                                 <TouchableOpacity style={s.rosterBtn} onPress={() => navigation.navigate('AssignCourses', { student: learner })}>
-                                    <Text style={s.rosterBtnText}>🗺️ Create Roadmap</Text>
+                                    <Text style={s.rosterBtnText}>🗺️ Create</Text>
                                 </TouchableOpacity>
                             </View>
                         ))
@@ -147,17 +146,16 @@ export default function MentorDashboardScreen({ navigation }) {
                         roster.filter(l => l.has_roadmap).map(learner => (
                             <View key={learner.id} style={[s.rosterCard, { borderColor: 'rgba(0,242,96,0.2)' }]}>
                                 <View style={s.rosterTop}>
-                                    <View style={[s.rosterAvatar, { backgroundColor: 'rgba(0,242,96,0.1)' }]}><Text style={{ fontSize: 24 }}>🚀</Text></View>
+                                    <View style={[s.rosterAvatar, { backgroundColor: 'rgba(0,242,96,0.1)' }]}><Text style={{ fontSize: 18 }}>🚀</Text></View>
                                     <View style={{ flex: 1 }}>
-                                        <Text style={s.rosterName}>{learner.name}</Text>
-                                        <Text style={s.rosterEmail} numberOfLines={1}>{learner.email}</Text>
+                                        <Text style={s.rosterName} numberOfLines={1}>{learner.name}</Text>
                                     </View>
                                 </View>
                                 <View style={s.progressTrack}>
                                     <View style={[s.progressFill, { width: '40%' }]} />
                                 </View>
                                 <TouchableOpacity style={[s.rosterBtn, { backgroundColor: 'rgba(0,242,96,0.05)' }]} onPress={() => navigation.navigate('AssignCourses', { student: learner })}>
-                                    <Text style={[s.rosterBtnText, { color: C.success }]}>✅ Roadmap Set</Text>
+                                    <Text style={[s.rosterBtnText, { color: C.success }]}>✅ Set</Text>
                                 </TouchableOpacity>
                             </View>
                         ))
@@ -177,43 +175,25 @@ export default function MentorDashboardScreen({ navigation }) {
                             acc[alert.student_id].items.push(alert);
                             return acc;
                         }, {})).map(learner => (
-                            <View key={learner.student_id} style={s.queueCard}>
-                                <View style={s.queueHeader}>
+                            <TouchableOpacity 
+                                key={learner.student_id} 
+                                style={s.queueCard}
+                                onPress={() => setActiveLearnerItems(learner.items)}
+                            >
+                                <View style={[s.queueHeader, { marginBottom: 0 }]}>
                                     <View style={s.qAvatar}><Text style={{ fontSize: 20 }}>👤</Text></View>
                                     <View style={{ flex: 1 }}>
                                         <Text style={s.queueStudent}>{learner.student_name}</Text>
                                         <Text style={s.queueSub}>{learner.items.length} pending review{learner.items.length > 1 ? 's' : ''}</Text>
                                     </View>
+                                    <Text style={{ color: C.primary, fontSize: 18 }}>→</Text>
                                 </View>
-                                
-                                <View style={s.qBody}>
-                                    {learner.items.map((item, idx) => (
-                                        <View key={item.id} style={[s.qRow, idx > 0 && s.qDivider]}>
-                                            <Text style={{ fontSize: 16, marginRight: 10 }}>{item.type === 'skills' ? '🎯' : '📝'}</Text>
-                                            <View style={{ flex: 1 }}>
-                                                <Text style={s.queueTitle}>{item.exam_title || 'Assessment'}</Text>
-                                                <Text style={s.queueDate}>Submitted: {new Date(item.submitted_at).toLocaleDateString()}</Text>
-                                            </View>
-                                        </View>
-                                    ))}
-                                </View>
-
-                                <TouchableOpacity 
-                                    style={s.reviewAllBtn}
-                                    onPress={() => setActiveLearnerItems(learner.items)}
-                                >
-                                    <Text style={s.reviewAllText}>Review All Assessments →</Text>
-                                </TouchableOpacity>
-                            </View>
+                            </TouchableOpacity>
                         ))
                     )}
                 </View>
 
-                <TouchableOpacity style={s.createCourseBtn} onPress={() => navigation.navigate('AssignCourses')}>
-                    <LinearGradient colors={['#00d2ff', '#3a7bd5']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.createCourseBtnInner}>
-                        <Text style={s.createCourseBtnText}>🗺️ Create Roadmap</Text>
-                    </LinearGradient>
-                </TouchableOpacity>
+                {/* Global button removed as requested */}
             </ScrollView>
 
             {/* ── Consolidated Grading Modal (Under One Roof) ── */}
@@ -294,16 +274,16 @@ const s = StyleSheet.create({
     signOutBtn: { backgroundColor: 'rgba(255,71,87,0.1)', borderWidth: 1, borderColor: 'rgba(255,71,87,0.3)', borderRadius: 12, paddingHorizontal: 14, paddingVertical: 10 },
     signOutText: { color: '#ff4757', fontWeight: '700', fontSize: 13 },
     sectionTitle: { fontSize: 12, fontWeight: '800', color: C.faint, textTransform: 'uppercase', letterSpacing: 2, marginBottom: 16 },
-    rosterScroll: { flexGrow: 0, marginBottom: 36 },
-    rosterCard: { width: 280, backgroundColor: 'rgba(255,255,255,0.03)', borderWidth: 1, borderColor: 'rgba(0,210,255,0.2)', borderRadius: 24, padding: 20, marginRight: 16 },
-    rosterTop: { flexDirection: 'row', alignItems: 'center', gap: 14, marginBottom: 20 },
-    rosterAvatar: { width: 52, height: 52, borderRadius: 14, backgroundColor: 'rgba(0,210,255,0.1)', alignItems: 'center', justifyContent: 'center' },
-    rosterName: { color: '#fff', fontSize: 17, fontWeight: '800', marginBottom: 4 },
-    rosterEmail: { color: C.muted, fontSize: 12 },
-    progressTrack: { width: '100%', height: 5, backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 3, marginBottom: 20 },
-    progressFill: { height: '100%', backgroundColor: '#00f260', borderRadius: 3 },
-    rosterBtn: { paddingVertical: 12, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.05)', alignItems: 'center' },
-    rosterBtnText: { color: '#fff', fontWeight: '700', fontSize: 13 },
+    rosterScroll: { flexGrow: 0, marginBottom: 28 },
+    rosterCard: { width: 140, backgroundColor: 'rgba(255,255,255,0.03)', borderWidth: 1, borderColor: 'rgba(0,210,255,0.2)', borderRadius: 20, padding: 12, marginRight: 12 },
+    rosterTop: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 },
+    rosterAvatar: { width: 38, height: 38, borderRadius: 10, backgroundColor: 'rgba(0,210,255,0.1)', alignItems: 'center', justifyContent: 'center' },
+    rosterName: { color: '#fff', fontSize: 13, fontWeight: '800' },
+    rosterEmail: { color: C.muted, fontSize: 11 },
+    progressTrack: { width: '100%', height: 4, backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 2, marginBottom: 12 },
+    progressFill: { height: '100%', backgroundColor: '#00f260', borderRadius: 2 },
+    rosterBtn: { paddingVertical: 8, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.05)', alignItems: 'center' },
+    rosterBtnText: { color: '#fff', fontWeight: '700', fontSize: 11 },
     emptyBox: { padding: 28, borderRadius: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)', backgroundColor: 'rgba(255,255,255,0.02)', alignItems: 'center' },
     emptyText: { color: C.muted, fontWeight: '600' },
     queueCard: { backgroundColor: 'rgba(255,255,255,0.02)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', borderRadius: 24, padding: 20, marginBottom: 16 },
