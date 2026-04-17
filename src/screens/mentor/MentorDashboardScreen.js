@@ -112,11 +112,11 @@ export default function MentorDashboardScreen({ navigation }) {
                     </TouchableOpacity>
                 </View>
 
-                {/* ── Learner Roster ── */}
-                <Text style={s.sectionTitle}>🔗 Learner Roster</Text>
+                {/* ── Pending Roadmaps ── */}
+                <Text style={s.sectionTitle}>🔗 Pending Roadmaps</Text>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} style={s.rosterScroll}>
                     {roster.filter(l => !l.has_roadmap).length === 0 ? (
-                        <View style={s.emptyBox}><Text style={s.emptyText}>No pending roadmaps.</Text></View>
+                        <View style={s.emptyBox}><Text style={s.emptyText}>Inbox Zero. No pending setups.</Text></View>
                     ) : (
                         roster.filter(l => !l.has_roadmap).map(learner => (
                             <View key={learner.id} style={s.rosterCard}>
@@ -128,10 +128,36 @@ export default function MentorDashboardScreen({ navigation }) {
                                     </View>
                                 </View>
                                 <View style={s.progressTrack}>
-                                    <View style={[s.progressFill, { width: '40%' }]} />
+                                    <View style={[s.progressFill, { width: '0%', backgroundColor: C.muted }]} />
                                 </View>
                                 <TouchableOpacity style={s.rosterBtn} onPress={() => navigation.navigate('AssignCourses', { student: learner })}>
-                                    <Text style={s.rosterBtnText}>{learner.has_roadmap ? '✅ Roadmap Set' : '🗺️ Create Roadmap'}</Text>
+                                    <Text style={s.rosterBtnText}>🗺️ Create Roadmap</Text>
+                                </TouchableOpacity>
+                            </View>
+                        ))
+                    )}
+                </ScrollView>
+
+                {/* ── Active Roadmaps ── */}
+                <Text style={s.sectionTitle}>📈 Active Roadmaps</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={s.rosterScroll}>
+                    {roster.filter(l => l.has_roadmap).length === 0 ? (
+                        <View style={s.emptyBox}><Text style={s.emptyText}>No active roadmaps yet.</Text></View>
+                    ) : (
+                        roster.filter(l => l.has_roadmap).map(learner => (
+                            <View key={learner.id} style={[s.rosterCard, { borderColor: 'rgba(0,242,96,0.2)' }]}>
+                                <View style={s.rosterTop}>
+                                    <View style={[s.rosterAvatar, { backgroundColor: 'rgba(0,242,96,0.1)' }]}><Text style={{ fontSize: 24 }}>🚀</Text></View>
+                                    <View style={{ flex: 1 }}>
+                                        <Text style={s.rosterName}>{learner.name}</Text>
+                                        <Text style={s.rosterEmail} numberOfLines={1}>{learner.email}</Text>
+                                    </View>
+                                </View>
+                                <View style={s.progressTrack}>
+                                    <View style={[s.progressFill, { width: '40%' }]} />
+                                </View>
+                                <TouchableOpacity style={[s.rosterBtn, { backgroundColor: 'rgba(0,242,96,0.05)' }]} onPress={() => navigation.navigate('AssignCourses', { student: learner })}>
+                                    <Text style={[s.rosterBtnText, { color: C.success }]}>✅ Roadmap Set</Text>
                                 </TouchableOpacity>
                             </View>
                         ))
