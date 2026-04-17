@@ -41,4 +41,21 @@ router.patch('/:id', auth, async (req, res) => {
     } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// POST /api/roadmap/assign
+router.post('/assign', auth, async (req, res) => {
+    const { learner_id, course_ids } = req.body;
+    if (!learner_id || !Array.isArray(course_ids) || course_ids.length === 0)
+        return res.status(400).json({ error: 'learner_id and course_ids[] required' });
+
+    try {
+        for (const cid of course_ids) {
+            const existing = await get('SELECT id FROM roadmap WHERE student_id = ? AND course_id = ?', [learner_id, cid]);
+            if (!existing) {
+                await run('INSERT INTO roadmap (student_id, course_id) VALUES (?, ?)', [learner_id, cid]);
+            }
+        }
+        res.json({ message: `${course_ids.length} course(s) assigned` });
+    } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 module.exports = router;
