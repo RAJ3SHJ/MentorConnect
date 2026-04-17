@@ -71,17 +71,13 @@ export default function NotificationFeedScreen({ navigation, route }) {
         setConnecting(notification.student_id);
         try {
             await api.post(`/api/mentor/connect/${notification.student_id}`);
-            toast.show(`🔗 Connected! Switching to Dashboard…`, 'success');
+            toast.show(`🔗 Connected! Learner added to your Dashboard.`, 'success');
             setConnectedIds(prev => [...prev, notification.student_id]);
-
-            // After 1.5s switch to Dashboard tab so user sees the learner there
+            
+            // After 1.5 seconds, navigate to Dashboard tab so user sees learner appear
             setTimeout(() => {
-                fetchNotifications();
-                // Navigate to the Dashboard tab (index 0 in the bottom tab navigator)
-                const parent = navigation.getParent();
-                if (parent) {
-                    parent.navigate('Dashboard');
-                }
+                // Navigate to Dashboard tab, then to the MentorHome screen inside it
+                navigation.navigate('Dashboard', { screen: 'MentorHome' });
             }, 1500);
         } catch (e) {
             const msg = e.response?.data?.error || 'Connection failed';

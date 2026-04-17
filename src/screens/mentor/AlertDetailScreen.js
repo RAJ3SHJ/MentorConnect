@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import {
-    View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, TextInput, Alert,
+    View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, TextInput, Alert, Platform,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -47,29 +47,39 @@ export default function AlertDetailScreen({ route, navigation }) {
 
     const handleConnect = async () => {
         if (connecting) return;
-        Alert.alert(
-            'Connect with Student',
-            `Connect with ${detail?.student?.name}? They will be added to your roster.`,
-            [
-                { text: 'Cancel', style: 'cancel' },
-                {
-                    text: 'Connect', onPress: async () => {
-                        setConnecting(true);
-                        try {
-                            await api.post(`/api/mentor/connect/${studentId}`);
-                            toast.show(`🔗 Connected with ${detail?.student?.name}!`, 'success');
-                            // Refresh detail to unlock review panel
-                            const res = await api.get(`/api/mentor/student-detail/${studentId}`);
-                            setDetail(res.data);
-                        } catch (e) {
-                            const msg = e.response?.data?.error || 'Connection failed';
-                            toast.show(msg === 'Student already connected to another mentor'
-                                ? '⚡ Student already has a mentor' : msg, 'error');
-                        } finally { setConnecting(false); }
-                    }
-                }
-            ]
-        );
+
+        const doConnect = async () => {
+            setConnecting(true);
+            try {
+                await api.post(`/api/mentor/connect/${studentId}`);
+                toast.show(`🔗 Connected! Learner added to your Dashboard.`, 'success');
+                // Refresh detail to unlock review panel
+                const res = await api.get(`/api/mentor/student-detail/${studentId}`);
+                setDetail(res.data);
+                // Navigate to Dashboard tab after 1.5 seconds
+                setTimeout(() => {
+                    navigation.navigate('Dashboard', { screen: 'MentorHome' });
+                }, 1500);
+            } catch (e) {
+                const msg = e.response?.data?.error || 'Connection failed';
+                toast.show(msg === 'Student already connected to another mentor'
+                    ? '⚡ Student already has a mentor' : msg, 'error');
+            } finally { setConnecting(false); }
+        };
+
+        // On web, skip native Alert dialog — just connect directly
+        if (Platform.OS === 'web') {
+            doConnect();
+        } else {
+            Alert.alert(
+                'Connect with Student',
+                `Connect with ${detail?.student?.name}? They will be added to your roster.`,
+                [
+                    { text: 'Cancel', style: 'cancel' },
+                    { text: 'Connect', onPress: doConnect }
+                ]
+            );
+        }
     };
 
     const handleUnifiedReview = async () => {
