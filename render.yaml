@@ -1,34 +1,18 @@
 services:
-  # 1. Backend API (Node.js + SQLite)
   - type: web
     name: mentor-app-backend
-    env: node
+    runtime: node
     plan: free
-    branch: backend # Points to your backend branch
     buildCommand: npm install
     startCommand: node server.js
     envVars:
       - key: DATABASE_URL
-        value: postgresql://postgres.fxmqluspbkjjajdnnxel:MinnyMinny%401230@aws-1-ap-southeast-2.pooler.supabase.com:6543/postgres
-      - key: NODE_VERSION
-        value: 20
-      - key: PORT
-        value: 3001
-
-  # 2. Frontend App (Expo Web)
-  - type: web
-    name: mentor-app-frontend
-    runtime: static
-    branch: main # Points to your frontend branch
-    buildCommand: npm install && npx expo export --platform web
-    staticPublishPath: dist
-    routes:
-      - type: rewrite
-        source: /*
-        destination: /index.html
-    envVars:
-      - key: EXPO_PUBLIC_API_URL
-        fromService:
-          type: web
-          name: mentor-app-backend
-          property: host
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: SUPABASE_JWT_SECRET
+        sync: false
+      - key: NODE_ENV
+        value: production

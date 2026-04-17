@@ -1,2 +1,5 @@
 node_modules/
-.expo/
+mentor_app.db
+package-lock.json
+mentor_app.db-shm
+mentor_app.db-wal
