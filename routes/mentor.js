@@ -236,18 +236,29 @@ router.get('/list', auth, async (req, res) => {
 // GET /api/mentor/my-students — isolated to current mentor
 router.get('/my-students', auth, async (req, res) => {
     try {
-        const mentorId = req.user.id; // This is the Supabase UUID from the JWT
+        const mentorUserId = req.user.id; // Supabase UUID
+        const mentorEmail = req.user.email;
 
-        // Fetch students assigned to this specific mentor UID, with a check if they already have roadmap courses
+        // Resolve legacy mentor ID if possible
+        const mentorProfile = await get('SELECT id FROM mentors WHERE email = ?', [mentorEmail]);
+        const legacyMentorId = mentorProfile ? mentorProfile.id : null;
+
+        console.log(`🔍 Dashboard Fetch | User: ${mentorUserId} | Email: ${mentorEmail} | LegacyID: ${legacyMentorId}`);
+
+        // Fetch students assigned to this mentor via any of the 3 possible links:
         const students = await all(`
-            SELECT u.id, u.name, u.email, u.created_at, 
+            SELECT DISTINCT u.id, u.name, u.email, u.created_at, 
                    COALESCE(ma.assigned_at, u.created_at) as assigned_at,
                    EXISTS(SELECT 1 FROM roadmap r WHERE r.student_id = u.id) as has_roadmap
             FROM users u
             LEFT JOIN mentor_assignments ma ON ma.student_id = u.id
-            WHERE u.mentor_id = ? OR ma.mentor_user_id = ?
+            WHERE u.mentor_id = ? 
+               OR ma.mentor_user_id = ?
+               OR (ma.mentor_id IS NOT NULL AND ma.mentor_id = ?)
             ORDER BY assigned_at DESC
-        `, [mentorId, mentorId]);
+        `, [mentorUserId, mentorUserId, legacyMentorId]);
+
+        console.log(`✅ Dashboard Roster: Found ${students.length} students`);
 
         res.json(students);
     } catch (e) {
