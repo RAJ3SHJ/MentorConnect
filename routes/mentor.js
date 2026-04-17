@@ -244,7 +244,7 @@ router.get('/my-assessments', auth, async (req, res) => {
             -- Exam Submissions
             SELECT es.id, es.student_id, 'exam' as type, es.exam_id, es.answers, es.status,
                    es.mentor_remarks, es.submitted_at, 
-                   e.title AS exam_title, u.name AS student_name
+                   e.title AS exam_title, u.name AS student_name, NULL as goal, 2 as sort_rank
             FROM exam_submissions es
             JOIN exams e ON e.id = es.exam_id
             JOIN users u ON u.id = es.student_id
@@ -256,19 +256,54 @@ router.get('/my-assessments', auth, async (req, res) => {
             -- Skills Submissions
             SELECT ss.id, ss.student_id, 'skills' as type, NULL as exam_id, ss.skills as answers, ss.status,
                    ss.mentor_remarks, ss.submitted_at, 
-                   'Skills Assessment: ' || ss.goal AS exam_title, u.name AS student_name
+                   'Skills Assessment' AS exam_title, u.name AS student_name, ss.goal as goal, 1 as sort_rank
             FROM student_skills ss
             JOIN users u ON u.id = ss.student_id
             JOIN mentor_assignments ma ON ma.student_id = u.id
             WHERE ma.mentor_user_id = ? AND ss.status IN ('Submitted', 'Pending Review')
             
-            ORDER BY submitted_at DESC
+            ORDER BY sort_rank ASC, submitted_at DESC
         `, [mentorUserId, mentorUserId]);
+
+        // Enrichment Phase: Fetch Questions for Exams
+        const rawExamIds = submissions.filter(s => s.type === 'exam').map(s => s.exam_id);
+        const examIds = [...new Set(rawExamIds)].filter(id => id !== undefined && id !== null).map(String);
+        let questionsMap = {};
+
+        if (examIds.length > 0 && supabaseAdmin) {
+            try {
+                const { data: qs, error } = await supabaseAdmin
+                    .from('questions')
+                    .select('*')
+                    .in('exam_id', examIds);
+                
+                if (!error && qs) {
+                    qs.forEach(q => {
+                        const eid = String(q.exam_id);
+                        if (!questionsMap[eid]) questionsMap[eid] = [];
+                        questionsMap[eid].push(q);
+                    });
+                }
+            } catch (sqErr) {
+                console.error('❌ Supabase Connect Error:', sqErr.message);
+            }
+        }
         
-        const result = submissions.map(sub => ({ 
-            ...sub, 
-            answers: sub.type === 'exam' ? JSON.parse(sub.answers || '[]') : sub.answers 
-        }));
+        const result = submissions.map(sub => {
+            let parsedAnswers = [];
+            try {
+                parsedAnswers = typeof sub.answers === 'string' ? JSON.parse(sub.answers || '[]') : sub.answers;
+            } catch (e) {
+                parsedAnswers = sub.answers;
+            }
+
+            return { 
+                ...sub, 
+                answers: parsedAnswers,
+                questions: sub.type === 'exam' ? (questionsMap[String(sub.exam_id)] || []) : null
+            };
+        });
+
         res.json(result);
     } catch (e) {
         console.error('Fetch Assessments Error:', e.message);
