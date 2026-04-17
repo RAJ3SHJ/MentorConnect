@@ -129,10 +129,10 @@ export default function MentorDashboardScreen({ navigation }) {
                 {/* ── Pending Roadmaps ── */}
                 <Text style={s.sectionTitle}>🔗 Pending Roadmaps</Text>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} style={s.rosterScroll}>
-                    {roster.filter(l => !l.has_roadmap).length === 0 ? (
+                    {roster.filter(l => !l.has_roadmap || l.has_roadmap == 0 || l.has_roadmap === '0' || l.has_roadmap === 'false').length === 0 ? (
                         <View style={s.emptyBox}><Text style={s.emptyText}>Inbox Zero. No pending setups.</Text></View>
                     ) : (
-                        roster.filter(l => !l.has_roadmap).map(learner => (
+                        roster.filter(l => !l.has_roadmap || l.has_roadmap == 0 || l.has_roadmap === '0' || l.has_roadmap === 'false').map(learner => (
                             <TouchableOpacity 
                                 key={learner.id} 
                                 style={s.rosterCard}
@@ -158,10 +158,10 @@ export default function MentorDashboardScreen({ navigation }) {
                 {/* ── Active Roadmaps ── */}
                 <Text style={s.sectionTitle}>📈 Active Roadmaps</Text>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} style={s.rosterScroll}>
-                    {roster.filter(l => l.has_roadmap).length === 0 ? (
+                    {roster.filter(l => l.has_roadmap == 1 || l.has_roadmap === true || l.has_roadmap === '1' || l.has_roadmap === 'true').length === 0 ? (
                         <View style={s.emptyBox}><Text style={s.emptyText}>No active roadmaps yet.</Text></View>
                     ) : (
-                        roster.filter(l => l.has_roadmap).map(learner => (
+                        roster.filter(l => l.has_roadmap == 1 || l.has_roadmap === true || l.has_roadmap === '1' || l.has_roadmap === 'true').map(learner => (
                             <TouchableOpacity 
                                 key={learner.id} 
                                 style={[s.rosterCard, { borderColor: 'rgba(0,242,96,0.2)' }]}
