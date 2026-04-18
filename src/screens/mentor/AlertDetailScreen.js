@@ -79,8 +79,15 @@ export default function AlertDetailScreen({ route, navigation }) {
     };
 
     const handleUnifiedReview = async () => {
+        const hasExams = detail.submissions && detail.submissions.length > 0;
+        
+        if (hasExams && !examsFeedback.trim()) {
+            toast.show('Please complete the exam assessment feedback', 'warning');
+            return;
+        }
+
         // Validation: At least one feedback should be provided if assessments exist
-        if (!skillsFeedback && !examsFeedback) {
+        if (!skillsFeedback.trim() && !examsFeedback.trim()) {
             toast.show('Please provide feedback for at least one assessment', 'warning');
             return;
         }
@@ -198,87 +205,6 @@ export default function AlertDetailScreen({ route, navigation }) {
                                 Submitted: {new Date(skills.submitted_at).toLocaleDateString()}
                             </Text>
 
-                            {/* ── Inline Skills Review Panel ── */}
-                            <View style={[s.reviewDivider, { backgroundColor: colors.glassBorder }]} />
-                            
-                            {!detail.isConnected ? (
-                                <View style={[s.lockedPanel, { backgroundColor: colors.card, borderColor: colors.glassBorder }]}>
-                                    <View style={[s.lockIcon, { backgroundColor: colors.gold + '15' }]}>
-                                        <Text style={{ fontSize: 24 }}>🔒</Text>
-                                    </View>
-                                    <Text style={[s.lockedTitle, { color: colors.white }]}>Reviews Locked</Text>
-                                    <Text style={[s.lockedSub, { color: colors.muted }]}>
-                                        Click the "Connect" button in the header to unlock assessment reviews for this student.
-                                    </Text>
-                                </View>
-                            ) : (
-                                <>
-                                    <Text style={[s.cardTitle, { color: colors.white, marginBottom: 12, marginTop: 8 }]}>
-                                        📊 {reviewed ? 'Review Submitted' : 'Submit Master Review (Skills & Exams)'}
-                                    </Text>
-
-                                    {reviewed && (
-                                        <View style={[s.reviewedBanner, { backgroundColor: colors.success + '10', borderColor: colors.success + '33' }]}>
-                                            <Text style={{ color: colors.success, fontWeight: '700', marginBottom: 8 }}>✅ Review Processed</Text>
-                                            {skillsFeedback ? (
-                                                <View style={{ marginBottom: 8 }}>
-                                                    <Text style={{ color: colors.muted, fontSize: 11, fontWeight: '700' }}>SKILLS FEEDBACK:</Text>
-                                                    <Text style={{ color: colors.white, fontSize: 13, marginTop: 2 }}>{skillsFeedback}</Text>
-                                                </View>
-                                            ) : null}
-                                            {examsFeedback ? (
-                                                <View>
-                                                    <Text style={{ color: colors.muted, fontSize: 11, fontWeight: '700' }}>EXAM FEEDBACK:</Text>
-                                                    <Text style={{ color: colors.white, fontSize: 13, marginTop: 2 }}>{examsFeedback}</Text>
-                                                </View>
-                                            ) : null}
-                                            <TouchableOpacity onPress={() => setReviewed(false)} style={{ marginTop: 12 }}>
-                                                <Text style={{ color: colors.blue, fontSize: 13, fontWeight: '600' }}>✏️ Edit Feedback</Text>
-                                            </TouchableOpacity>
-                                        </View>
-                                    )}
-
-                                    {!reviewed && (
-                                        <>
-                                            <Text style={{ color: colors.muted, fontSize: 12, fontWeight: '700', marginTop: 8 }}>SKILL ASSESSMENT FEEDBACK</Text>
-                                            <TextInput
-                                                style={[s.input, { borderColor: colors.glassBorder, color: colors.white, marginTop: 8, height: 80 }]}
-                                                placeholder="Provide feedback on learner's skills & goals..."
-                                                placeholderTextColor={colors.muted}
-                                                value={skillsFeedback}
-                                                onChangeText={setSkillsFeedback}
-                                                multiline
-                                            />
-
-                                            <Text style={{ color: colors.muted, fontSize: 12, fontWeight: '700', marginTop: 16 }}>EXAM ASSESSMENT FEEDBACK</Text>
-                                            <TextInput
-                                                style={[s.input, { borderColor: colors.glassBorder, color: colors.white, marginTop: 8, height: 80 }]}
-                                                placeholder="Provide feedback on exam performance..."
-                                                placeholderTextColor={colors.muted}
-                                                value={examsFeedback}
-                                                onChangeText={setExamsFeedback}
-                                                multiline
-                                            />
-
-                                            <TouchableOpacity
-                                                onPress={handleUnifiedReview}
-                                                disabled={saving}
-                                                style={{ marginTop: 20 }}
-                                            >
-                                                <LinearGradient
-                                                    colors={gradients.accent}
-                                                    start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
-                                                    style={s.submitBtn}
-                                                >
-                                                    <Text style={s.submitBtnText}>
-                                                        {saving ? 'Processing...' : '💾 Submit Master Review'}
-                                                    </Text>
-                                                </LinearGradient>
-                                            </TouchableOpacity>
-                                        </>
-                                    )}
-                                </>
-                            )}
                         </>
                     ) : (
                         <Text style={{ color: colors.muted, fontSize: 14, fontStyle: 'italic' }}>
@@ -334,6 +260,85 @@ export default function AlertDetailScreen({ route, navigation }) {
                             </View>
                         );
                     })}
+                </View>
+
+                {/* ── Master Review Panel ── */}
+                <View style={[s.card, { backgroundColor: colors.card, borderColor: colors.glassBorder }]}>
+                    <Text style={[s.cardTitle, { color: colors.white }]}>📊 {reviewed ? 'Review Submitted' : 'Submit Master Review'}</Text>
+                    {!detail.isConnected ? (
+                        <View style={[s.lockedPanel, { backgroundColor: colors.card, borderColor: colors.glassBorder }]}>
+                            <View style={[s.lockIcon, { backgroundColor: colors.gold + '15' }]}>
+                                <Text style={{ fontSize: 24 }}>🔒</Text>
+                            </View>
+                            <Text style={[s.lockedTitle, { color: colors.white }]}>Reviews Locked</Text>
+                            <Text style={[s.lockedSub, { color: colors.muted }]}>
+                                Click the "Connect" button in the header to unlock assessment reviews for this student.
+                            </Text>
+                        </View>
+                    ) : (
+                        <>
+                            {reviewed && (
+                                <View style={[s.reviewedBanner, { backgroundColor: colors.success + '10', borderColor: colors.success + '33' }]}>
+                                    <Text style={{ color: colors.success, fontWeight: '700', marginBottom: 8 }}>✅ Review Processed</Text>
+                                    {skillsFeedback ? (
+                                        <View style={{ marginBottom: 8 }}>
+                                            <Text style={{ color: colors.muted, fontSize: 11, fontWeight: '700' }}>SKILLS FEEDBACK:</Text>
+                                            <Text style={{ color: colors.white, fontSize: 13, marginTop: 2 }}>{skillsFeedback}</Text>
+                                        </View>
+                                    ) : null}
+                                    {examsFeedback ? (
+                                        <View>
+                                            <Text style={{ color: colors.muted, fontSize: 11, fontWeight: '700' }}>EXAM FEEDBACK:</Text>
+                                            <Text style={{ color: colors.white, fontSize: 13, marginTop: 2 }}>{examsFeedback}</Text>
+                                        </View>
+                                    ) : null}
+                                    <TouchableOpacity onPress={() => setReviewed(false)} style={{ marginTop: 12 }}>
+                                        <Text style={{ color: colors.blue, fontSize: 13, fontWeight: '600' }}>✏️ Edit Feedback</Text>
+                                    </TouchableOpacity>
+                                </View>
+                            )}
+
+                            {!reviewed && (
+                                <>
+                                    <Text style={{ color: colors.muted, fontSize: 12, fontWeight: '700', marginTop: 8 }}>SKILL ASSESSMENT FEEDBACK</Text>
+                                    <TextInput
+                                        style={[s.input, { borderColor: colors.glassBorder, color: colors.white, marginTop: 8, height: 80 }]}
+                                        placeholder="Provide feedback on learner's skills & goals..."
+                                        placeholderTextColor={colors.muted}
+                                        value={skillsFeedback}
+                                        onChangeText={setSkillsFeedback}
+                                        multiline
+                                    />
+
+                                    <Text style={{ color: colors.muted, fontSize: 12, fontWeight: '700', marginTop: 16 }}>EXAM ASSESSMENT FEEDBACK</Text>
+                                    <TextInput
+                                        style={[s.input, { borderColor: colors.glassBorder, color: colors.white, marginTop: 8, height: 80 }]}
+                                        placeholder="Provide feedback on exam performance..."
+                                        placeholderTextColor={colors.muted}
+                                        value={examsFeedback}
+                                        onChangeText={setExamsFeedback}
+                                        multiline
+                                    />
+
+                                    <TouchableOpacity
+                                        onPress={handleUnifiedReview}
+                                        disabled={saving}
+                                        style={{ marginTop: 20 }}
+                                    >
+                                        <LinearGradient
+                                            colors={gradients.accent}
+                                            start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+                                            style={s.submitBtn}
+                                        >
+                                            <Text style={s.submitBtnText}>
+                                                {saving ? 'Processing...' : '💾 Submit Master Review'}
+                                            </Text>
+                                        </LinearGradient>
+                                    </TouchableOpacity>
+                                </>
+                            )}
+                        </>
+                    )}
                 </View>
             </ScrollView>
         </LinearGradient>
