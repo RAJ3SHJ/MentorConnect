@@ -4,6 +4,7 @@ import {
     TextInput, Platform, ActivityIndicator,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import Constants from 'expo-constants';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import api from '../../api/client';
 import { useTheme } from '../../ThemeContext';
@@ -161,7 +162,9 @@ export default function SettingsScreen({ navigation }) {
                         {confirmLogout ? '⚠️ Tap Again to Confirm' : '🚪 Log Out'}
                     </Text>
                 </TouchableOpacity>
-                <Text style={[s.version, { color: colors.muted }]}>MentorPath v1.0 • Made with ❤️</Text>
+                <Text style={[s.version, { color: colors.muted }]}>
+                    MentorPath v{Constants.expoConfig?.version || '1.0.x'} • Build {Constants.expoConfig?.android?.versionCode || '1'} • Made with ❤️
+                </Text>
             </ScrollView>
         </LinearGradient>
     );

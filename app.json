@@ -2,7 +2,7 @@
   "expo": {
     "name": "MentorPath",
     "slug": "mentor-app",
-    "version": "1.0.5",
+    "version": "1.0.6",
     "icon": "./assets/icon.png",
     "orientation": "portrait",
     "userInterfaceStyle": "dark",
@@ -19,7 +19,7 @@
     },
     "android": {
       "package": "com.raj3shj.mentorconnect",
-      "versionCode": 2,
+      "versionCode": 3,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#0A0F1E"
