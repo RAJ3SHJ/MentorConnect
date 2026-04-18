@@ -103,16 +103,6 @@ export default function AlertDetailScreen({ route, navigation }) {
             // Refresh detail to show updated statuses
             const res = await api.get(`/api/mentor/student-detail/${studentId}`);
             setDetail(res.data);
-
-            // Navigate to Dashboard tab after 1 second so user sees learner in active roster
-            setTimeout(() => {
-                const parent = navigation.getParent();
-                if (parent) {
-                    parent.navigate('Dashboard', { screen: 'MentorHome' });
-                } else {
-                    navigation.navigate('Dashboard', { screen: 'MentorHome' });
-                }
-            }, 1000);
         } catch (e) {
             toast.show(e.response?.data?.error || 'Failed to save review', 'error');
         } finally { setSaving(false); }
