@@ -189,10 +189,10 @@ router.post('/unified-review/:studentId', auth, async (req, res) => {
             }
         }
 
-        // 3. Mark all notifications for this student as claimed
+        // 3. Delete all notifications for this student since the review is now complete
         await run(
-            'UPDATE mentor_notifications SET is_claimed = 1, claimed_by_mentor_id = ? WHERE student_id = ?',
-            [mentorUserId, studentId]
+            'DELETE FROM mentor_notifications WHERE student_id = ?',
+            [studentId]
         ).catch(() => {});
 
         res.json({ 
@@ -382,9 +382,10 @@ router.get('/notifications', auth, async (req, res) => {
             LEFT JOIN exams e ON e.id = es.exam_id
             LEFT JOIN courses c ON c.id = mn.reference_id AND mn.trigger_type = 'course'
             LEFT JOIN student_skills ss ON ss.id = mn.reference_id AND mn.trigger_type = 'skills'
-            WHERE mn.is_claimed = 0 AND ma.id IS NULL
+            WHERE (mn.is_claimed = 0 AND ma.id IS NULL) 
+               OR (mn.is_claimed = 1 AND mn.claimed_by_mentor_id = ?)
             ORDER BY mn.created_at DESC
-        `);
+        `, [req.user.id]);
         res.json(notifications);
     } catch (e) { res.status(500).json({ error: e.message }); }
 });
@@ -396,8 +397,9 @@ router.get('/notification-count', auth, async (req, res) => {
             SELECT COUNT(DISTINCT mn.student_id) as count 
             FROM mentor_notifications mn
             LEFT JOIN mentor_assignments ma ON ma.student_id = mn.student_id
-            WHERE mn.is_claimed = 0 AND ma.id IS NULL
-        `);
+            WHERE (mn.is_claimed = 0 AND ma.id IS NULL) 
+               OR (mn.is_claimed = 1 AND mn.claimed_by_mentor_id = ?)
+        `, [req.user.id]);
         res.json({ count: row ? row.count : 0 });
     } catch (e) { res.status(500).json({ error: e.message }); }
 });

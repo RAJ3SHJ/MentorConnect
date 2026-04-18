@@ -71,19 +71,10 @@ export default function NotificationFeedScreen({ navigation, route }) {
         setConnecting(notification.student_id);
         try {
             await api.post(`/api/mentor/connect/${notification.student_id}`);
-            toast.show(`🔗 Connected! Learner added to your Dashboard.`, 'success');
+            toast.show(`🔗 Connected! Tap the card to review assessments.`, 'success');
             setConnectedIds(prev => [...prev, notification.student_id]);
-            
-            // After 1.5 seconds, navigate to Dashboard tab so user sees learner appear
-            setTimeout(() => {
-                // On Native, we need getParent() to reach the Tab navigator from inside the Notification Stack
-                const parent = navigation.getParent();
-                if (parent) {
-                    parent.navigate('Dashboard', { screen: 'MentorHome' });
-                } else {
-                    navigation.navigate('Dashboard', { screen: 'MentorHome' });
-                }
-            }, 1500);
+            // Refresh to ensure we have the latest state (e.g., claimed_by_mentor_id)
+            fetchNotifications();
         } catch (e) {
             const msg = e.response?.data?.error || 'Connection failed';
             toast.show(msg === 'Student already connected to another mentor'

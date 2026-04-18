@@ -52,19 +52,10 @@ export default function AlertDetailScreen({ route, navigation }) {
             setConnecting(true);
             try {
                 await api.post(`/api/mentor/connect/${studentId}`);
-                toast.show(`🔗 Connected! Learner added to your Dashboard.`, 'success');
+                toast.show(`🔗 Connected! You can now review assessments.`, 'success');
                 // Refresh detail to unlock review panel
                 const res = await api.get(`/api/mentor/student-detail/${studentId}`);
                 setDetail(res.data);
-                // Navigate to Dashboard tab after 1.5 seconds
-                setTimeout(() => {
-                    const parent = navigation.getParent();
-                    if (parent) {
-                        parent.navigate('Dashboard', { screen: 'MentorHome' });
-                    } else {
-                        navigation.navigate('Dashboard', { screen: 'MentorHome' });
-                    }
-                }, 1500);
             } catch (e) {
                 const msg = e.response?.data?.error || 'Connection failed';
                 toast.show(msg === 'Student already connected to another mentor'
@@ -105,6 +96,16 @@ export default function AlertDetailScreen({ route, navigation }) {
             // Refresh detail to show updated statuses
             const res = await api.get(`/api/mentor/student-detail/${studentId}`);
             setDetail(res.data);
+
+            // Navigate to Dashboard tab after 1 second so user sees learner in active roster
+            setTimeout(() => {
+                const parent = navigation.getParent();
+                if (parent) {
+                    parent.navigate('Dashboard', { screen: 'MentorHome' });
+                } else {
+                    navigation.navigate('Dashboard', { screen: 'MentorHome' });
+                }
+            }, 1000);
         } catch (e) {
             toast.show(e.response?.data?.error || 'Failed to save review', 'error');
         } finally { setSaving(false); }
