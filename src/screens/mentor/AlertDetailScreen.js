@@ -99,10 +99,10 @@ export default function AlertDetailScreen({ route, navigation }) {
                 examRemarks: examsFeedback,
             });
             setReviewed(true);
-            toast.show('Unified review submitted! ✅', 'success');
-            // Refresh detail to show updated statuses
+            // Refresh detail to show updated statuses in the banner
             const res = await api.get(`/api/mentor/student-detail/${studentId}`);
             setDetail(res.data);
+            // No auto-navigation — mentor presses Back or taps Dashboard manually
         } catch (e) {
             toast.show(e.response?.data?.error || 'Failed to save review', 'error');
         } finally { setSaving(false); }
@@ -268,8 +268,15 @@ export default function AlertDetailScreen({ route, navigation }) {
                     ) : (
                         <>
                             {reviewed && (
-                                <View style={[s.reviewedBanner, { backgroundColor: colors.success + '10', borderColor: colors.success + '33' }]}>
-                                    <Text style={{ color: colors.success, fontWeight: '700', marginBottom: 8 }}>✅ Review Processed</Text>
+                                <View style={[s.reviewedBanner, { backgroundColor: colors.success + '10', borderColor: colors.success + '44' }]}>
+                                    <Text style={{ color: colors.success, fontWeight: '800', fontSize: 16, marginBottom: 6 }}>✅ Review Submitted!</Text>
+                                    <Text style={{ color: colors.muted, fontSize: 13, lineHeight: 20, marginBottom: 14 }}>
+                                        This learner's assessment has been reviewed. Tap the{' '}
+                                        <Text style={{ color: colors.white, fontWeight: '700' }}>Dashboard</Text>
+                                        {' '}tab below to find them under{' '}
+                                        <Text style={{ color: colors.white, fontWeight: '700' }}>🔗 Pending Roadmaps</Text>
+                                        {' '}and assign their learning path.
+                                    </Text>
                                     {skillsFeedback ? (
                                         <View style={{ marginBottom: 8 }}>
                                             <Text style={{ color: colors.muted, fontSize: 11, fontWeight: '700' }}>SKILLS FEEDBACK:</Text>
@@ -282,9 +289,6 @@ export default function AlertDetailScreen({ route, navigation }) {
                                             <Text style={{ color: colors.white, fontSize: 13, marginTop: 2 }}>{examsFeedback}</Text>
                                         </View>
                                     ) : null}
-                                    <TouchableOpacity onPress={() => setReviewed(false)} style={{ marginTop: 12 }}>
-                                        <Text style={{ color: colors.blue, fontSize: 13, fontWeight: '600' }}>✏️ Edit Feedback</Text>
-                                    </TouchableOpacity>
                                 </View>
                             )}
 

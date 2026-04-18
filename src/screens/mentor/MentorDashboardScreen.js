@@ -65,7 +65,12 @@ export default function MentorDashboardScreen({ navigation }) {
         return () => supabase.removeChannel(channel);
     }, []);
 
-    useFocusEffect(useCallback(() => { fetchData(); }, []));
+    useFocusEffect(
+        useCallback(() => {
+            fetchData();
+            // Return cleanup (none needed here)
+        }, []) // The empty dep array is intentional — fetchData is defined in the same render scope
+    );
     const onRefresh = async () => { setRefreshing(true); await fetchData(); setRefreshing(false); };
 
     const fetchStudentDetail = async (studentId) => {

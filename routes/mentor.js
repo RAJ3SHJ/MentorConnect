@@ -433,20 +433,12 @@ router.post('/connect/:studentId', auth, async (req, res) => {
             return res.status(409).json({ error: 'Student already connected to another mentor' });
         }
 
-        // Use mentorUserId (Supabase UUID) as mentor_id in mentor_assignments.
-        // This is guaranteed to exist in users(id), avoiding FK constraint failures on Postgres.
         await runGetId(
             'INSERT INTO mentor_assignments (mentor_id, student_id, mentor_user_id) VALUES (?, ?, ?)',
-            [mentorUserId, studentId, mentorUserId]
+            [mentorId, studentId, mentorUserId]
         );
 
-        // Also try to update users.mentor_id — this may fail on Postgres if the mentor UUID
-        // is not in the users table, so we wrap it in try/catch to avoid killing the flow.
-        try {
-            await run('UPDATE users SET mentor_id = ? WHERE id = ?', [mentorUserId, studentId]);
-        } catch (fkErr) {
-            console.warn('⚠️ Could not set users.mentor_id (FK constraint) — assignment row is the source of truth:', fkErr.message);
-        }
+        await run('UPDATE users SET mentor_id = ? WHERE id = ?', [mentorUserId, studentId]);
 
         await run(
             'UPDATE mentor_notifications SET is_claimed = 1, claimed_by_mentor_id = ? WHERE student_id = ?',
