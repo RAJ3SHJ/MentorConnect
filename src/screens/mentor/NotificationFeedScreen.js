@@ -199,15 +199,15 @@ export default function NotificationFeedScreen({ navigation, route }) {
                         <TouchableOpacity
                             style={[s.connectBtn, connecting === student.student_id && { opacity: 0.6 }]}
                             onPress={() => handleConnect(student.alerts[0])}
-                            disabled={!!connecting}
+                            disabled={!!connecting || student.alerts[0].is_connected_to_me}
                         >
                             <LinearGradient 
-                                colors={connectedIds.includes(student.student_id) ? ['#00f260', '#0575E6'] : ['#00d2ff', '#3a7bd5']} 
+                                colors={(connectedIds.includes(student.student_id) || student.alerts[0].is_connected_to_me) ? ['#00f260', '#0575E6'] : ['#00d2ff', '#3a7bd5']} 
                                 style={s.connectInner}
                             >
                                 <Text style={s.connectText}>
                                     {connecting === student.student_id ? '🔄 Connecting…' : 
-                                     connectedIds.includes(student.student_id) ? '✅ Connected' : '🔗 Connect with Learner'}
+                                     (connectedIds.includes(student.student_id) || student.alerts[0].is_connected_to_me) ? '✅ Connected' : '🔗 Connect with Learner'}
                                 </Text>
                             </LinearGradient>
                         </TouchableOpacity>
