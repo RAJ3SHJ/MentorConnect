@@ -185,13 +185,13 @@ export default function ValidationScreen({ route, navigation }) {
                 </View>
 
                 {/* Save */}
-                <TouchableOpacity onPress={save} disabled={saving || !status} activeOpacity={0.85}>
+                <TouchableOpacity onPress={save} disabled={saving} activeOpacity={0.85}>
                     <LinearGradient
-                        colors={status ? gradients.accent : [colors.glass, colors.glass]}
+                        colors={status ? gradients.accent : ['#333', '#222']}
                         start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
-                        style={s.saveBtn}
+                        style={[s.saveBtn, { opacity: saving ? 0.6 : 1 }]}
                     >
-                        <Text style={[s.saveBtnText, { color: status ? '#FFF' : colors.muted }]}>
+                        <Text style={[s.saveBtnText, { color: '#FFF' }]}>
                             {saving ? 'Saving...' : '💾 Save Review'}
                         </Text>
                     </LinearGradient>
