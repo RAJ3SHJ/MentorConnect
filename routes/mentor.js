@@ -348,6 +348,10 @@ router.post('/courses', auth, async (req, res) => {
 router.get('/notifications', auth, async (req, res) => {
     try {
         const mentorUserId = req.user.id;
+        // Also get the internal mentor profile ID to be safe
+        const mentorProfile = await get('SELECT id FROM mentors WHERE email = ?', [req.user.email]);
+        const mentorId = mentorProfile ? mentorProfile.id : null;
+
         const notifications = await all(`
             SELECT mn.id, mn.student_id, mn.trigger_type, mn.reference_id, mn.created_at,
                    u.name AS student_name, u.email AS student_email,
@@ -356,7 +360,13 @@ router.get('/notifications', auth, async (req, res) => {
                         ELSE c.title
                    END AS reference_title,
                    es.status AS submission_status,
-                   (CASE WHEN ma.mentor_user_id = ? OR u.mentor_id = ? THEN 1 ELSE 0 END) as is_connected_to_me,
+                   (CASE 
+                        WHEN ma.mentor_user_id = ? 
+                          OR (ma.mentor_id IS NOT NULL AND ma.mentor_id = ?)
+                          OR u.mentor_id = ? 
+                          OR (u.mentor_id IS NOT NULL AND u.mentor_id = ?)
+                        THEN 1 ELSE 0 
+                    END) as is_connected_to_me,
                    ma.mentor_user_id as claimed_by_uid
             FROM mentor_notifications mn
             JOIN users u ON u.id = mn.student_id
@@ -366,9 +376,18 @@ router.get('/notifications', auth, async (req, res) => {
             LEFT JOIN courses c ON c.id = mn.reference_id AND mn.trigger_type = 'course'
             LEFT JOIN student_skills ss ON ss.id = mn.reference_id AND mn.trigger_type = 'skills'
             WHERE mn.is_claimed = 0 
-              AND (ma.id IS NULL OR ma.mentor_user_id = ? OR u.mentor_id = ?)
+              AND (
+                ma.id IS NULL 
+                OR ma.mentor_user_id = ? 
+                OR (ma.mentor_id IS NOT NULL AND ma.mentor_id = ?)
+                OR u.mentor_id = ?
+                OR (u.mentor_id IS NOT NULL AND u.mentor_id = ?)
+              )
             ORDER BY mn.created_at DESC
-        `, [mentorUserId, mentorUserId, mentorUserId, mentorUserId]);
+        `, [
+            mentorUserId, mentorId, mentorUserId, mentorId, // For CASE
+            mentorUserId, mentorId, mentorUserId, mentorId  // For WHERE
+        ]);
         res.json(notifications);
     } catch (e) { res.status(500).json({ error: e.message }); }
 });
