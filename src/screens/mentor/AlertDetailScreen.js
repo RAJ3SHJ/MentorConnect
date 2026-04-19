@@ -277,6 +277,12 @@ export default function AlertDetailScreen({ route, navigation }) {
                                         <Text style={{ color: colors.white, fontWeight: '700' }}>🔗 Pending Roadmaps</Text>
                                         {' '}and assign their learning path.
                                     </Text>
+                                    <TouchableOpacity 
+                                        onPress={() => navigation.navigate('Dashboard')}
+                                        style={[s.miniDashboardBtn, { borderColor: colors.success + '66' }]}
+                                    >
+                                        <Text style={[s.miniDashboardBtnText, { color: colors.success }]}>Assign Roadmap in Dashboard →</Text>
+                                    </TouchableOpacity>
                                     {skillsFeedback ? (
                                         <View style={{ marginBottom: 8 }}>
                                             <Text style={{ color: colors.muted, fontSize: 11, fontWeight: '700' }}>SKILLS FEEDBACK:</Text>
@@ -378,4 +384,6 @@ const s = StyleSheet.create({
     lockedSub: { fontSize: 14, textAlign: 'center', lineHeight: 22, opacity: 0.7 },
     miniReviewBtn: { borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6, borderWidth: 1, backgroundColor: 'rgba(0,210,255,0.05)', marginTop: 8 },
     miniReviewText: { fontSize: 11, fontWeight: '700', textTransform: 'uppercase' },
+    miniDashboardBtn: { marginTop: 10, paddingVertical: 10, paddingHorizontal: 16, borderRadius: 10, borderWidth: 1, backgroundColor: 'rgba(46, 213, 115, 0.08)', alignItems: 'center' },
+    miniDashboardBtnText: { fontSize: 13, fontWeight: '800' },
 });

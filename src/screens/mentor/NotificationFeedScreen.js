@@ -76,11 +76,19 @@ export default function NotificationFeedScreen({ navigation, route }) {
             // Refresh to ensure we have the latest state (e.g., claimed_by_mentor_id)
             fetchNotifications();
         } catch (e) {
-            const msg = e.response?.data?.error || 'Connection failed';
-            toast.show(msg === 'Student already connected to another mentor'
-                ? '⚡ Another mentor just claimed this learner!'
-                : msg, 'error');
-            fetchNotifications(); // refresh to remove card
+            const msg = e.response?.data?.error || e.message || 'Connection failed';
+            
+            if (msg.includes('Already connected') || e.response?.status === 200) {
+                // Success case or self-connection
+                toast.show(`🔗 Already connected with this learner.`, 'success');
+                setConnectedIds(prev => [...prev, notification.student_id]);
+                fetchNotifications();
+            } else {
+                toast.show(msg === 'Student already connected to another mentor'
+                    ? '⚡ Another mentor just claimed this learner!'
+                    : msg, 'error');
+                fetchNotifications(); // refresh to remove card
+            }
         } finally { setConnecting(null); }
     };
 
