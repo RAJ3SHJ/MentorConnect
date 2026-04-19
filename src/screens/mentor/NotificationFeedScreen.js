@@ -40,6 +40,12 @@ export default function NotificationFeedScreen({ navigation, route }) {
     const [connecting, setConnecting] = useState(null);
     const [connectedIds, setConnectedIds] = useState([]);
 
+    useFocusEffect(
+        useCallback(() => {
+            fetchNotifications();
+        }, [])
+    );
+
     const fetchNotifications = async () => {
         try {
             const res = await api.get(`/api/mentor/notifications?t=${Date.now()}`);

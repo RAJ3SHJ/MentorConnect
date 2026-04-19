@@ -278,7 +278,12 @@ export default function AlertDetailScreen({ route, navigation }) {
                                         {' '}and assign their learning path.
                                     </Text>
                                     <TouchableOpacity 
-                                        onPress={() => navigation.navigate('Dashboard')}
+                                        onPress={() => {
+                                            navigation.navigate('Dashboard');
+                                            if (navigation.canGoBack()) {
+                                                navigation.popToTop();
+                                            }
+                                        }}
                                         style={[s.miniDashboardBtn, { borderColor: colors.success + '66' }]}
                                     >
                                         <Text style={[s.miniDashboardBtnText, { color: colors.success }]}>Assign Roadmap in Dashboard →</Text>
