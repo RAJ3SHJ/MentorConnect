@@ -17,6 +17,36 @@ router.get('/students', auth, async (req, res) => {
     } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// GET /api/mentor/my-students
+router.get('/my-students', auth, async (req, res) => {
+    try {
+        const students = await all(`
+            SELECT u.id, u.name, u.email, u.status, u.created_at,
+                   (SELECT COUNT(*) FROM roadmap r WHERE r.student_id = u.id) as has_roadmap
+            FROM users u
+            LEFT JOIN mentor_assignments ma ON ma.student_id = u.id
+            WHERE ma.mentor_user_id = ? OR u.mentor_id = ?
+            ORDER BY u.created_at DESC
+        `, [req.user.id, req.user.id]);
+        res.json(students);
+    } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// PATCH /api/mentor/student-status/:studentId — Update learner workflow status
+router.patch('/student-status/:studentId', auth, async (req, res) => {
+    try {
+        const { studentId } = req.params;
+        const { status } = req.body; // e.g., 'pending_roadmap', 'active'
+        
+        if (!['awaiting_review', 'pending_roadmap', 'active'].includes(status)) {
+            return res.status(400).json({ error: 'Invalid status' });
+        }
+
+        await run('UPDATE users SET status = ? WHERE id = ?', [status, studentId]);
+        res.json({ message: 'Status updated', studentId, status });
+    } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 // POST /api/mentor/link
 router.post('/link', auth, async (req, res) => {
     const { mentor_id, student_id } = req.body;
@@ -225,28 +255,7 @@ router.get('/list', auth, async (req, res) => {
 
 // ─── PHASE 2: COMMAND CENTER ROUTES ───
 
-// GET /api/mentor/my-students — isolated to current mentor
-router.get('/my-students', auth, async (req, res) => {
-    try {
-        const mentorId = req.user.id; // This is the Supabase UUID from the JWT
 
-        // Fetch students assigned to this specific mentor UID, with a check if they already have roadmap courses
-        const students = await all(`
-            SELECT u.id, u.name, u.email, u.created_at, 
-                   COALESCE(ma.assigned_at, u.created_at) as assigned_at,
-                   EXISTS(SELECT 1 FROM roadmap r WHERE r.student_id = u.id) as has_roadmap
-            FROM users u
-            LEFT JOIN mentor_assignments ma ON ma.student_id = u.id
-            WHERE u.mentor_id = ? OR ma.mentor_user_id = ?
-            ORDER BY assigned_at DESC
-        `, [mentorId, mentorId]);
-
-        res.json(students);
-    } catch (e) {
-        console.error('Fetch Students Error:', e.message);
-        res.status(500).json({ error: 'Failed to retrieve your student roster' });
-    }
-});
 
 // GET /api/mentor/my-assessments — filtered by mentor's assigned students
 router.get('/my-assessments', auth, async (req, res) => {
@@ -376,6 +385,7 @@ router.get('/notifications', auth, async (req, res) => {
             LEFT JOIN courses c ON c.id = mn.reference_id AND mn.trigger_type = 'course'
             LEFT JOIN student_skills ss ON ss.id = mn.reference_id AND mn.trigger_type = 'skills'
             WHERE mn.is_claimed = 0 
+              AND u.status = 'awaiting_review'
               AND (
                 ma.id IS NULL 
                 OR ma.mentor_user_id = ? 
@@ -395,12 +405,27 @@ router.get('/notifications', auth, async (req, res) => {
 // GET /api/mentor/notification-count — badge count of unclaimed or personal notifications
 router.get('/notification-count', auth, async (req, res) => {
     try {
+        const mentorUserId = req.user.id;
+        const mentorProfile = await get('SELECT id FROM mentors WHERE email = ?', [req.user.email]);
+        const mentorId = mentorProfile ? mentorProfile.id : null;
+
         const row = await get(`
             SELECT COUNT(DISTINCT mn.student_id) as count 
             FROM mentor_notifications mn
-            LEFT JOIN mentor_assignments ma ON ma.student_id = mn.student_id
-            WHERE mn.is_claimed = 0 AND ma.id IS NULL
-        `);
+            JOIN users u ON u.id = mn.student_id
+            LEFT JOIN mentor_assignments ma ON ma.student_id = u.id
+            WHERE mn.is_claimed = 0 
+              AND u.status = 'awaiting_review'
+              AND (
+                ma.id IS NULL 
+                OR ma.mentor_user_id = ? 
+                OR (ma.mentor_id IS NOT NULL AND ma.mentor_id = ?)
+                OR u.mentor_id = ?
+                OR (u.mentor_id IS NOT NULL AND u.mentor_id = ?)
+              )
+        `, [
+            mentorUserId, mentorId, mentorUserId, mentorId
+        ]);
         res.json({ count: row ? row.count : 0 });
     } catch (e) { res.status(500).json({ error: e.message }); }
 });
