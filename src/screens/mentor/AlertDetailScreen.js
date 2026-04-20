@@ -119,7 +119,7 @@ export default function AlertDetailScreen({ route, navigation }) {
     if (!detail) return (
         <LinearGradient colors={gradients.bg} style={s.container}>
             <View style={[s.header, { paddingTop: insets.top + 12 }]}>
-                <TouchableOpacity onPress={() => navigation.goBack()}>
+                <TouchableOpacity onPress={() => navigation.navigate('Notifications')}>
                     <Text style={[s.back, { color: colors.muted }]}>← Back</Text>
                 </TouchableOpacity>
             </View>
@@ -143,7 +143,7 @@ export default function AlertDetailScreen({ route, navigation }) {
     return (
         <LinearGradient colors={gradients.bg} style={s.container}>
             <View style={[s.header, { paddingTop: insets.top + 12 }]}>
-                <TouchableOpacity onPress={() => navigation.goBack()}>
+                <TouchableOpacity onPress={() => navigation.navigate('Notifications')}>
                     <Text style={[s.back, { color: colors.muted }]}>← Back</Text>
                 </TouchableOpacity>
                 <View style={s.profileRow}>
@@ -278,15 +278,28 @@ export default function AlertDetailScreen({ route, navigation }) {
                                         {' '}and assign their learning path.
                                     </Text>
                                     <TouchableOpacity 
-                                        onPress={() => {
-                                            navigation.navigate('Dashboard');
-                                            if (navigation.canGoBack()) {
-                                                navigation.popToTop();
+                                        onPress={async () => {
+                                            try {
+                                                setSaving(true);
+                                                await api.patch(`/api/mentor/student-status/${studentId}`, { status: 'pending_roadmap' });
+                                                navigation.navigate('Dashboard');
+                                                if (navigation.canGoBack()) {
+                                                    navigation.popToTop();
+                                                }
+                                            } catch (e) {
+                                                toast.show('Failed to update status', 'error');
+                                            } finally {
+                                                setSaving(false);
                                             }
                                         }}
                                         style={[s.miniDashboardBtn, { borderColor: colors.success + '66' }]}
+                                        disabled={saving}
                                     >
-                                        <Text style={[s.miniDashboardBtnText, { color: colors.success }]}>Assign Roadmap in Dashboard →</Text>
+                                        {saving ? (
+                                            <ActivityIndicator size="small" color={colors.success} />
+                                        ) : (
+                                            <Text style={[s.miniDashboardBtnText, { color: colors.success }]}>Assign Roadmap in Dashboard →</Text>
+                                        )}
                                     </TouchableOpacity>
                                     {skillsFeedback ? (
                                         <View style={{ marginBottom: 8 }}>
@@ -335,9 +348,11 @@ export default function AlertDetailScreen({ route, navigation }) {
                                             start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
                                             style={s.submitBtn}
                                         >
-                                            <Text style={s.submitBtnText}>
-                                                {saving ? 'Processing...' : '💾 Submit Master Review'}
-                                            </Text>
+                                            {saving ? (
+                                                <ActivityIndicator color={colors.white} size="small" />
+                                            ) : (
+                                                <Text style={s.submitBtnText}>💾 Submit Master Review</Text>
+                                            )}
                                         </LinearGradient>
                                     </TouchableOpacity>
                                 </>

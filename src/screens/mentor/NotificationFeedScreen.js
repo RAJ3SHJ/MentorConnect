@@ -207,7 +207,7 @@ export default function NotificationFeedScreen({ navigation, route }) {
                             >
                                 <Text style={s.connectText}>
                                     {connecting === student.student_id ? '🔄 Connecting…' : 
-                                     (connectedIds.includes(student.student_id) || student.alerts[0].is_connected_to_me || student.alerts[0].claimed_by_uid === user?.id) ? '✅ Connected' : '🔗 Connect with Learner'}
+                                     (connectedIds.includes(student.student_id) || student.alerts[0].is_connected_to_me || student.alerts[0].claimed_by_uid === user?.id) ? '✅ Connected' : '🔗 CONNECT'}
                                 </Text>
                             </LinearGradient>
                         </TouchableOpacity>
