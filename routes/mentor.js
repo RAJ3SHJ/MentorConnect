@@ -37,14 +37,25 @@ router.patch('/student-status/:studentId', auth, async (req, res) => {
     try {
         const { studentId } = req.params;
         const { status } = req.body; // e.g., 'pending_roadmap', 'active'
+        const mentorId = req.user.id;
         
         if (!['awaiting_review', 'pending_roadmap', 'active'].includes(status)) {
             return res.status(400).json({ error: 'Invalid status' });
         }
 
-        await run('UPDATE users SET status = ? WHERE id = ?', [status, studentId]);
-        res.json({ message: 'Status updated', studentId, status });
-    } catch (e) { res.status(500).json({ error: e.message }); }
+        // Set status and ensure mentor_id is set to the current mentor
+        await run('UPDATE users SET status = ?, mentor_id = ? WHERE id = ?', [status, mentorId, studentId]);
+        
+        res.json({ 
+            message: 'Status updated successfully', 
+            studentId, 
+            status,
+            mentor_id: mentorId 
+        });
+    } catch (e) { 
+        console.error('Status Update Error:', e.message);
+        res.status(500).json({ error: e.message || 'Database permission denied or network error' }); 
+    }
 });
 
 // POST /api/mentor/link
