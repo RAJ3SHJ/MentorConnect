@@ -41,12 +41,12 @@ export default function MentorDashboardScreen({ navigation }) {
 
     const fetchData = useCallback(async () => {
         try {
-            const [sRes, aRes] = await Promise.all([
+            const [sRes, aRes] = await Promise.allSettled([
                 api.get(`/api/mentor/my-students?t=${Date.now()}`),
                 api.get(`/api/mentor/my-assessments?t=${Date.now()}`)
             ]);
-            setRoster(sRes.data || []);
-            setAssessments(aRes.data || []);
+            setRoster(sRes.status === 'fulfilled' ? (sRes.value.data || []) : []);
+            setAssessments(aRes.status === 'fulfilled' ? (aRes.value.data || []) : []);
         } catch (e) { console.error('Failed to fetch Mentor data', e.message); }
     }, []);
 
