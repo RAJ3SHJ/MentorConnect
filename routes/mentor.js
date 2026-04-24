@@ -296,7 +296,7 @@ router.get('/my-assessments', auth, async (req, res) => {
             JOIN exams e ON e.id = es.exam_id
             JOIN users u ON u.id = es.student_id
             LEFT JOIN mentor_assignments ma ON ma.student_id = u.id
-            WHERE (ma.mentor_user_id = ? OR u.mentor_id = ?) AND es.status IN ('Submitted', 'Pending Review')
+            WHERE (ma.mentor_user_id = ? OR u.mentor_id = ?) AND es.status IN ('submitted', 'Submitted', 'Pending Review')
         `, [mentorUserId, mentorUserId]);
 
         // 2. Fetch Skills Submissions
@@ -306,7 +306,7 @@ router.get('/my-assessments', auth, async (req, res) => {
             FROM student_skills ss
             JOIN users u ON u.id = ss.student_id
             LEFT JOIN mentor_assignments ma ON ma.student_id = u.id
-            WHERE (ma.mentor_user_id = ? OR u.mentor_id = ?) AND ss.status IN ('Submitted', 'Pending Review')
+            WHERE (ma.mentor_user_id = ? OR u.mentor_id = ?) AND ss.status IN ('submitted', 'Submitted', 'Pending Review')
         `, [mentorUserId, mentorUserId]);
 
         // 3. Combine and Assign Priority Rankings
