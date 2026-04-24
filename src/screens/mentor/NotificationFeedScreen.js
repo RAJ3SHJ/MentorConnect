@@ -125,7 +125,7 @@ export default function NotificationFeedScreen({ navigation, route }) {
 
     const groupedNotifications = notifications.reduce((acc, n) => {
         // Enforce state integrity: only show if the exam is still in a submitted/pending state
-        if (n.trigger_type === 'exam' && n.submission_status && !['Submitted', 'submitted', 'Pending Review'].includes(n.submission_status)) {
+        if (n.trigger_type === 'exam' && n.submission_status && !['submitted', 'Submitted', 'Pending Review'].includes(n.submission_status)) {
             return acc;
         }
 

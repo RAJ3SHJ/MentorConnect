@@ -118,7 +118,7 @@ async function initDb() {
       student_id ${isPG ? 'VARCHAR(255)' : 'TEXT'} REFERENCES users(id) ON DELETE CASCADE,
       exam_id INTEGER REFERENCES exams(id) ON DELETE CASCADE,
       answers TEXT,
-      status TEXT DEFAULT 'Pending Review',
+      status TEXT DEFAULT 'submitted',
       mentor_remarks TEXT,
       rating INTEGER,
       verdict TEXT,

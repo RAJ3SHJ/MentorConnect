@@ -26,7 +26,8 @@ router.get('/my-students', auth, async (req, res) => {
             FROM users u
             JOIN exam_submissions es ON es.student_id = u.id
             LEFT JOIN mentor_assignments ma ON ma.student_id = u.id
-            WHERE ma.mentor_user_id = ? OR u.mentor_id = ?
+            WHERE (ma.mentor_user_id = ? OR u.mentor_id = ?)
+              AND es.status IN ('pending_roadmap', 'active')
             ORDER BY u.created_at DESC
         `, [req.user.id, req.user.id]);
         res.json(students);
@@ -410,7 +411,7 @@ router.get('/notifications', auth, async (req, res) => {
             LEFT JOIN courses c ON c.id = mn.reference_id AND mn.trigger_type = 'course'
             LEFT JOIN student_skills ss ON ss.id = mn.reference_id AND mn.trigger_type = 'skills'
             WHERE mn.is_claimed = 0 
-              AND (es.status IN ('Submitted', 'submitted', 'Pending Review') OR mn.trigger_type != 'exam')
+              AND es.status = 'submitted'
               AND (
                 ma.id IS NULL 
                 OR ma.mentor_user_id = ? 
@@ -441,7 +442,7 @@ router.get('/notification-count', auth, async (req, res) => {
             LEFT JOIN exam_submissions es ON es.id = mn.reference_id AND mn.trigger_type = 'exam'
             LEFT JOIN mentor_assignments ma ON ma.student_id = u.id
             WHERE mn.is_claimed = 0 
-              AND (es.status IN ('Submitted', 'submitted', 'Pending Review') OR mn.trigger_type != 'exam')
+              AND es.status = 'submitted'
               AND (
                 ma.id IS NULL 
                 OR ma.mentor_user_id = ? 

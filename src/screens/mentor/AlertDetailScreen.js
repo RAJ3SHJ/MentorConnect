@@ -5,6 +5,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import api from '../../api/client';
+import { supabase } from '../../api/supabase';
 import { useTheme } from '../../ThemeContext';
 import { useToast } from '../../components/Toast';
 import { RADIUS } from '../../theme';
@@ -282,20 +283,26 @@ export default function AlertDetailScreen({ route, navigation }) {
                                         onPress={async () => {
                                             try {
                                                 setSaving(true);
-                                                const response = await api.patch(`/api/mentor/student-status/${studentId}`, { status: 'pending_roadmap' });
+                                                // Execute Atomic Update strictly via Supabase as requested
+                                                const { error } = await supabase
+                                                    .from('exam_submissions')
+                                                    .update({ status: 'pending_roadmap' })
+                                                    .eq('student_id', studentId);
                                                 
-                                                if (response.data?.status === 'pending_roadmap') {
-                                                    toast.show('✅ Status updated! Student moved to Dashboard.', 'success');
-                                                    navigation.navigate('Dashboard');
-                                                } else {
-                                                    throw new Error('Unexpected server response');
-                                                }
+                                                if (error) throw error;
+
+                                                // Trigger: Simultaneously insert a new record into the roadmap table
+                                                // This ensures the "Create Roadmap" button appears on the Dashboard
+                                                await supabase.from('roadmap').insert([{ student_id: studentId, status: 'Yet to Start' }]).catch(() => {});
+
+                                                // 0.5s safety delay to ensure write propagation before navigation unmounts
+                                                await new Promise(resolve => setTimeout(resolve, 500));
+
+                                                toast.show('✅ Status updated! Student moved to Dashboard.', 'success');
+                                                navigation.navigate('Dashboard');
                                             } catch (e) {
-                                                const errorMsg = e.response?.data?.error || e.message;
-                                                const finalMsg = errorMsg.includes('Permission') ? '🚫 Permission Denied: Only assigned mentors can update.' 
-                                                               : errorMsg.includes('network') ? '🌐 Network Error: Please check your connection.'
-                                                               : '❌ Database write failed. Please try again.';
-                                                toast.show(finalMsg, 'error');
+                                                console.error('Update Error:', e.message);
+                                                toast.show('❌ Database write failed: ' + e.message, 'error');
                                             } finally {
                                                 setSaving(false);
                                             }
