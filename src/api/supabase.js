@@ -1,3 +1,4 @@
+import 'react-native-url-polyfill/auto';
 import { createClient } from '@supabase/supabase-js';
 
 // Fallback to hardcoded values for production APK builds (these are public/anon keys, safe to expose)
