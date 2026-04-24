@@ -43,10 +43,16 @@ export default function AssignCoursesScreen({ navigation, route }) {
 
         setSaving(true);
         try {
-            await api.post('/api/roadmap/assign', { 
-                learner_id: selectedStudent.id, 
+            await api.post('/api/mentor/assign-course', { 
+                student_id: selectedStudent.id, 
                 course_ids: selectedCourseIds 
             });
+            
+            // Move learner to active roadmap on the dashboard
+            await api.patch(`/api/mentor/student-status/${selectedStudent.id}`, { 
+                status: 'active' 
+            });
+
             setCompleted(true);
             Alert.alert('Success', `Roadmap created for ${selectedStudent.name}`);
             // navigation.goBack(); // Keep on screen as requested with success state
