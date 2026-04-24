@@ -21,9 +21,10 @@ router.get('/students', auth, async (req, res) => {
 router.get('/my-students', auth, async (req, res) => {
     try {
         const students = await all(`
-            SELECT u.id, u.name, u.email, u.status, u.created_at,
+            SELECT u.id, u.name, u.email, es.status as status, u.created_at,
                    (SELECT COUNT(*) FROM roadmap r WHERE r.student_id = u.id) as has_roadmap
             FROM users u
+            JOIN exam_submissions es ON es.student_id = u.id
             LEFT JOIN mentor_assignments ma ON ma.student_id = u.id
             WHERE ma.mentor_user_id = ? OR u.mentor_id = ?
             ORDER BY u.created_at DESC
@@ -43,21 +44,22 @@ router.patch('/student-status/:studentId', auth, async (req, res) => {
             return res.status(400).json({ error: 'Invalid status' });
         }
 
-        // Set status and ensure mentor_id is set to the current mentor
-        const result = await run('UPDATE users SET status = ?, mentor_id = ? WHERE id = ?', [status, mentorId, studentId]);
-        
-        if (result.changes === 0 && !isPG) {
-            // Note: Postgres via 'pg' might not return changes in the same way depending on wrapper,
-            // but we can assume if no error it worked, unless we do a SELECT first.
-            // Let's do a SELECT to be strictly safe.
-        }
+        // Set status in exam_submissions instead of users table
+        await run('UPDATE exam_submissions SET status = ? WHERE student_id = ?', [status, studentId]);
 
-        // Safer approach: Verify the row exists
-        const exists = await get('SELECT id FROM users WHERE id = ?', [studentId]);
+        // Safer approach: Verify the submission exists
+        const exists = await get('SELECT id FROM exam_submissions WHERE student_id = ?', [studentId]);
         if (!exists) {
-            return res.status(404).json({ error: 'Learner not found' });
+            return res.status(404).json({ error: 'Learner exam submission not found' });
         }
 
+        // Trigger: Simultaneously insert a new record into the roadmap table
+        if (status === 'pending_roadmap') {
+            const existingRoadmap = await get('SELECT id FROM roadmap WHERE student_id = ?', [studentId]);
+            if (!existingRoadmap) {
+                await run('INSERT INTO roadmap (student_id) VALUES (?)', [studentId]);
+            }
+        }
         res.json({ 
             message: 'Status updated successfully', 
             studentId, 
@@ -408,7 +410,7 @@ router.get('/notifications', auth, async (req, res) => {
             LEFT JOIN courses c ON c.id = mn.reference_id AND mn.trigger_type = 'course'
             LEFT JOIN student_skills ss ON ss.id = mn.reference_id AND mn.trigger_type = 'skills'
             WHERE mn.is_claimed = 0 
-              AND u.status = 'awaiting_review'
+              AND (es.status IN ('Submitted', 'submitted', 'Pending Review') OR mn.trigger_type != 'exam')
               AND (
                 ma.id IS NULL 
                 OR ma.mentor_user_id = ? 
@@ -436,9 +438,10 @@ router.get('/notification-count', auth, async (req, res) => {
             SELECT COUNT(DISTINCT mn.student_id) as count 
             FROM mentor_notifications mn
             JOIN users u ON u.id = mn.student_id
+            LEFT JOIN exam_submissions es ON es.id = mn.reference_id AND mn.trigger_type = 'exam'
             LEFT JOIN mentor_assignments ma ON ma.student_id = u.id
             WHERE mn.is_claimed = 0 
-              AND u.status = 'awaiting_review'
+              AND (es.status IN ('Submitted', 'submitted', 'Pending Review') OR mn.trigger_type != 'exam')
               AND (
                 ma.id IS NULL 
                 OR ma.mentor_user_id = ? 

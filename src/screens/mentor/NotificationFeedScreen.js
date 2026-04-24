@@ -124,8 +124,10 @@ export default function NotificationFeedScreen({ navigation, route }) {
     };
 
     const groupedNotifications = notifications.reduce((acc, n) => {
-        // Enforce state integrity: only show if awaiting_review
-        if (n.student_status && n.student_status !== 'awaiting_review') return acc;
+        // Enforce state integrity: only show if the exam is still in a submitted/pending state
+        if (n.trigger_type === 'exam' && n.submission_status && !['Submitted', 'submitted', 'Pending Review'].includes(n.submission_status)) {
+            return acc;
+        }
 
         if (!acc[n.student_id]) {
             acc[n.student_id] = {
