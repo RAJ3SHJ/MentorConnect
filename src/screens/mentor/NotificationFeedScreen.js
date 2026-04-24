@@ -124,6 +124,9 @@ export default function NotificationFeedScreen({ navigation, route }) {
     };
 
     const groupedNotifications = notifications.reduce((acc, n) => {
+        // Enforce state integrity: only show if awaiting_review
+        if (n.student_status && n.student_status !== 'awaiting_review') return acc;
+
         if (!acc[n.student_id]) {
             acc[n.student_id] = {
                 student_id: n.student_id,

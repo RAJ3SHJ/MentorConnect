@@ -44,8 +44,20 @@ router.patch('/student-status/:studentId', auth, async (req, res) => {
         }
 
         // Set status and ensure mentor_id is set to the current mentor
-        await run('UPDATE users SET status = ?, mentor_id = ? WHERE id = ?', [status, mentorId, studentId]);
+        const result = await run('UPDATE users SET status = ?, mentor_id = ? WHERE id = ?', [status, mentorId, studentId]);
         
+        if (result.changes === 0 && !isPG) {
+            // Note: Postgres via 'pg' might not return changes in the same way depending on wrapper,
+            // but we can assume if no error it worked, unless we do a SELECT first.
+            // Let's do a SELECT to be strictly safe.
+        }
+
+        // Safer approach: Verify the row exists
+        const exists = await get('SELECT id FROM users WHERE id = ?', [studentId]);
+        if (!exists) {
+            return res.status(404).json({ error: 'Learner not found' });
+        }
+
         res.json({ 
             message: 'Status updated successfully', 
             studentId, 
@@ -374,7 +386,7 @@ router.get('/notifications', auth, async (req, res) => {
 
         const notifications = await all(`
             SELECT mn.id, mn.student_id, mn.trigger_type, mn.reference_id, mn.created_at,
-                   u.name AS student_name, u.email AS student_email,
+                   u.name AS student_name, u.email AS student_email, u.status AS student_status,
                    CASE WHEN mn.trigger_type = 'exam' THEN e.title
                         WHEN mn.trigger_type = 'skills' THEN ss.goal
                         ELSE c.title

@@ -39,7 +39,7 @@ export default function MentorDashboardScreen({ navigation }) {
     const [gradingRemarks, setGradingRemarks] = useState({});
     const [savingId, setSavingId] = useState(null);
 
-    const fetchData = async () => {
+    const fetchData = useCallback(async () => {
         try {
             const [sRes, aRes] = await Promise.all([
                 api.get(`/api/mentor/my-students?t=${Date.now()}`),
@@ -48,7 +48,7 @@ export default function MentorDashboardScreen({ navigation }) {
             setRoster(sRes.data || []);
             setAssessments(aRes.data || []);
         } catch (e) { console.error('Failed to fetch Mentor data', e.message); }
-    };
+    }, []);
 
     useEffect(() => {
         const channel = supabase
@@ -63,13 +63,12 @@ export default function MentorDashboardScreen({ navigation }) {
             })
             .subscribe();
         return () => supabase.removeChannel(channel);
-    }, []);
+    }, [fetchData]);
 
     useFocusEffect(
         useCallback(() => {
             fetchData();
-            // Return cleanup (none needed here)
-        }, []) // The empty dep array is intentional — fetchData is defined in the same render scope
+        }, [fetchData])
     );
     const onRefresh = async () => { setRefreshing(true); await fetchData(); setRefreshing(false); };
 
