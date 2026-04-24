@@ -283,7 +283,7 @@ export default function AlertDetailScreen({ route, navigation }) {
                                         onPress={async () => {
                                             try {
                                                 setSaving(true);
-                                                // Execute Atomic Update strictly via Supabase as requested
+                                                // 1. Update exam_submissions status via Supabase
                                                 const { error } = await supabase
                                                     .from('exam_submissions')
                                                     .update({ status: 'pending_roadmap' })
@@ -291,11 +291,17 @@ export default function AlertDetailScreen({ route, navigation }) {
                                                 
                                                 if (error) throw error;
 
-                                                // Trigger: Simultaneously insert a new record into the roadmap table
-                                                // This ensures the "Create Roadmap" button appears on the Dashboard
-                                                await supabase.from('roadmap').insert([{ student_id: studentId, status: 'Yet to Start' }]).catch(() => {});
+                                                // 2. Insert roadmap record (wrapped in try/catch, non-blocking)
+                                                try {
+                                                    await supabase.from('roadmap').insert([{ student_id: studentId, status: 'Yet to Start' }]);
+                                                } catch (_) { /* non-critical if duplicate */ }
 
-                                                // 0.5s safety delay to ensure write propagation before navigation unmounts
+                                                // 3. Also update the backend API to keep local DB in sync
+                                                try {
+                                                    await api.patch(`/api/mentor/student-status/${studentId}`, { status: 'pending_roadmap' });
+                                                } catch (_) { /* Supabase is the source of truth */ }
+
+                                                // 4. Safety delay to ensure write propagation before navigation unmounts
                                                 await new Promise(resolve => setTimeout(resolve, 500));
 
                                                 toast.show('✅ Status updated! Student moved to Dashboard.', 'success');
