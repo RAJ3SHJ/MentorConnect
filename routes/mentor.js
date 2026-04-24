@@ -411,7 +411,11 @@ router.get('/notifications', auth, async (req, res) => {
             LEFT JOIN courses c ON c.id = mn.reference_id AND mn.trigger_type = 'course'
             LEFT JOIN student_skills ss ON ss.id = mn.reference_id AND mn.trigger_type = 'skills'
             WHERE mn.is_claimed = 0 
-              AND es.status IN ('submitted', 'Submitted', 'Pending Review')
+              AND (
+                (mn.trigger_type = 'exam' AND es.status IN ('submitted', 'Submitted', 'Pending Review'))
+                OR (mn.trigger_type = 'skills' AND ss.status IN ('submitted', 'Submitted', 'Pending Review'))
+                OR mn.trigger_type = 'course'
+              )
               AND (
                 ma.id IS NULL 
                 OR ma.mentor_user_id = ? 
@@ -440,9 +444,14 @@ router.get('/notification-count', auth, async (req, res) => {
             FROM mentor_notifications mn
             JOIN users u ON u.id = mn.student_id
             LEFT JOIN exam_submissions es ON es.id = mn.reference_id AND mn.trigger_type = 'exam'
+            LEFT JOIN student_skills ss ON ss.id = mn.reference_id AND mn.trigger_type = 'skills'
             LEFT JOIN mentor_assignments ma ON ma.student_id = u.id
             WHERE mn.is_claimed = 0 
-              AND es.status IN ('submitted', 'Submitted', 'Pending Review')
+              AND (
+                (mn.trigger_type = 'exam' AND es.status IN ('submitted', 'Submitted', 'Pending Review'))
+                OR (mn.trigger_type = 'skills' AND ss.status IN ('submitted', 'Submitted', 'Pending Review'))
+                OR mn.trigger_type = 'course'
+              )
               AND (
                 ma.id IS NULL 
                 OR ma.mentor_user_id = ? 
