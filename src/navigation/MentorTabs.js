@@ -4,6 +4,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { Text, View } from 'react-native';
 import { useTheme } from '../ThemeContext';
 import api from '../api/client';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import MentorDashboardScreen from '../screens/mentor/MentorDashboardScreen';
 import NotificationFeedScreen from '../screens/mentor/NotificationFeedScreen';
@@ -82,6 +83,7 @@ function TabIcon({ emoji, label, focused, colors, badge }) {
 
 export default function MentorTabs() {
     const { colors } = useTheme();
+    const insets = useSafeAreaInsets();
     const [notifCount, setNotifCount] = useState(0);
 
     // Real-time notification count
@@ -121,8 +123,8 @@ export default function MentorTabs() {
                     backgroundColor: colors.bg,
                     borderTopColor: colors.glassBorder,
                     borderTopWidth: 1,
-                    height: 70,
-                    paddingBottom: 8,
+                    height: 60 + (insets.bottom || 12),
+                    paddingBottom: insets.bottom || 12,
                 },
             }}
         >

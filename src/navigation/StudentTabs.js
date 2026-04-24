@@ -3,6 +3,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { Text, View } from 'react-native';
 import { useTheme } from '../ThemeContext';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 // Learner Screens
 import DashboardScreen from '../screens/student/DashboardScreen';
@@ -55,6 +56,7 @@ function TabIcon({ emoji, label, focused, colors }) {
 
 export default function StudentTabs() {
     const { colors } = useTheme();
+    const insets = useSafeAreaInsets();
 
     return (
         <Tab.Navigator
@@ -65,8 +67,8 @@ export default function StudentTabs() {
                     backgroundColor: colors.bg,
                     borderTopColor: colors.glassBorder,
                     borderTopWidth: 1,
-                    height: 70,
-                    paddingBottom: 8,
+                    height: 60 + (insets.bottom || 12),
+                    paddingBottom: insets.bottom || 12,
                 },
             }}
         >
