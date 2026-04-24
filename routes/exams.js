@@ -82,8 +82,8 @@ router.post('/:id/submit', auth, async (req, res) => {
         }
 
         const submissionId = await runGetId(
-            'INSERT INTO exam_submissions (student_id, exam_id, answers) VALUES (?, ?, ?)',
-            [req.user.id, examId, JSON.stringify(answers || [])]
+            'INSERT INTO exam_submissions (student_id, exam_id, answers, status) VALUES (?, ?, ?, ?)',
+            [req.user.id, examId, JSON.stringify(answers || []), 'submitted']
         );
 
         // Also notify mentor via local notifications table

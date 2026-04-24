@@ -21,11 +21,13 @@ router.get('/students', auth, async (req, res) => {
 router.get('/my-students', auth, async (req, res) => {
     try {
         const students = await all(`
-            SELECT u.id, u.name, u.email, u.status, u.created_at,
+            SELECT u.id, u.name, u.email, es.status as status, u.created_at,
                    (SELECT COUNT(*) FROM roadmap r WHERE r.student_id = u.id) as has_roadmap
             FROM users u
+            JOIN exam_submissions es ON es.student_id = u.id
             LEFT JOIN mentor_assignments ma ON ma.student_id = u.id
-            WHERE ma.mentor_user_id = ? OR u.mentor_id = ?
+            WHERE (ma.mentor_user_id = ? OR u.mentor_id = ?)
+              AND es.status IN ('pending_roadmap', 'active')
             ORDER BY u.created_at DESC
         `, [req.user.id, req.user.id]);
         res.json(students);
@@ -43,9 +45,22 @@ router.patch('/student-status/:studentId', auth, async (req, res) => {
             return res.status(400).json({ error: 'Invalid status' });
         }
 
-        // Set status and ensure mentor_id is set to the current mentor
-        await run('UPDATE users SET status = ?, mentor_id = ? WHERE id = ?', [status, mentorId, studentId]);
-        
+        // Set status in exam_submissions instead of users table
+        await run('UPDATE exam_submissions SET status = ? WHERE student_id = ?', [status, studentId]);
+
+        // Safer approach: Verify the submission exists
+        const exists = await get('SELECT id FROM exam_submissions WHERE student_id = ?', [studentId]);
+        if (!exists) {
+            return res.status(404).json({ error: 'Learner exam submission not found' });
+        }
+
+        // Trigger: Simultaneously insert a new record into the roadmap table
+        if (status === 'pending_roadmap') {
+            const existingRoadmap = await get('SELECT id FROM roadmap WHERE student_id = ?', [studentId]);
+            if (!existingRoadmap) {
+                await run('INSERT INTO roadmap (student_id) VALUES (?)', [studentId]);
+            }
+        }
         res.json({ 
             message: 'Status updated successfully', 
             studentId, 
@@ -203,7 +218,7 @@ router.post('/unified-review/:studentId', auth, async (req, res) => {
 
         // 2. Update all Pending Exams
         const pendingExams = await all(
-            "SELECT id FROM exam_submissions WHERE student_id = ? AND (status = 'Submitted' OR status = 'Pending Review')",
+            "SELECT id FROM exam_submissions WHERE student_id = ? AND status IN ('submitted', 'Submitted', 'Pending Review')",
             [studentId]
         );
 
@@ -374,7 +389,7 @@ router.get('/notifications', auth, async (req, res) => {
 
         const notifications = await all(`
             SELECT mn.id, mn.student_id, mn.trigger_type, mn.reference_id, mn.created_at,
-                   u.name AS student_name, u.email AS student_email,
+                   u.name AS student_name, u.email AS student_email, u.status AS student_status,
                    CASE WHEN mn.trigger_type = 'exam' THEN e.title
                         WHEN mn.trigger_type = 'skills' THEN ss.goal
                         ELSE c.title
@@ -396,7 +411,7 @@ router.get('/notifications', auth, async (req, res) => {
             LEFT JOIN courses c ON c.id = mn.reference_id AND mn.trigger_type = 'course'
             LEFT JOIN student_skills ss ON ss.id = mn.reference_id AND mn.trigger_type = 'skills'
             WHERE mn.is_claimed = 0 
-              AND u.status = 'awaiting_review'
+              AND es.status IN ('submitted', 'Submitted', 'Pending Review')
               AND (
                 ma.id IS NULL 
                 OR ma.mentor_user_id = ? 
@@ -424,9 +439,10 @@ router.get('/notification-count', auth, async (req, res) => {
             SELECT COUNT(DISTINCT mn.student_id) as count 
             FROM mentor_notifications mn
             JOIN users u ON u.id = mn.student_id
+            LEFT JOIN exam_submissions es ON es.id = mn.reference_id AND mn.trigger_type = 'exam'
             LEFT JOIN mentor_assignments ma ON ma.student_id = u.id
             WHERE mn.is_claimed = 0 
-              AND u.status = 'awaiting_review'
+              AND es.status IN ('submitted', 'Submitted', 'Pending Review')
               AND (
                 ma.id IS NULL 
                 OR ma.mentor_user_id = ? 
@@ -479,9 +495,10 @@ router.post('/connect/:studentId', auth, async (req, res) => {
         );
 
         await run('UPDATE users SET mentor_id = ? WHERE id = ?', [mentorUserId, studentId]);
-
+        // Mark notifications as owned by this mentor but DON'T hide them yet.
+        // They should remain visible until the mentor completes review + assigns roadmap.
         await run(
-            'UPDATE mentor_notifications SET is_claimed = 1, claimed_by_mentor_id = ? WHERE student_id = ?',
+            'UPDATE mentor_notifications SET claimed_by_mentor_id = ? WHERE student_id = ? AND is_claimed = 0',
             [mentorUserId, studentId]
         );
 
