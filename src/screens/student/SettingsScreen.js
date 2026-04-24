@@ -1,3 +1,5 @@
+import React, { useState, useEffect } from 'react';
+import {
     View, Text, StyleSheet, ScrollView, TouchableOpacity,
     TextInput, Platform, ActivityIndicator, SafeAreaView
 } from 'react-native';
