@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import {
     View, Text, StyleSheet, ScrollView, TouchableOpacity,
-    RefreshControl, Dimensions, Platform, Modal, TextInput, Alert
+    RefreshControl, Dimensions, Platform, Modal, TextInput, Alert, SafeAreaView
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -138,83 +138,90 @@ export default function NotificationFeedScreen({ navigation, route }) {
     const groupedList = Object.values(groupedNotifications);
 
     return (
-        <View style={s.container}>
-            <LinearGradient colors={['#040a18', '#0B132B']} style={StyleSheet.absoluteFillObject} />
-            <View style={[s.glowOrb, { backgroundColor: '#8a2be2', top: -80, right: -80 }]} />
+        <SafeAreaView style={s.container}>
+            <View style={s.container}>
+                <LinearGradient colors={['#040a18', '#0B132B']} style={StyleSheet.absoluteFillObject} />
+                <View style={[s.glowOrb, { backgroundColor: '#8a2be2', top: -80, right: -80 }]} />
 
-            <ScrollView 
-                contentContainerStyle={[s.scroll, { paddingTop: insets.top > 0 ? insets.top : 20, paddingBottom: insets.bottom + 100 }]} 
-                refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#00d2ff" />}
-            >
-                <Text style={s.heading}>🔔 Learner Alerts</Text>
-                <Text style={s.sub}>{groupedList.length} learner{groupedList.length !== 1 ? 's' : ''} awaiting review</Text>
+                <ScrollView 
+                    contentContainerStyle={[s.scroll, { paddingTop: 20, paddingBottom: insets.bottom + 100 }]} 
+                    refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#00d2ff" />}
+                >
+                    <Text style={s.heading}>🔔 Learner Alerts</Text>
+                    <Text style={s.sub}>{groupedList.length} learner{groupedList.length !== 1 ? 's' : ''} awaiting review</Text>
 
-                {groupedList.length === 0 ? (
-                    <View style={s.emptyState}>
-                        <Text style={{ fontSize: 48, marginBottom: 16 }}>🎉</Text>
-                        <Text style={s.emptyTitle}>All caught up!</Text>
-                        <Text style={s.emptySub}>No new learner alerts. Check back after learners submit exams or complete courses.</Text>
-                    </View>
-                ) : groupedList.map(student => (
-                    <View
-                        key={student.student_id}
-                        style={[s.card, Platform.OS === 'web' && { backdropFilter: 'blur(20px)' }]}
-                    >
-                        <LinearGradient colors={['rgba(255,255,255,0.03)', 'transparent']} style={StyleSheet.absoluteFillObject} />
-
-                        {/* Student Info Header */}
-                        <View style={s.cardHeader}>
-                            <View style={s.avatar}><Text style={{ fontSize: 24 }}>🎓</Text></View>
-                            <View style={{ flex: 1 }}>
-                                <Text style={s.studentName}>{student.student_name || 'Learner'}</Text>
-                                <Text style={s.studentEmail}>{student.student_email}</Text>
-                            </View>
+                    {groupedList.length === 0 ? (
+                        <View style={s.emptyState}>
+                            <Text style={{ fontSize: 48, marginBottom: 16 }}>🎉</Text>
+                            <Text style={s.emptyTitle}>All caught up!</Text>
+                            <Text style={s.emptySub}>No new learner alerts. Check back after learners submit exams or complete courses.</Text>
                         </View>
-
-                        {/* Stacked Pending Items */}
-                        <View style={s.cardBody}>
-                            <Text style={s.sectionLabel}>Pending Submissions:</Text>
-                            {student.alerts.map((alert, idx) => (
-                                <TouchableOpacity 
-                                    key={alert.id}
-                                    style={[s.alertItem, idx > 0 && s.alertDivider]}
-                                    onPress={() => navigation.navigate('AlertDetail', { alert })}
-                                    activeOpacity={0.7}
-                                >
-                                    <View style={s.alertMain}>
-                                        <TriggerBadge type={alert.trigger_type} />
-                                        <Text style={s.alertTitle}>{alert.reference_title || 'Assessment'}</Text>
-                                    </View>
-                                    <View style={s.alertMeta}>
-                                        <Text style={s.timestamp}>
-                                            {new Date(alert.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
-                                        </Text>
-                                        <Text style={s.viewLink}>View Details →</Text>
-                                    </View>
-                                </TouchableOpacity>
-                            ))}
-                        </View>
-
-                        {/* Connect Button (Consolidated) */}
-                        <TouchableOpacity
-                            style={[s.connectBtn, connecting === student.student_id && { opacity: 0.6 }]}
-                            onPress={() => handleConnect(student.alerts[0])}
-                            disabled={!!connecting || student.alerts[0].is_connected_to_me || student.alerts[0].claimed_by_uid === user?.id}
-                        >
-                            <LinearGradient 
-                                colors={(connectedIds.includes(student.student_id) || student.alerts[0].is_connected_to_me || student.alerts[0].claimed_by_uid === user?.id) ? ['#00f260', '#0575E6'] : ['#00d2ff', '#3a7bd5']} 
-                                style={s.connectInner}
+                    ) : groupedList.map(student => {
+                        const isConnected = connectedIds.includes(student.student_id) || student.alerts[0].is_connected_to_me || student.alerts[0].claimed_by_uid === user?.id;
+                        return (
+                            <View
+                                key={student.student_id}
+                                style={[s.card, Platform.OS === 'web' && { backdropFilter: 'blur(20px)' }]}
                             >
-                                <Text style={s.connectText}>
-                                    {connecting === student.student_id ? '🔄 Connecting…' : 
-                                     (connectedIds.includes(student.student_id) || student.alerts[0].is_connected_to_me || student.alerts[0].claimed_by_uid === user?.id) ? '✅ Connected' : '🔗 CONNECT'}
-                                </Text>
-                            </LinearGradient>
-                        </TouchableOpacity>
-                    </View>
-                ))}
-            </ScrollView>
-        </View>
+                                <LinearGradient colors={['rgba(255,255,255,0.03)', 'transparent']} style={StyleSheet.absoluteFillObject} />
+
+                                {/* Student Info Header */}
+                                <View style={s.cardHeader}>
+                                    <View style={s.avatar}><Text style={{ fontSize: 24 }}>🎓</Text></View>
+                                    <View style={{ flex: 1 }}>
+                                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                                            <Text style={s.studentName}>{student.student_name || 'Learner'}</Text>
+                                            {isConnected && (
+                                                <TouchableOpacity onPress={() => navigation.navigate('AlertDetail', { alert: student.alerts[0] })}>
+                                                    <Text style={s.viewAssessmentsLink}>VIEW ASSESSMENTS →</Text>
+                                                </TouchableOpacity>
+                                            )}
+                                        </View>
+                                        <Text style={s.studentEmail}>{student.student_email}</Text>
+                                    </View>
+                                </View>
+
+                                {/* Stacked Pending Items */}
+                                <View style={s.cardBody}>
+                                    <Text style={s.sectionLabel}>Pending Submissions:</Text>
+                                    {student.alerts.map((alert, idx) => (
+                                        <View 
+                                            key={alert.id}
+                                            style={[s.alertItem, idx > 0 && s.alertDivider]}
+                                        >
+                                            <View style={s.alertMain}>
+                                                <TriggerBadge type={alert.trigger_type} />
+                                                <Text style={s.alertTitle}>{alert.reference_title || 'Assessment'}</Text>
+                                            </View>
+                                            <Text style={s.timestamp}>
+                                                {new Date(alert.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                                            </Text>
+                                        </View>
+                                    ))}
+                                </View>
+
+                                {/* Connect Button (State Aware) */}
+                                <TouchableOpacity
+                                    style={[s.connectBtn, connecting === student.student_id && { opacity: 0.6 }]}
+                                    onPress={() => handleConnect(student.alerts[0])}
+                                    disabled={!!connecting || isConnected}
+                                >
+                                    <LinearGradient 
+                                        colors={isConnected ? ['#00f260', '#00f260'] : ['#ff4757', '#ff4757']} 
+                                        style={s.connectInner}
+                                    >
+                                        <Text style={s.connectText}>
+                                            {connecting === student.student_id ? '🔄 Connecting…' : 
+                                             isConnected ? '✅ Connected' : '🔗 CONNECT'}
+                                        </Text>
+                                    </LinearGradient>
+                                </TouchableOpacity>
+                            </View>
+                        );
+                    })}
+                </ScrollView>
+            </View>
+        </SafeAreaView>
     );
 }
 
@@ -245,8 +252,7 @@ const s = StyleSheet.create({
     alertTitle: { fontSize: 15, color: '#fff', fontWeight: '600' },
     alertMeta: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
     timestamp: { fontSize: 12, color: 'rgba(255,255,255,0.25)' },
-    viewLink: { fontSize: 12, color: '#00d2ff', fontWeight: '700' },
-
+    viewAssessmentsLink: { fontSize: 12, color: '#00d2ff', fontWeight: '800', textDecorationLine: 'underline' },
     connectBtn: { width: '100%' },
     connectInner: { paddingVertical: 16, borderRadius: 16, alignItems: 'center' },
     connectText: { color: '#fff', fontWeight: '800', fontSize: 14, textTransform: 'uppercase', letterSpacing: 0.8 },

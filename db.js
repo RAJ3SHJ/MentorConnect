@@ -43,6 +43,7 @@ async function initDb() {
       role TEXT DEFAULT 'learner',
       mentor_id ${isPG ? 'VARCHAR(255)' : 'TEXT'} REFERENCES users(id),
       is_active ${isPG ? 'BOOLEAN DEFAULT TRUE' : 'INTEGER DEFAULT 1'},
+      status TEXT DEFAULT 'awaiting_review',
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
 
@@ -201,7 +202,8 @@ async function initDb() {
         "ALTER TABLE student_skills ADD COLUMN IF NOT EXISTS reviewed_at TIMESTAMP",
         "ALTER TABLE users ADD COLUMN IF NOT EXISTS mentor_id VARCHAR(255) REFERENCES users(id)",
         "ALTER TABLE users ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT TRUE",
-        "ALTER TABLE mentors ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT TRUE"
+        "ALTER TABLE users ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'awaiting_review'",
+        "UPDATE users SET status = 'active' WHERE id IN (SELECT student_id FROM roadmap) AND status = 'awaiting_review'"
       ];
 
       for (const query of safeAlters) {
@@ -254,6 +256,8 @@ async function initDb() {
     try { sqlite.prepare("ALTER TABLE student_skills ADD COLUMN reviewed_at DATETIME").run(); } catch (e) {}  
     try { sqlite.prepare("ALTER TABLE users ADD COLUMN is_active INTEGER DEFAULT 1").run(); } catch (e) {}
     try { sqlite.prepare("ALTER TABLE mentors ADD COLUMN is_active INTEGER DEFAULT 1").run(); } catch (e) {}
+    try { sqlite.prepare("ALTER TABLE users ADD COLUMN status TEXT DEFAULT 'awaiting_review'").run(); } catch (e) {}
+    try { sqlite.prepare("UPDATE users SET status = 'active' WHERE id IN (SELECT student_id FROM roadmap)").run(); } catch (e) {}
   }
 }
 

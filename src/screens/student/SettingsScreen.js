@@ -1,7 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import {
     View, Text, StyleSheet, ScrollView, TouchableOpacity,
-    TextInput, Platform, ActivityIndicator,
+    TextInput, Platform, ActivityIndicator, SafeAreaView
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Constants from 'expo-constants';
@@ -85,88 +83,90 @@ export default function SettingsScreen({ navigation }) {
     );
 
     return (
-        <LinearGradient colors={gradients.bg} style={s.container}>
-            <ScrollView contentContainerStyle={s.scroll}>
-                <TouchableOpacity onPress={() => navigation.goBack()} style={s.headerRow}>
-                    <Text style={{ color: colors.muted, fontSize: 15 }}>← Back</Text>
-                </TouchableOpacity>
-                <Text style={[s.title, { color: colors.white }]}>Settings</Text>
-                <Text style={[s.subtitle, { color: colors.muted }]}>Customize your experience</Text>
+        <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }}>
+            <LinearGradient colors={gradients.bg} style={s.container}>
+                <ScrollView contentContainerStyle={s.scroll}>
+                    <TouchableOpacity onPress={() => navigation.goBack()} style={s.headerRow}>
+                        <Text style={{ color: colors.muted, fontSize: 15 }}>← Back</Text>
+                    </TouchableOpacity>
+                    <Text style={[s.title, { color: colors.white }]}>Settings</Text>
+                    <Text style={[s.subtitle, { color: colors.muted }]}>Customize your experience</Text>
 
-                {/* Theme Picker */}
-                <Text style={[s.sectionTitle, { color: colors.white }]}>🎨 Color Theme</Text>
-                <View style={[s.card, { backgroundColor: colors.card, borderColor: colors.glassBorder }]}>
-                    <View style={s.themeGrid}>
-                        {themeKeys.map(key => {
-                            const t = themes[key]; const active = key === themeKey;
-                            return (
-                                <TouchableOpacity key={key}
-                                    style={[s.themeItem, { borderColor: active ? t.blue : colors.glassBorder, backgroundColor: active ? t.blue + '15' : 'transparent' }]}
-                                    onPress={() => handleThemeSwitch(key)} activeOpacity={0.8}>
-                                    <View style={s.themePreview}>
-                                        <View style={[s.previewDot, { backgroundColor: t.bg }]} />
-                                        <View style={[s.previewDot, { backgroundColor: t.blue }]} />
-                                        <View style={[s.previewDot, { backgroundColor: t.accent[1] || t.purple }]} />
-                                    </View>
-                                    <Text style={[s.themeName, { color: active ? t.blue : colors.muted }]}>{t.icon} {t.name}</Text>
-                                    {active && <View style={[s.activeBadge, { backgroundColor: t.blue }]}><Text style={s.activeBadgeText}>✓</Text></View>}
-                                </TouchableOpacity>
-                            );
-                        })}
-                    </View>
-                </View>
-
-                {/* Profile */}
-                <TouchableOpacity onPress={() => setProfileSection(!profileSection)} activeOpacity={0.8}>
-                    <Text style={[s.sectionTitle, { color: colors.white }]}>👤 User Profile {profileSection ? '▾' : '▸'}</Text>
-                </TouchableOpacity>
-                {profileSection && (
+                    {/* Theme Picker */}
+                    <Text style={[s.sectionTitle, { color: colors.white }]}>🎨 Color Theme</Text>
                     <View style={[s.card, { backgroundColor: colors.card, borderColor: colors.glassBorder }]}>
-                        <Text style={[s.label, { color: colors.muted }]}>FULL NAME</Text>
-                        <TextInput style={[s.input, { borderColor: errors.name ? colors.danger : colors.glassBorder, color: colors.white }]}
-                            value={name} onChangeText={t => { setName(t); if (errors.name) setErrors(e => ({ ...e, name: null })); }}
-                            placeholderTextColor={colors.muted} />
-                        {errors.name && <Text style={[s.errorText, { color: colors.danger }]}>⚠ {errors.name}</Text>}
-
-                        <Text style={[s.label, { color: colors.muted }]}>EMAIL</Text>
-                        <TextInput style={[s.input, { borderColor: errors.email ? colors.danger : colors.glassBorder, color: colors.white }]}
-                            value={email} onChangeText={t => { setEmail(t); if (errors.email) setErrors(e => ({ ...e, email: null })); }}
-                            keyboardType="email-address" autoCapitalize="none" placeholderTextColor={colors.muted} />
-                        {errors.email && <Text style={[s.errorText, { color: colors.danger }]}>⚠ {errors.email}</Text>}
-
-                        <View style={[s.divider, { borderColor: colors.glassBorder }]} />
-                        <Text style={[s.label, { color: colors.muted }]}>CHANGE PASSWORD (optional)</Text>
-                        <TextInput style={[s.input, { borderColor: errors.currentPassword ? colors.danger : colors.glassBorder, color: colors.white }]}
-                            value={currentPassword} onChangeText={setCurrentPassword}
-                            placeholder="Current password" placeholderTextColor={colors.muted} secureTextEntry />
-                        {errors.currentPassword && <Text style={[s.errorText, { color: colors.danger }]}>⚠ {errors.currentPassword}</Text>}
-                        <TextInput style={[s.input, { borderColor: errors.newPassword ? colors.danger : colors.glassBorder, color: colors.white }]}
-                            value={newPassword} onChangeText={setNewPassword}
-                            placeholder="New password" placeholderTextColor={colors.muted} secureTextEntry />
-                        {errors.newPassword && <Text style={[s.errorText, { color: colors.danger }]}>⚠ {errors.newPassword}</Text>}
-
-                        <TouchableOpacity onPress={saveProfile} disabled={saving} activeOpacity={0.85}>
-                            <LinearGradient colors={gradients.accent} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={s.saveBtn}>
-                                <Text style={s.saveBtnText}>{saving ? 'Saving…' : '💾 Save Changes'}</Text>
-                            </LinearGradient>
-                        </TouchableOpacity>
+                        <View style={s.themeGrid}>
+                            {themeKeys.map(key => {
+                                const t = themes[key]; const active = key === themeKey;
+                                return (
+                                    <TouchableOpacity key={key}
+                                        style={[s.themeItem, { borderColor: active ? t.blue : colors.glassBorder, backgroundColor: active ? t.blue + '15' : 'transparent' }]}
+                                        onPress={() => handleThemeSwitch(key)} activeOpacity={0.8}>
+                                        <View style={s.themePreview}>
+                                            <View style={[s.previewDot, { backgroundColor: t.bg }]} />
+                                            <View style={[s.previewDot, { backgroundColor: t.blue }]} />
+                                            <View style={[s.previewDot, { backgroundColor: t.accent[1] || t.purple }]} />
+                                        </View>
+                                        <Text style={[s.themeName, { color: active ? t.blue : colors.muted }]}>{t.icon} {t.name}</Text>
+                                        {active && <View style={[s.activeBadge, { backgroundColor: t.blue }]}><Text style={s.activeBadgeText}>✓</Text></View>}
+                                    </TouchableOpacity>
+                                );
+                            })}
+                        </View>
                     </View>
-                )}
 
-                {/* Logout */}
-                <TouchableOpacity
-                    style={[s.logoutBtn, { borderColor: colors.danger + '33' },
-                    confirmLogout && { backgroundColor: colors.danger, borderColor: colors.danger }]}
-                    onPress={handleLogout} activeOpacity={0.85}>
-                    <Text style={[s.logoutText, { color: confirmLogout ? '#FFF' : colors.danger }]}>
-                        {confirmLogout ? '⚠️ Tap Again to Confirm' : '🚪 Log Out'}
+                    {/* Profile */}
+                    <TouchableOpacity onPress={() => setProfileSection(!profileSection)} activeOpacity={0.8}>
+                        <Text style={[s.sectionTitle, { color: colors.white }]}>👤 User Profile {profileSection ? '▾' : '▸'}</Text>
+                    </TouchableOpacity>
+                    {profileSection && (
+                        <View style={[s.card, { backgroundColor: colors.card, borderColor: colors.glassBorder }]}>
+                            <Text style={[s.label, { color: colors.muted }]}>FULL NAME</Text>
+                            <TextInput style={[s.input, { borderColor: errors.name ? colors.danger : colors.glassBorder, color: colors.white }]}
+                                value={name} onChangeText={t => { setName(t); if (errors.name) setErrors(e => ({ ...e, name: null })); }}
+                                placeholderTextColor={colors.muted} />
+                            {errors.name && <Text style={[s.errorText, { color: colors.danger }]}>⚠ {errors.name}</Text>}
+
+                            <Text style={[s.label, { color: colors.muted }]}>EMAIL</Text>
+                            <TextInput style={[s.input, { borderColor: errors.email ? colors.danger : colors.glassBorder, color: colors.white }]}
+                                value={email} onChangeText={t => { setEmail(t); if (errors.email) setErrors(e => ({ ...e, email: null })); }}
+                                keyboardType="email-address" autoCapitalize="none" placeholderTextColor={colors.muted} />
+                            {errors.email && <Text style={[s.errorText, { color: colors.danger }]}>⚠ {errors.email}</Text>}
+
+                            <View style={[s.divider, { borderColor: colors.glassBorder }]} />
+                            <Text style={[s.label, { color: colors.muted }]}>CHANGE PASSWORD (optional)</Text>
+                            <TextInput style={[s.input, { borderColor: errors.currentPassword ? colors.danger : colors.glassBorder, color: colors.white }]}
+                                value={currentPassword} onChangeText={setCurrentPassword}
+                                placeholder="Current password" placeholderTextColor={colors.muted} secureTextEntry />
+                            {errors.currentPassword && <Text style={[s.errorText, { color: colors.danger }]}>⚠ {errors.currentPassword}</Text>}
+                            <TextInput style={[s.input, { borderColor: errors.newPassword ? colors.danger : colors.glassBorder, color: colors.white }]}
+                                value={newPassword} onChangeText={setNewPassword}
+                                placeholder="New password" placeholderTextColor={colors.muted} secureTextEntry />
+                            {errors.newPassword && <Text style={[s.errorText, { color: colors.danger }]}>⚠ {errors.newPassword}</Text>}
+
+                            <TouchableOpacity onPress={saveProfile} disabled={saving} activeOpacity={0.85}>
+                                <LinearGradient colors={gradients.accent} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={s.saveBtn}>
+                                    <Text style={s.saveBtnText}>{saving ? 'Saving…' : '💾 Save Changes'}</Text>
+                                </LinearGradient>
+                            </TouchableOpacity>
+                        </View>
+                    )}
+
+                    {/* Logout */}
+                    <TouchableOpacity
+                        style={[s.logoutBtn, { borderColor: colors.danger + '33' },
+                        confirmLogout && { backgroundColor: colors.danger, borderColor: colors.danger }]}
+                        onPress={handleLogout} activeOpacity={0.85}>
+                        <Text style={[s.logoutText, { color: confirmLogout ? '#FFF' : colors.danger }]}>
+                            {confirmLogout ? '⚠️ Tap Again to Confirm' : '🚪 Log Out'}
+                        </Text>
+                    </TouchableOpacity>
+                    <Text style={[s.version, { color: colors.muted }]}>
+                        MentorPath v{Constants.expoConfig?.version || '1.0.x'} • Build {Constants.expoConfig?.android?.versionCode || '1'} • Made with ❤️
                     </Text>
-                </TouchableOpacity>
-                <Text style={[s.version, { color: colors.muted }]}>
-                    MentorPath v{Constants.expoConfig?.version || '1.0.x'} • Build {Constants.expoConfig?.android?.versionCode || '1'} • Made with ❤️
-                </Text>
-            </ScrollView>
-        </LinearGradient>
+                </ScrollView>
+            </LinearGradient>
+        </SafeAreaView>
     );
 }
 

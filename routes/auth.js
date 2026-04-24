@@ -167,22 +167,11 @@ router.post('/quantum-login', async (req, res) => {
             return res.status(401).json({ error: 'Invalid Secure PIN' });
         }
 
-        const mentorId = '999';
-        const mentorName = 'Primary Mentor';
-        const mentorEmail = 'mentor@mentorpath.com';
-
-        // Auto-provision in users table for foreign key constraints
-        await run(`
-            INSERT INTO users (id, name, email, role, password_hash) 
-            VALUES (?, ?, ?, 'mentor', 'QUANTUM_AUTH')
-            ON CONFLICT(id) DO NOTHING
-        `, [mentorId, mentorName, mentorEmail]);
-
         const token = jwt.sign(
-            { id: mentorId, name: mentorName, email: mentorEmail, role: 'mentor' },
+            { id: 999, name: 'Primary Mentor', email: `mentor@mentorpath.com`, role: 'mentor' },
             JWT_SECRET, { expiresIn: '7d' }
         );
-        res.json({ token, user: { id: mentorId, name: mentorName, email: mentorEmail, role: 'mentor' } });
+        res.json({ token, user: { id: 999, name: 'Primary Mentor', email: `mentor@mentorpath.com`, role: 'mentor' } });
     } catch (e) {
         console.error('Quantum Login Error:', e.message);
         res.status(500).json({ error: e.message });

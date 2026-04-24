@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import {
     View, Text, StyleSheet, ScrollView, TouchableOpacity,
-    RefreshControl, Modal, TextInput, ActivityIndicator, Platform, Alert
+    RefreshControl, Modal, TextInput, ActivityIndicator, Platform, Alert, SafeAreaView
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -104,7 +104,8 @@ export default function MentorDashboardScreen({ navigation }) {
     };
 
     return (
-        <View style={[s.container, { backgroundColor: C.bg, paddingTop: insets.top }]}>
+        <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }}>
+            <View style={s.container}>
             <ScrollView 
                 style={{ flex: 1 }}
                 contentContainerStyle={{ padding: 20 }}

@@ -17,6 +17,47 @@ router.get('/students', auth, async (req, res) => {
     } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// GET /api/mentor/my-students
+router.get('/my-students', auth, async (req, res) => {
+    try {
+        const students = await all(`
+            SELECT u.id, u.name, u.email, u.status, u.created_at,
+                   (SELECT COUNT(*) FROM roadmap r WHERE r.student_id = u.id) as has_roadmap
+            FROM users u
+            LEFT JOIN mentor_assignments ma ON ma.student_id = u.id
+            WHERE ma.mentor_user_id = ? OR u.mentor_id = ?
+            ORDER BY u.created_at DESC
+        `, [req.user.id, req.user.id]);
+        res.json(students);
+    } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// PATCH /api/mentor/student-status/:studentId — Update learner workflow status
+router.patch('/student-status/:studentId', auth, async (req, res) => {
+    try {
+        const { studentId } = req.params;
+        const { status } = req.body; // e.g., 'pending_roadmap', 'active'
+        const mentorId = req.user.id;
+        
+        if (!['awaiting_review', 'pending_roadmap', 'active'].includes(status)) {
+            return res.status(400).json({ error: 'Invalid status' });
+        }
+
+        // Set status and ensure mentor_id is set to the current mentor
+        await run('UPDATE users SET status = ?, mentor_id = ? WHERE id = ?', [status, mentorId, studentId]);
+        
+        res.json({ 
+            message: 'Status updated successfully', 
+            studentId, 
+            status,
+            mentor_id: mentorId 
+        });
+    } catch (e) { 
+        console.error('Status Update Error:', e.message);
+        res.status(500).json({ error: e.message || 'Database permission denied or network error' }); 
+    }
+});
+
 // POST /api/mentor/link
 router.post('/link', auth, async (req, res) => {
     const { mentor_id, student_id } = req.body;
@@ -85,11 +126,7 @@ router.get('/student-detail/:studentId', auth, async (req, res) => {
                 WHERE es.student_id = ?
                 ORDER BY es.submitted_at DESC
             `, [studentId]),
-            get(`
-                SELECT ma.id FROM users u 
-                LEFT JOIN mentor_assignments ma ON ma.student_id = u.id 
-                WHERE u.id = ? AND (u.mentor_id = ? OR ma.mentor_user_id = ?)
-            `, [studentId, mentorUserId, mentorUserId])
+            get('SELECT id FROM mentor_assignments WHERE student_id = ? AND mentor_user_id = ?', [studentId, mentorUserId])
         ]);
 
         if (!user) return res.status(404).json({ error: 'Student not found' });
@@ -143,12 +180,8 @@ router.post('/unified-review/:studentId', auth, async (req, res) => {
         const mentorUserId = req.user.id;
         const studentId = req.params.studentId;
 
-        // Verify connection exists (inclusive check)
-        const assignment = await get(`
-            SELECT 1 FROM users u 
-            LEFT JOIN mentor_assignments ma ON ma.student_id = u.id 
-            WHERE u.id = ? AND (u.mentor_id = ? OR ma.mentor_user_id = ?)
-        `, [studentId, mentorUserId, mentorUserId]);
+        // Verify connection exists
+        const assignment = await get('SELECT id FROM mentor_assignments WHERE student_id = ? AND mentor_user_id = ?', [studentId, mentorUserId]);
         if (!assignment) {
             return res.status(403).json({ error: 'You must connect with this student before submitting a review.' });
         }
@@ -189,10 +222,10 @@ router.post('/unified-review/:studentId', auth, async (req, res) => {
             }
         }
 
-        // 3. Delete all notifications for this student since the review is now complete
+        // 3. Mark all notifications for this student as claimed
         await run(
-            'DELETE FROM mentor_notifications WHERE student_id = ?',
-            [studentId]
+            'UPDATE mentor_notifications SET is_claimed = 1, claimed_by_mentor_id = ? WHERE student_id = ?',
+            [mentorUserId, studentId]
         ).catch(() => {});
 
         res.json({ 
@@ -233,40 +266,7 @@ router.get('/list', auth, async (req, res) => {
 
 // ─── PHASE 2: COMMAND CENTER ROUTES ───
 
-// GET /api/mentor/my-students — isolated to current mentor
-router.get('/my-students', auth, async (req, res) => {
-    try {
-        const mentorUserId = req.user.id; // Supabase UUID
-        const mentorEmail = req.user.email;
 
-        // Resolve legacy mentor ID if possible
-        const mentorProfile = await get('SELECT id FROM mentors WHERE email = ?', [mentorEmail]);
-        const legacyMentorId = mentorProfile ? mentorProfile.id : null;
-
-        console.log(`🔍 Dashboard Fetch | User: ${mentorUserId} | Email: ${mentorEmail} | LegacyID: ${legacyMentorId}`);
-
-        // Fetch students assigned to this mentor via any of the 3 possible links:
-        const students = await all(`
-            SELECT DISTINCT u.id, u.name, u.email, u.created_at, u.mentor_id as direct_mentor_id,
-                   ma.mentor_user_id, ma.mentor_id as legacy_mentor_id,
-                   COALESCE(ma.assigned_at, u.created_at) as assigned_at,
-                   EXISTS(SELECT 1 FROM roadmap r WHERE r.student_id = u.id) as has_roadmap
-            FROM users u
-            LEFT JOIN mentor_assignments ma ON ma.student_id = u.id
-            WHERE u.mentor_id = ? 
-               OR ma.mentor_user_id = ?
-               OR (ma.mentor_id IS NOT NULL AND ma.mentor_id = ?)
-            ORDER BY assigned_at DESC
-        `, [mentorUserId, mentorUserId, legacyMentorId]);
-
-        console.log(`✅ Dashboard Roster: Found ${students.length} students`);
-
-        res.json(students);
-    } catch (e) {
-        console.error('Fetch Students Error:', e.message);
-        res.status(500).json({ error: 'Failed to retrieve your student roster' });
-    }
-});
 
 // GET /api/mentor/my-assessments — filtered by mentor's assigned students
 router.get('/my-assessments', auth, async (req, res) => {
@@ -367,6 +367,11 @@ router.post('/courses', auth, async (req, res) => {
 // GET /api/mentor/notifications — get unclaimed or personal notifications
 router.get('/notifications', auth, async (req, res) => {
     try {
+        const mentorUserId = req.user.id;
+        // Also get the internal mentor profile ID to be safe
+        const mentorProfile = await get('SELECT id FROM mentors WHERE email = ?', [req.user.email]);
+        const mentorId = mentorProfile ? mentorProfile.id : null;
+
         const notifications = await all(`
             SELECT mn.id, mn.student_id, mn.trigger_type, mn.reference_id, mn.created_at,
                    u.name AS student_name, u.email AS student_email,
@@ -374,7 +379,15 @@ router.get('/notifications', auth, async (req, res) => {
                         WHEN mn.trigger_type = 'skills' THEN ss.goal
                         ELSE c.title
                    END AS reference_title,
-                   es.status AS submission_status
+                   es.status AS submission_status,
+                   (CASE 
+                        WHEN ma.mentor_user_id = ? 
+                          OR (ma.mentor_id IS NOT NULL AND ma.mentor_id = ?)
+                          OR u.mentor_id = ? 
+                          OR (u.mentor_id IS NOT NULL AND u.mentor_id = ?)
+                        THEN 1 ELSE 0 
+                    END) as is_connected_to_me,
+                   ma.mentor_user_id as claimed_by_uid
             FROM mentor_notifications mn
             JOIN users u ON u.id = mn.student_id
             LEFT JOIN mentor_assignments ma ON ma.student_id = u.id
@@ -382,10 +395,20 @@ router.get('/notifications', auth, async (req, res) => {
             LEFT JOIN exams e ON e.id = es.exam_id
             LEFT JOIN courses c ON c.id = mn.reference_id AND mn.trigger_type = 'course'
             LEFT JOIN student_skills ss ON ss.id = mn.reference_id AND mn.trigger_type = 'skills'
-            WHERE (mn.is_claimed = 0 AND ma.id IS NULL) 
-               OR (mn.is_claimed = 1 AND mn.claimed_by_mentor_id = ?)
+            WHERE mn.is_claimed = 0 
+              AND u.status = 'awaiting_review'
+              AND (
+                ma.id IS NULL 
+                OR ma.mentor_user_id = ? 
+                OR (ma.mentor_id IS NOT NULL AND ma.mentor_id = ?)
+                OR u.mentor_id = ?
+                OR (u.mentor_id IS NOT NULL AND u.mentor_id = ?)
+              )
             ORDER BY mn.created_at DESC
-        `, [req.user.id]);
+        `, [
+            mentorUserId, mentorId, mentorUserId, mentorId, // For CASE
+            mentorUserId, mentorId, mentorUserId, mentorId  // For WHERE
+        ]);
         res.json(notifications);
     } catch (e) { res.status(500).json({ error: e.message }); }
 });
@@ -393,13 +416,27 @@ router.get('/notifications', auth, async (req, res) => {
 // GET /api/mentor/notification-count — badge count of unclaimed or personal notifications
 router.get('/notification-count', auth, async (req, res) => {
     try {
+        const mentorUserId = req.user.id;
+        const mentorProfile = await get('SELECT id FROM mentors WHERE email = ?', [req.user.email]);
+        const mentorId = mentorProfile ? mentorProfile.id : null;
+
         const row = await get(`
             SELECT COUNT(DISTINCT mn.student_id) as count 
             FROM mentor_notifications mn
-            LEFT JOIN mentor_assignments ma ON ma.student_id = mn.student_id
-            WHERE (mn.is_claimed = 0 AND ma.id IS NULL) 
-               OR (mn.is_claimed = 1 AND mn.claimed_by_mentor_id = ?)
-        `, [req.user.id]);
+            JOIN users u ON u.id = mn.student_id
+            LEFT JOIN mentor_assignments ma ON ma.student_id = u.id
+            WHERE mn.is_claimed = 0 
+              AND u.status = 'awaiting_review'
+              AND (
+                ma.id IS NULL 
+                OR ma.mentor_user_id = ? 
+                OR (ma.mentor_id IS NOT NULL AND ma.mentor_id = ?)
+                OR u.mentor_id = ?
+                OR (u.mentor_id IS NOT NULL AND u.mentor_id = ?)
+              )
+        `, [
+            mentorUserId, mentorId, mentorUserId, mentorId
+        ]);
         res.json({ count: row ? row.count : 0 });
     } catch (e) { res.status(500).json({ error: e.message }); }
 });
@@ -428,8 +465,11 @@ router.post('/connect/:studentId', auth, async (req, res) => {
         const mentorId = mentorProfile.id;
 
         // Check if student is already connected to ANY mentor
-        const existing = await get('SELECT id FROM mentor_assignments WHERE student_id = ?', [studentId]);
+        const existing = await get('SELECT mentor_user_id FROM mentor_assignments WHERE student_id = ?', [studentId]);
         if (existing) {
+            if (existing.mentor_user_id === mentorUserId) {
+                return res.json({ message: 'Already connected to student', studentId });
+            }
             return res.status(409).json({ error: 'Student already connected to another mentor' });
         }
 

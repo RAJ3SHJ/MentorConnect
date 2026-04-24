@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import {
-    View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, TextInput, Alert, Platform,
+    View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, TextInput, Alert, Platform, SafeAreaView
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -141,11 +141,12 @@ export default function AlertDetailScreen({ route, navigation }) {
     ];
 
     return (
-        <LinearGradient colors={gradients.bg} style={s.container}>
-            <View style={[s.header, { paddingTop: insets.top + 12 }]}>
-                <TouchableOpacity onPress={() => navigation.navigate('Notifications')}>
-                    <Text style={[s.back, { color: colors.muted }]}>← Back</Text>
-                </TouchableOpacity>
+        <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }}>
+            <LinearGradient colors={gradients.bg} style={s.container}>
+                <View style={[s.header, { paddingTop: 12 }]}>
+                    <TouchableOpacity onPress={() => navigation.navigate('Notifications', { screen: 'NotificationFeed' })}>
+                        <Text style={[s.back, { color: colors.muted }]}>← Back</Text>
+                    </TouchableOpacity>
                 <View style={s.profileRow}>
                     <View style={[s.avatar, { backgroundColor: colors.blue + '20' }]}>
                         <Text style={{ fontSize: 24 }}>👤</Text>
@@ -281,13 +282,20 @@ export default function AlertDetailScreen({ route, navigation }) {
                                         onPress={async () => {
                                             try {
                                                 setSaving(true);
-                                                await api.patch(`/api/mentor/student-status/${studentId}`, { status: 'pending_roadmap' });
-                                                navigation.navigate('Dashboard');
-                                                if (navigation.canGoBack()) {
-                                                    navigation.popToTop();
+                                                const response = await api.patch(`/api/mentor/student-status/${studentId}`, { status: 'pending_roadmap' });
+                                                
+                                                if (response.data?.status === 'pending_roadmap') {
+                                                    toast.show('✅ Status updated! Student moved to Dashboard.', 'success');
+                                                    navigation.navigate('Dashboard');
+                                                } else {
+                                                    throw new Error('Unexpected server response');
                                                 }
                                             } catch (e) {
-                                                toast.show('Failed to update status', 'error');
+                                                const errorMsg = e.response?.data?.error || e.message;
+                                                const finalMsg = errorMsg.includes('Permission') ? '🚫 Permission Denied: Only assigned mentors can update.' 
+                                                               : errorMsg.includes('network') ? '🌐 Network Error: Please check your connection.'
+                                                               : '❌ Database write failed. Please try again.';
+                                                toast.show(finalMsg, 'error');
                                             } finally {
                                                 setSaving(false);
                                             }
