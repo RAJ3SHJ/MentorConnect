@@ -495,9 +495,10 @@ router.post('/connect/:studentId', auth, async (req, res) => {
         );
 
         await run('UPDATE users SET mentor_id = ? WHERE id = ?', [mentorUserId, studentId]);
-
+        // Mark notifications as owned by this mentor but DON'T hide them yet.
+        // They should remain visible until the mentor completes review + assigns roadmap.
         await run(
-            'UPDATE mentor_notifications SET is_claimed = 1, claimed_by_mentor_id = ? WHERE student_id = ?',
+            'UPDATE mentor_notifications SET claimed_by_mentor_id = ? WHERE student_id = ? AND is_claimed = 0',
             [mentorUserId, studentId]
         );
 

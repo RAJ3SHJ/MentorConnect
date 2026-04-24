@@ -124,6 +124,14 @@ async function runTest() {
         });
         assert(res.status === 200, 'Connected with learner');
 
+        // CRITICAL: Verify learner is STILL in alerts after connect
+        res = await client.get('/api/mentor/notifications', {
+            headers: { Authorization: `Bearer ${mentorToken}` }
+        });
+        const postConnectAlerts = res.data;
+        const stillVisible = postConnectAlerts.find(a => a.student_id === learnerId);
+        assert(!!stillVisible, '🔑 Learner STILL visible in alerts after Connect (not vanished)');
+
         // ─── STEP 6: PROVIDE FEEDBACK (Unified Review) ───
         console.log('\n─── STEP 6: Provide Mentor Feedback ───');
         res = await client.post(`/api/mentor/unified-review/${learnerId}`, {
