@@ -422,7 +422,8 @@ export default function MentorDashboardScreen({ navigation }) {
                     <ActivityIndicator size="large" color={C.primary} />
                 </View>
             )}
-        </View>
+            </View>
+        </SafeAreaView>
     );
 }
 

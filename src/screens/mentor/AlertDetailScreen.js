@@ -370,6 +370,7 @@ export default function AlertDetailScreen({ route, navigation }) {
                 </View>
             </ScrollView>
         </LinearGradient>
+        </SafeAreaView>
     );
 }
 
