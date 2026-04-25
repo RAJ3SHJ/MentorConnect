@@ -104,7 +104,7 @@ export default function MentorDashboardScreen({ navigation }) {
 
     return (
         <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }}>
-            <View style={s.container}>
+            <View style={s.root}>
             <ScrollView 
                 style={{ flex: 1 }}
                 contentContainerStyle={{ padding: 20 }}
